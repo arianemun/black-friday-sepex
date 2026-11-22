@@ -66,7 +66,7 @@ export function TrackForm({ initialCode }: { initialCode: string }) {
 
       {result && (
         <section className="mt-6 border-2 border-ink bg-white" aria-live="polite">
-          <div className="stripes-yellow h-2" aria-hidden />
+          <div className="h-1.5 bg-brand" aria-hidden />
           <div className="p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p dir="ltr" className="text-xl font-black">{result.trackingCode}</p>

@@ -24,13 +24,13 @@ export function LinkStarter({ placeholder, submit }: { placeholder: string; subm
   }
 
   return (
-    <form onSubmit={go} className="w-full" noValidate>
+    <form onSubmit={go} className="w-full text-start" noValidate>
       <label htmlFor="hero-link" className="sr-only">
         {placeholder}
       </label>
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="flex flex-col gap-2 border border-white/15 bg-white/[0.06] p-2 shadow-[0_20px_80px_-20px_rgb(255_203_5/0.35)] backdrop-blur-sm transition-colors focus-within:border-brand/70 sm:flex-row">
         <div className="relative flex-1">
-          <Link2 className="pointer-events-none absolute right-3.5 top-1/2 size-5 -translate-y-1/2 text-ink/50" aria-hidden />
+          <Link2 className="pointer-events-none absolute right-3.5 top-1/2 size-5 -translate-y-1/2 text-white/40" aria-hidden />
           <input
             id="hero-link"
             inputMode="url"
@@ -44,18 +44,18 @@ export function LinkStarter({ placeholder, submit }: { placeholder: string; subm
             placeholder={placeholder}
             aria-invalid={!!error}
             aria-describedby="hero-link-hint"
-            className="h-14 w-full border-2 border-ink bg-white pl-3 pr-11 text-base text-ink outline-none placeholder:text-ink/45 focus-visible:ring-4 focus-visible:ring-ink/20"
+            className="h-13 w-full bg-transparent pl-3 pr-11 text-base text-white outline-none placeholder:text-white/40"
           />
         </div>
         <button
           type="submit"
-          className="chamfer-sm inline-flex h-14 items-center justify-center gap-2 bg-ink px-6 text-base font-bold text-brand transition-colors hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          className="chamfer-sm inline-flex h-13 items-center justify-center gap-2 bg-brand px-6 text-base font-black text-ink transition-colors hover:bg-[#ffd633] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
         >
           {submit}
           <ArrowLeft className="size-5" aria-hidden />
         </button>
       </div>
-      <p id="hero-link-hint" className={cn("mt-2 min-h-5 text-sm", error ? "font-semibold text-red-800" : "text-ink/70")}>
+      <p id="hero-link-hint" className={cn("mt-2.5 min-h-5 text-center text-sm", error ? "font-semibold text-red-300" : "text-white/50")}>
         {error ??
           (store
             ? `فروشگاه: ${store.name} (${countryName(store.country)})`

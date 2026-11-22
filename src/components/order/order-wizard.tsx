@@ -785,7 +785,7 @@ function Done({ code, onNew }: { code: string; onNew: () => void }) {
       <h1 id="done-title" className="mt-6 text-2xl font-black sm:text-3xl">درخواست شما ثبت شد</h1>
       <p className="mx-auto mt-3 max-w-md leading-8 text-ink/65">کارشناس سپکس به‌زودی با شماره‌ی شما تماس می‌گیرد. کد پیگیری برایتان پیامک هم می‌شود.</p>
       <div className="mx-auto mt-8 max-w-sm border-2 border-ink bg-white">
-        <div className="stripes-yellow h-2" aria-hidden />
+        <div className="h-1.5 bg-brand" aria-hidden />
         <div className="p-5">
           <p className="text-sm text-ink/60">کد پیگیری</p>
           <p dir="ltr" className="mt-1 text-4xl font-black tracking-wider">{code}</p>

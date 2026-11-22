@@ -1,4 +1,4 @@
-import { Hero } from "@/components/landing/hero";
+import { Hero, Ticker } from "@/components/landing/hero";
 import { Deals } from "@/components/landing/deals";
 import { About, Faq, FinalCta, HowItWorks, Paths, Stores } from "@/components/landing/sections";
 import { StickyCta } from "@/components/landing/sticky-cta";
@@ -47,13 +47,14 @@ export default function HomePage() {
       <SiteHeader />
       <main>
         <Hero countdownTarget={countdown.target} countdownLabel={countdown.label} />
+        <Ticker />
         {products.length > 0 && (
-          <section id="deals" className="scroll-mt-4 bg-white py-16 text-ink sm:py-24" aria-labelledby="deals-title">
+          <section id="deals" className="scroll-mt-4 bg-[#0b0b0b] py-20 text-white sm:py-28" aria-labelledby="deals-title">
             <div className="mx-auto max-w-7xl px-4 sm:px-6">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div className="max-w-2xl">
-                  <h2 id="deals-title" className="text-3xl font-black leading-tight sm:text-4xl">پیشنهادهای بلک‌فرایدی</h2>
-                  <p className="mt-3 leading-8 text-ink/65">
+                  <h2 id="deals-title" className="text-3xl font-black leading-tight sm:text-[2.6rem]">پیشنهادهای بلک‌فرایدی</h2>
+                  <p className="mt-3 leading-8 text-white/55">
                     چند کالای منتخب از فروشگاه‌های خارجی. قیمت‌ها قیمت خود فروشگاه‌اند و ممکن است تغییر کنند؛ قیمت نهایی را کارشناس اعلام می‌کند.
                   </p>
                 </div>

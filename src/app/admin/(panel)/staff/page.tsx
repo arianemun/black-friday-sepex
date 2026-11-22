@@ -11,8 +11,8 @@ export default async function StaffPage() {
   const mode = getSettings().notify_mode;
   return (
     <div>
-      <h1 className="text-2xl font-black">کارشناس‌ها</h1>
-      <p className="mt-1 text-sm text-zinc-500">
+      <h1 className="text-2xl font-bold">کارشناس‌ها</h1>
+      <p className="mt-1 text-sm text-gray-500">
         کارشناس‌هایی که «پیامک درخواست جدید» برایشان روشن است، با هر درخواست جدید پیامک می‌گیرند
         {mode === "round_robin" ? " (به نوبت؛ هر درخواست به یک نفر)." : " (همه با هم)."} حالت را در تنظیمات عوض کنید.
       </p>

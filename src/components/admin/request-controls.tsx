@@ -12,7 +12,7 @@ export function RequestControls({ requestId, status, assignedTo, meId, staff }: 
   return (
     <div className={cn("flex flex-col gap-4", pending && "opacity-70")}>
       <div>
-        <h2 className="mb-2 font-black">وضعیت</h2>
+        <h2 className="mb-2 font-bold">وضعیت</h2>
         <div className="grid grid-cols-2 gap-1.5">
           {statuses.map((s) => (
             <button
@@ -24,8 +24,8 @@ export function RequestControls({ requestId, status, assignedTo, meId, staff }: 
                 toast.success(`وضعیت: ${s.name}`);
               })}
               className={cn(
-                "border px-2 py-2 text-sm font-semibold",
-                status === s.key ? "border-zinc-900 bg-zinc-900 text-brand" : "border-zinc-200 hover:border-zinc-500"
+                "rounded-lg border px-2 py-2 text-sm font-semibold transition-colors",
+                status === s.key ? "border-blue-600 bg-blue-600 text-white" : "border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50"
               )}
             >
               {s.name}
@@ -34,7 +34,7 @@ export function RequestControls({ requestId, status, assignedTo, meId, staff }: 
         </div>
       </div>
       <div>
-        <h2 className="mb-2 font-black">کارشناس</h2>
+        <h2 className="mb-2 font-bold">کارشناس</h2>
         {assignedTo !== meId && (
           <button
             type="button"
@@ -43,7 +43,7 @@ export function RequestControls({ requestId, status, assignedTo, meId, staff }: 
               await assignAction(requestId, meId);
               toast.success("درخواست برای شما شد.");
             })}
-            className="mb-2 h-10 w-full bg-brand text-sm font-bold text-ink hover:bg-brand-deep"
+            className="mb-2 h-10 w-full rounded-lg bg-emerald-600 text-sm font-bold text-white hover:bg-emerald-700"
           >
             برمی‌دارم
           </button>
@@ -52,7 +52,7 @@ export function RequestControls({ requestId, status, assignedTo, meId, staff }: 
           value={assignedTo ?? ""}
           disabled={pending}
           onChange={(e) => start(() => assignAction(requestId, e.target.value ? Number(e.target.value) : null))}
-          className="h-10 w-full border border-zinc-300 bg-white px-2 text-sm"
+          className="h-10 w-full rounded-lg border border-gray-300 bg-white px-2 text-sm"
           aria-label="کارشناس مسئول"
         >
           <option value="">بدون کارشناس</option>
@@ -73,9 +73,9 @@ export function NoteForm({ requestId }: { requestId: number }) {
   }, [state]);
   return (
     <form ref={ref} action={action} className="mt-3 flex flex-col gap-2">
-      <textarea name="body" rows={3} maxLength={2000} placeholder="نتیجه‌ی تماس، قیمت اعلام‌شده، …" className="w-full border border-zinc-300 p-2 text-sm outline-none focus:border-zinc-900" />
+      <textarea name="body" rows={3} maxLength={2000} placeholder="نتیجه‌ی تماس، قیمت اعلام‌شده، …" className="w-full rounded-lg border border-gray-300 p-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
       {state?.error && <p className="text-xs font-semibold text-destructive">{state.error}</p>}
-      <button disabled={pending} className="flex h-9 items-center justify-center gap-2 bg-zinc-900 text-sm font-semibold text-white disabled:opacity-60">
+      <button disabled={pending} className="flex h-9 items-center justify-center gap-2 rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
         {pending && <Loader2 className="size-4 animate-spin" />} افزودن یادداشت
       </button>
     </form>
@@ -89,7 +89,7 @@ export function RefetchButton({ requestId }: { requestId: number }) {
       type="button"
       disabled={pending}
       onClick={() => start(() => refetchLinksAction(requestId))}
-      className="inline-flex w-fit items-center gap-2 text-sm text-zinc-500 hover:text-zinc-900"
+      className="inline-flex w-fit items-center gap-2 text-sm text-gray-500 hover:text-gray-900"
     >
       <RefreshCw className={cn("size-4", pending && "animate-spin")} /> خواندن دوباره‌ی اطلاعات لینک‌ها
     </button>

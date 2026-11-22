@@ -28,7 +28,7 @@ const fromRow = (p: P): Form => ({
   image_url: "",
 });
 
-const inputCls = "h-10 w-full border border-zinc-300 bg-white px-3 text-sm outline-none focus:border-zinc-900";
+const inputCls = "h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
 
 export function ProductManager({ products }: { products: P[] }) {
   const [form, setForm] = useState<Form>(empty);
@@ -74,11 +74,11 @@ export function ProductManager({ products }: { products: P[] }) {
 
   return (
     <div className="mt-6 grid gap-6 lg:grid-cols-[24rem_1fr]">
-      <section className="h-fit border border-zinc-200 bg-white p-4 lg:sticky lg:top-20">
-        <h2 className="font-black">{form.id ? "ویرایش کالا" : "افزودن کالا"}</h2>
+      <section className="h-fit rounded-xl border border-gray-200 bg-white shadow-sm p-4 lg:sticky lg:top-20">
+        <h2 className="font-bold">{form.id ? "ویرایش کالا" : "افزودن کالا"}</h2>
         <form action={fetchAction} className="mt-3 flex gap-2">
           <input name="url" dir="ltr" value={form.url} onChange={set("url")} placeholder="https://" className={cn(inputCls, "text-left")} aria-label="لینک کالا" />
-          <button disabled={fetching || !form.url} className="flex h-10 shrink-0 items-center gap-1.5 bg-brand px-3 text-sm font-bold text-ink disabled:opacity-50" title="خواندن خودکار اطلاعات">
+          <button disabled={fetching || !form.url} className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-50" title="خواندن خودکار اطلاعات">
             {fetching ? <Loader2 className="size-4 animate-spin" /> : <Wand2 className="size-4" />} خواندن
           </button>
         </form>
@@ -139,19 +139,19 @@ export function ProductManager({ products }: { products: P[] }) {
           </div>
           <label className="grid gap-1 text-xs font-semibold">
             تصویر {preview ? "(از لینک خوانده شد؛ برای تعویض فایل بدهید)" : "(اختیاری)"}
-            <input name="image" type="file" accept="image/jpeg,image/png,image/webp" className="text-xs file:ml-2 file:border-0 file:bg-zinc-900 file:px-3 file:py-2 file:text-white" />
+            <input name="image" type="file" accept="image/jpeg,image/png,image/webp" className="text-xs file:ml-2 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-white" />
           </label>
           {preview && (
             // eslint-disable-next-line @next/next/no-img-element -- remote preview before saving
-            <img src={preview} alt="" referrerPolicy="no-referrer" className="h-32 w-full border border-zinc-200 object-contain" />
+            <img src={preview} alt="" referrerPolicy="no-referrer" className="h-32 w-full rounded-lg border border-gray-200 object-contain" />
           )}
           <div className="flex gap-2">
-            <button disabled={saving || !form.url} className="flex h-10 flex-1 items-center justify-center gap-2 bg-zinc-900 text-sm font-bold text-white disabled:opacity-50">
+            <button disabled={saving || !form.url} className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50">
               {saving && <Loader2 className="size-4 animate-spin" />}
               {form.id ? "ذخیره‌ی تغییرات" : "افزودن به لندینگ"}
             </button>
             {form.id && (
-              <button type="button" onClick={() => { setForm(empty); setPreview(null); }} className="h-10 border border-zinc-300 px-3 text-sm">
+              <button type="button" onClick={() => { setForm(empty); setPreview(null); }} className="h-10 rounded-lg border border-gray-300 px-3 text-sm hover:bg-gray-50">
                 انصراف
               </button>
             )}
@@ -161,14 +161,14 @@ export function ProductManager({ products }: { products: P[] }) {
 
       <section>
         {products.length === 0 ? (
-          <div className="border border-dashed border-zinc-300 bg-white p-10 text-center text-sm text-zinc-500">
+          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center text-sm text-gray-500">
             هنوز کالایی اضافه نشده. تا وقتی کالای فعالی نباشد، بخش پیشنهادها روی لندینگ نمایش داده نمی‌شود.
           </div>
         ) : (
-          <ul className={cn("divide-y divide-zinc-200 border border-zinc-200 bg-white", pending && "opacity-70")}>
+          <ul className={cn("divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm", pending && "opacity-70")}>
             {products.map((p) => (
               <li key={p.id} className="flex items-center gap-3 p-3">
-                <div className="size-16 shrink-0 border border-zinc-200 bg-white">
+                <div className="size-16 shrink-0 rounded-xl border border-gray-200 bg-white shadow-sm">
                   {p.image && (
                     // eslint-disable-next-line @next/next/no-img-element -- our own /media route
                     <img src={p.image} alt="" className="size-full object-contain" />
@@ -176,17 +176,17 @@ export function ProductManager({ products }: { products: P[] }) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p dir="auto" className="truncate text-sm font-semibold">{p.title}</p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-gray-500">
                     {storeByKey(p.store_key)?.name ?? "فروشگاه"}، {countryName(p.country)}، {categoryName(p.category)}
                     {p.discount_percent ? `، ٪${toFaDigits(p.discount_percent)}` : ""}
                     {p.source === "sample" && <span className="mr-1 bg-amber-100 px-1 text-amber-800">نمونه</span>}
                   </p>
                 </div>
                 <label className="flex shrink-0 items-center gap-1.5 text-xs">
-                  <input type="checkbox" checked={!!p.active} onChange={(e) => start(() => toggleProductAction(p.id, e.target.checked))} className="size-4 accent-zinc-900" />
+                  <input type="checkbox" checked={!!p.active} onChange={(e) => start(() => toggleProductAction(p.id, e.target.checked))} className="size-4 accent-blue-600" />
                   فعال
                 </label>
-                <button type="button" onClick={() => { setForm(fromRow(p)); setPreview(p.image); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex size-9 shrink-0 items-center justify-center text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900" aria-label="ویرایش">
+                <button type="button" onClick={() => { setForm(fromRow(p)); setPreview(p.image); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex size-9 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900" aria-label="ویرایش">
                   <Pencil className="size-4" />
                 </button>
                 <button
@@ -194,7 +194,7 @@ export function ProductManager({ products }: { products: P[] }) {
                   onClick={() => {
                     if (confirm(`«${p.title}» حذف شود؟`)) start(() => deleteProductAction(p.id));
                   }}
-                  className="flex size-9 shrink-0 items-center justify-center text-zinc-500 hover:bg-red-50 hover:text-red-700"
+                  className="flex size-9 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-700"
                   aria-label="حذف"
                 >
                   <Trash2 className="size-4" />

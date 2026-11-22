@@ -24,11 +24,11 @@ export default async function SettingsPage() {
   };
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-black">تنظیمات</h1>
+      <h1 className="text-2xl font-bold">تنظیمات</h1>
       <SettingsForm settings={{ ...s, countdown_target: toTehranLocal(s.countdown_target), campaign_end: toTehranLocal(s.campaign_end) }} />
-      <section className="mt-6 border border-zinc-200 bg-white p-4 text-sm">
-        <h2 className="font-black">وضعیت سرویس‌ها</h2>
-        <p className="mt-1 text-xs text-zinc-500">این موارد از فایل ‎.env سرور خوانده می‌شوند.</p>
+      <section className="mt-6 rounded-xl border border-gray-200 bg-white shadow-sm p-4 text-sm">
+        <h2 className="font-bold">وضعیت سرویس‌ها</h2>
+        <p className="mt-1 text-xs text-gray-500">این موارد از فایل ‎.env سرور خوانده می‌شوند.</p>
         <ul className="mt-3 space-y-1.5">
           {[
             ["ارسال پیامک (SMS.ir)", env.smsLive, "فعال", "شبیه‌سازی؛ پیامکی ارسال نمی‌شود"],
