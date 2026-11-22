@@ -72,12 +72,12 @@ export function FilePicker({
       <p className="mb-2 text-sm font-semibold">{label}</p>
       <div className="flex flex-wrap gap-2">
         {value.map((f) => (
-          <div key={f.id} className="relative size-20 overflow-hidden border border-ink/15 bg-white">
+          <div key={f.id} className="relative size-20 overflow-hidden border border-white/15 bg-[#121212]">
             {f.preview ? (
               // eslint-disable-next-line @next/next/no-img-element -- local object URL preview
               <img src={f.preview} alt={f.name} className="size-full object-cover" />
             ) : (
-              <div className="flex size-full flex-col items-center justify-center gap-1 p-1 text-ink/60">
+              <div className="flex size-full flex-col items-center justify-center gap-1 p-1 text-white/60">
                 <FileText className="size-6" />
                 <span className="w-full truncate text-center text-[10px]" dir="ltr">{f.name}</span>
               </div>
@@ -85,7 +85,7 @@ export function FilePicker({
             <button
               type="button"
               onClick={() => onChange(value.filter((x) => x.id !== f.id))}
-              className="absolute left-0 top-0 flex size-6 items-center justify-center bg-ink text-white"
+              className="absolute left-0 top-0 flex size-6 items-center justify-center bg-black/80 text-white"
               aria-label={`حذف ${f.name}`}
             >
               <X className="size-3.5" />
@@ -93,8 +93,8 @@ export function FilePicker({
           </div>
         ))}
         {Array.from({ length: busy }).map((_, i) => (
-          <div key={`busy-${i}`} className="flex size-20 items-center justify-center border border-dashed border-ink/25 bg-white">
-            <Loader2 className="size-5 animate-spin text-ink/50" />
+          <div key={`busy-${i}`} className="flex size-20 items-center justify-center border border-dashed border-white/25 bg-[#121212]">
+            <Loader2 className="size-5 animate-spin text-white/50" />
           </div>
         ))}
         {value.length + busy < max && (
@@ -102,8 +102,8 @@ export function FilePicker({
             type="button"
             onClick={() => input.current?.click()}
             className={cn(
-              "flex size-20 flex-col items-center justify-center gap-1 border-2 border-dashed bg-white text-xs font-semibold text-ink/70 transition-colors hover:border-ink hover:text-ink",
-              invalid ? "border-destructive" : "border-ink/25"
+              "flex size-20 flex-col items-center justify-center gap-1 border-2 border-dashed bg-[#121212] text-xs font-semibold text-white/70 transition-colors hover:border-white/60 hover:text-white",
+              invalid ? "border-destructive" : "border-white/25"
             )}
           >
             <ImagePlus className="size-6" />
@@ -112,7 +112,7 @@ export function FilePicker({
         )}
       </div>
       <input ref={input} type="file" accept={ACCEPT} multiple hidden onChange={(e) => onFiles(e.target.files)} />
-      <p className={cn("mt-2 text-xs", error ? "font-semibold text-destructive" : "text-ink/55")}>{error ?? hint}</p>
+      <p className={cn("mt-2 text-xs", error ? "font-semibold text-destructive" : "text-white/55")}>{error ?? hint}</p>
     </div>
   );
 }

@@ -9,6 +9,9 @@ import { toIntlMobile } from "@/lib/phone";
 import { mediaUrl } from "@/lib/uploads";
 import { formatFaDateTime, toFaDigits } from "@/lib/utils";
 import { RequestControls, NoteForm, RefetchButton } from "@/components/admin/request-controls";
+import { Button } from "@/components/admin-ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/admin-ui/card";
+import { StatusBadge } from "@/components/admin/status-badge";
 
 export const metadata = { title: "جزئیات درخواست" };
 
@@ -41,130 +44,141 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const honorific = r.gender === "female" ? "خانم" : "آقای";
 
   return (
-    <div>
-      <Link href="/admin" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900">
+    <div className="space-y-4 md:space-y-6">
+      <Link href="/admin" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowRight className="size-4" /> درخواست‌ها
       </Link>
-      <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">
-            {honorific} {r.first_name} {r.last_name}
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            <span dir="ltr" className="font-mono font-bold text-gray-900">{r.tracking_code}</span>، {methods[r.method].title}، {formatFaDateTime(r.created_at)}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <a href={`tel:${r.phone}`} className="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700">
-            <Phone className="size-4" /> <span dir="ltr">{r.phone}</span>
-          </a>
-          <a href={`https://wa.me/${intl}`} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 text-sm font-semibold hover:bg-gray-50">
-            <MessageCircle className="size-4" /> واتس‌اپ
-          </a>
-          <a href={`https://t.me/+${intl}`} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 text-sm font-semibold hover:bg-gray-50">
-            <Send className="size-4" /> تلگرام
-          </a>
-        </div>
-      </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_22rem]">
+      <Card>
+        <CardHeader className="p-4 md:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <CardTitle className="flex flex-wrap items-center gap-2 text-lg md:text-xl">
+                {honorific} {r.first_name} {r.last_name}
+                <StatusBadge status={r.status} />
+              </CardTitle>
+              <p className="mt-1.5 text-xs text-muted-foreground md:text-sm">
+                <span dir="ltr" className="font-mono font-bold text-foreground">{r.tracking_code}</span>، {methods[r.method].title}، {formatFaDateTime(r.created_at)}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild className="bg-blue-600 hover:bg-blue-700">
+                <a href={`tel:${r.phone}`}>
+                  <Phone className="ml-1.5 h-4 w-4" /> <span dir="ltr">{r.phone}</span>
+                </a>
+              </Button>
+              <Button asChild variant="outline">
+                <a href={`https://wa.me/${intl}`} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle className="ml-1.5 h-4 w-4 text-green-600" /> واتس‌اپ
+                </a>
+              </Button>
+              <Button asChild variant="outline">
+                <a href={`https://t.me/+${intl}`} target="_blank" rel="noopener noreferrer">
+                  <Send className="ml-1.5 h-4 w-4 text-sky-600" /> تلگرام
+                </a>
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="flex flex-col gap-4">
           {items.map((it, i) => {
             const store = storeByKey(it.store_key);
             const itemFiles = files.filter((f) => f.request_item_id === it.id);
             return (
-              <section key={it.id} className="rounded-xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5">
-                <div className="flex items-center justify-between gap-2">
-                  <h2 className="font-bold">کالای {toFaDigits(i + 1)}</h2>
-                  <span className="text-sm text-gray-500">تعداد: {toFaDigits(it.quantity)}</span>
-                </div>
-                <div className="mt-3 flex gap-4">
-                  {it.meta_image && (
-                    // eslint-disable-next-line @next/next/no-img-element -- remote store image, shown to staff only
-                    <img src={it.meta_image} alt="" referrerPolicy="no-referrer" className="size-24 shrink-0 rounded-lg border border-gray-200 object-contain" />
-                  )}
-                  <dl className="grid min-w-0 flex-1 gap-1.5 text-sm">
-                    {it.url && (
-                      <div>
-                        <dt className="sr-only">لینک</dt>
+              <Card key={it.id}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2 md:p-6 md:pb-2">
+                  <CardTitle className="text-base">کالای {toFaDigits(i + 1)}</CardTitle>
+                  <span className="text-sm text-muted-foreground">تعداد: {toFaDigits(it.quantity)}</span>
+                </CardHeader>
+                <CardContent className="p-4 pt-2 md:p-6 md:pt-2">
+                  <div className="flex gap-4">
+                    {it.meta_image && (
+                      // eslint-disable-next-line @next/next/no-img-element -- remote store image, shown to staff only
+                      <img src={it.meta_image} alt="" referrerPolicy="no-referrer" className="size-24 shrink-0 rounded-lg border object-contain" />
+                    )}
+                    <dl className="grid min-w-0 flex-1 gap-1.5 text-sm">
+                      {it.url && (
                         <dd>
-                          <a href={it.url} target="_blank" rel="noopener noreferrer nofollow" dir="ltr" className="inline-flex max-w-full items-center gap-1 break-all text-left font-semibold text-blue-700 hover:underline">
+                          <a href={it.url} target="_blank" rel="noopener noreferrer nofollow" dir="ltr" className="inline-flex max-w-full items-center gap-1 break-all text-left font-medium text-blue-700 hover:underline">
                             <ExternalLink className="size-3.5 shrink-0" />
                             <span className="line-clamp-2">{it.url}</span>
                           </a>
                         </dd>
-                      </div>
-                    )}
-                    {(store || it.origin_country) && (
-                      <div className="text-gray-600">
-                        {store ? `${store.name}، ` : ""}{countryName(it.origin_country)}
-                      </div>
-                    )}
-                    {it.meta_title && <div dir="auto" className="font-semibold">{it.meta_title}</div>}
-                    {it.meta_price && <div dir="ltr" className="text-right text-gray-700">{it.meta_price} {it.meta_currency}</div>}
-                    {it.url && it.meta_status === "failed" && <div className="text-xs text-amber-700">اطلاعات لینک خودکار خوانده نشد؛ لینک را باز کنید.</div>}
-                    {it.url && it.meta_status === "pending" && <div className="text-xs text-gray-500">در حال خواندن اطلاعات لینک…</div>}
-                    {it.title && <div><span className="text-gray-500">نام/نوع کالا: </span>{it.title}</div>}
-                    {it.weight && <div><span className="text-gray-500">وزن/حجم: </span>{it.weight}</div>}
-                    {it.description && <div className="whitespace-pre-line"><span className="text-gray-500">توضیحات: </span>{it.description}</div>}
-                  </dl>
-                </div>
-                {itemFiles.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {itemFiles.map((f) => (
-                      <a key={f.id} href={mediaUrl(f.id)!} target="_blank" rel="noopener" className="block size-28 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 hover:border-blue-400">
-                        {f.mime === "application/pdf" ? (
-                          <span className="flex size-full flex-col items-center justify-center gap-1 text-xs text-gray-600"><FileText className="size-7" /> PDF</span>
-                        ) : (
-                          // eslint-disable-next-line @next/next/no-img-element -- private upload via authenticated /media route
-                          <img src={mediaUrl(f.id)!} alt="" className="size-full object-cover" />
-                        )}
-                      </a>
-                    ))}
+                      )}
+                      {(store || it.origin_country) && (
+                        <dd className="text-muted-foreground">
+                          {store ? `${store.name}، ` : ""}{countryName(it.origin_country)}
+                        </dd>
+                      )}
+                      {it.meta_title && <dd dir="auto" className="font-medium">{it.meta_title}</dd>}
+                      {it.meta_price && <dd dir="ltr" className="text-right">{it.meta_price} {it.meta_currency}</dd>}
+                      {it.url && it.meta_status === "failed" && <dd className="text-xs text-amber-700">اطلاعات لینک خودکار خوانده نشد؛ لینک را باز کنید.</dd>}
+                      {it.url && it.meta_status === "pending" && <dd className="text-xs text-muted-foreground">در حال خواندن اطلاعات لینک…</dd>}
+                      {it.title && <dd><span className="text-muted-foreground">نام/نوع کالا: </span>{it.title}</dd>}
+                      {it.weight && <dd><span className="text-muted-foreground">وزن/حجم: </span>{it.weight}</dd>}
+                      {it.description && <dd className="whitespace-pre-line"><span className="text-muted-foreground">توضیحات: </span>{it.description}</dd>}
+                    </dl>
                   </div>
-                )}
-              </section>
+                  {itemFiles.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {itemFiles.map((f) => (
+                        <a key={f.id} href={mediaUrl(f.id)!} target="_blank" rel="noopener" className="block size-28 overflow-hidden rounded-lg border bg-gray-50 hover:border-blue-400">
+                          {f.mime === "application/pdf" ? (
+                            <span className="flex size-full flex-col items-center justify-center gap-1 text-xs text-muted-foreground"><FileText className="size-7" /> PDF</span>
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element -- private upload via authenticated /media route
+                            <img src={mediaUrl(f.id)!} alt="" className="size-full object-cover" />
+                          )}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             );
           })}
           {items.some((i) => i.url) && <RefetchButton requestId={r.id} />}
           {r.note && (
-            <section className="rounded-xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5">
-              <h2 className="font-bold">توضیحات مشتری</h2>
-              <p className="mt-2 whitespace-pre-line text-sm leading-7">{r.note}</p>
-            </section>
+            <Card>
+              <CardHeader className="p-4 pb-2 md:p-6 md:pb-2"><CardTitle className="text-base">توضیحات مشتری</CardTitle></CardHeader>
+              <CardContent className="p-4 pt-0 md:p-6 md:pt-0"><p className="whitespace-pre-line text-sm leading-7">{r.note}</p></CardContent>
+            </Card>
           )}
         </div>
 
         <aside className="flex flex-col gap-4">
-          <section className="rounded-xl border border-gray-200 bg-white shadow-sm p-4">
-            <RequestControls
-              requestId={r.id}
-              status={r.status}
-              assignedTo={r.assigned_to}
-              meId={me.id}
-              staff={staff}
-            />
-          </section>
-          <section className="rounded-xl border border-gray-200 bg-white shadow-sm p-4">
-            <h2 className="font-bold">یادداشت و تاریخچه</h2>
-            <NoteForm requestId={r.id} />
-            <ol className="mt-4 space-y-3">
-              {events.map((e, i) => (
-                <li key={i} className="border-r-2 border-blue-200 pr-3 text-sm">
-                  <p className="font-semibold">
-                    {e.type === "status" ? `وضعیت: ${statusInfo(e.body ?? "").name}` : e.type === "created" ? "ثبت درخواست" : e.type === "assigned" ? `کارشناس: ${e.body}` : "یادداشت"}
-                  </p>
-                  {e.type === "note" && <p className="mt-1 whitespace-pre-line text-gray-700">{e.body}</p>}
-                  <p className="mt-0.5 text-xs text-gray-400">{e.staff ? `${e.staff}، ` : ""}{formatFaDateTime(e.created_at)}</p>
-                </li>
-              ))}
-            </ol>
-          </section>
+          <Card>
+            <CardContent className="p-4 md:p-5">
+              <RequestControls requestId={r.id} status={r.status} assignedTo={r.assigned_to} meId={me.id} staff={staff} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="p-4 pb-2 md:p-5 md:pb-2"><CardTitle className="text-base">یادداشت و تاریخچه</CardTitle></CardHeader>
+            <CardContent className="p-4 pt-0 md:p-5 md:pt-0">
+              <NoteForm requestId={r.id} />
+              <ol className="mt-4 space-y-3">
+                {events.map((e, i) => (
+                  <li key={i} className="border-r-2 border-blue-200 pr-3 text-sm">
+                    <p className="font-medium">
+                      {e.type === "status" ? `وضعیت: ${statusInfo(e.body ?? "").name}` : e.type === "created" ? "ثبت درخواست" : e.type === "assigned" ? `کارشناس: ${e.body}` : "یادداشت"}
+                    </p>
+                    {e.type === "note" && <p className="mt-1 whitespace-pre-line text-gray-700">{e.body}</p>}
+                    <p className="mt-0.5 text-xs text-muted-foreground">{e.staff ? `${e.staff}، ` : ""}{formatFaDateTime(e.created_at)}</p>
+                  </li>
+                ))}
+              </ol>
+            </CardContent>
+          </Card>
           {(r.utm_source || r.referrer) && (
-            <section className="rounded-xl border border-gray-200 bg-white shadow-sm p-4 text-xs text-gray-500">
-              <p>منبع: {[r.utm_source, r.utm_medium, r.utm_campaign].filter(Boolean).join(" / ") || "—"}</p>
-              {r.referrer && <p dir="ltr" className="mt-1 truncate text-left">{r.referrer}</p>}
-            </section>
+            <Card>
+              <CardContent className="p-4 text-xs text-muted-foreground">
+                <p>منبع: {[r.utm_source, r.utm_medium, r.utm_campaign].filter(Boolean).join(" / ") || "—"}</p>
+                {r.referrer && <p dir="ltr" className="mt-1 truncate text-left">{r.referrer}</p>}
+              </CardContent>
+            </Card>
           )}
         </aside>
       </div>

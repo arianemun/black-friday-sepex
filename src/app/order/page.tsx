@@ -14,8 +14,9 @@ export default async function OrderPage({ searchParams }: { searchParams: Promis
   const m = typeof sp.method === "string" && sp.method in methods ? (sp.method as Method) : null;
   const link = typeof sp.link === "string" ? extractUrl(sp.link.slice(0, 4000)) : null;
   return (
-    <div className="min-h-dvh bg-paper text-ink">
-      <SiteHeader variant="light" />
+    <div className="dark relative isolate min-h-dvh overflow-hidden bg-black text-white">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[28rem] bg-[radial-gradient(50%_100%_at_50%_0%,rgb(255_203_5/0.14),transparent)]" aria-hidden />
+      <SiteHeader variant="solid" />
       <main className="mx-auto max-w-3xl px-4 pb-16 pt-8 sm:px-6 sm:pt-12">
         <OrderWizard initialMethod={link ? "link" : m} initialLink={link} />
       </main>

@@ -9,10 +9,14 @@ const nav = [
   { href: "/#faq", label: "سؤالات" },
 ];
 
-export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" }) {
-  const dark = variant === "dark";
+export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "solid" | "light" }) {
+  const dark = variant !== "light";
   return (
-    <header className={dark ? "absolute inset-x-0 top-0 z-30 text-white" : "border-b border-ink/10 bg-paper text-ink"}>
+    <header
+      className={
+        variant === "dark" ? "absolute inset-x-0 top-0 z-30 text-white" : variant === "solid" ? "relative z-30 border-b border-white/10 text-white" : "border-b border-ink/10 bg-paper text-ink"
+      }
+    >
       <div className="mx-auto grid h-16 max-w-7xl grid-cols-[1fr_auto] items-center gap-6 px-4 sm:h-20 sm:px-6 md:grid-cols-[1fr_auto_1fr]">
         <Link href="/" className="flex w-fit items-center gap-3" aria-label="بلک‌فرایدی سپکس، صفحه‌ی اصلی">
           <SepexLogo className={dark ? "h-7 text-brand sm:h-8" : "h-7 text-ink sm:h-8"} />

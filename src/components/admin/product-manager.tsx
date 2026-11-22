@@ -28,7 +28,7 @@ const fromRow = (p: P): Form => ({
   image_url: "",
 });
 
-const inputCls = "h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20";
+const inputCls = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export function ProductManager({ products }: { products: P[] }) {
   const [form, setForm] = useState<Form>(empty);
@@ -73,9 +73,9 @@ export function ProductManager({ products }: { products: P[] }) {
   const set = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   return (
-    <div className="mt-6 grid gap-6 lg:grid-cols-[24rem_1fr]">
-      <section className="h-fit rounded-xl border border-gray-200 bg-white shadow-sm p-4 lg:sticky lg:top-20">
-        <h2 className="font-bold">{form.id ? "ویرایش کالا" : "افزودن کالا"}</h2>
+    <div className="grid gap-4 md:gap-6 lg:grid-cols-[24rem_1fr]">
+      <section className="h-fit rounded-lg border bg-card text-card-foreground shadow-sm p-4 lg:sticky lg:top-6">
+        <h2 className="text-lg font-semibold">{form.id ? "ویرایش کالا" : "افزودن کالا"}</h2>
         <form action={fetchAction} className="mt-3 flex gap-2">
           <input name="url" dir="ltr" value={form.url} onChange={set("url")} placeholder="https://" className={cn(inputCls, "text-left")} aria-label="لینک کالا" />
           <button disabled={fetching || !form.url} className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-50" title="خواندن خودکار اطلاعات">
@@ -87,18 +87,18 @@ export function ProductManager({ products }: { products: P[] }) {
           <input type="hidden" name="id" value={form.id} />
           <input type="hidden" name="url" value={form.url} />
           <input type="hidden" name="image_url" value={form.image_url} />
-          <label className="grid gap-1 text-xs font-semibold">
+          <label className="grid gap-1.5 text-sm font-medium">
             عنوان
             <input name="title" dir="auto" required value={form.title} onChange={set("title")} className={inputCls} />
           </label>
           <div className="grid grid-cols-2 gap-2">
-            <label className="grid gap-1 text-xs font-semibold">
+            <label className="grid gap-1.5 text-sm font-medium">
               دسته
               <select name="category" value={form.category} onChange={set("category")} className={inputCls}>
                 {categories.map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
               </select>
             </label>
-            <label className="grid gap-1 text-xs font-semibold">
+            <label className="grid gap-1.5 text-sm font-medium">
               کشور
               <select name="country" value={form.country} onChange={set("country")} className={inputCls}>
                 <option value="">—</option>
@@ -106,7 +106,7 @@ export function ProductManager({ products }: { products: P[] }) {
               </select>
             </label>
           </div>
-          <label className="grid gap-1 text-xs font-semibold">
+          <label className="grid gap-1.5 text-sm font-medium">
             فروشگاه
             <select name="store_key" value={form.store_key} onChange={set("store_key")} className={inputCls}>
               <option value="">تشخیص از لینک</option>
@@ -114,30 +114,30 @@ export function ProductManager({ products }: { products: P[] }) {
             </select>
           </label>
           <div className="grid grid-cols-3 gap-2">
-            <label className="grid gap-1 text-xs font-semibold">
+            <label className="grid gap-1.5 text-sm font-medium">
               قیمت
               <input name="price" dir="ltr" value={form.price} onChange={set("price")} className={inputCls} />
             </label>
-            <label className="grid gap-1 text-xs font-semibold">
+            <label className="grid gap-1.5 text-sm font-medium">
               قیمت قبل
               <input name="old_price" dir="ltr" value={form.old_price} onChange={set("old_price")} className={inputCls} />
             </label>
-            <label className="grid gap-1 text-xs font-semibold">
+            <label className="grid gap-1.5 text-sm font-medium">
               ارز
               <input name="currency" dir="ltr" placeholder="AED" value={form.currency} onChange={set("currency")} className={inputCls} />
             </label>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <label className="grid gap-1 text-xs font-semibold">
+            <label className="grid gap-1.5 text-sm font-medium">
               درصد تخفیف
               <input name="discount_percent" dir="ltr" inputMode="numeric" value={form.discount_percent} onChange={set("discount_percent")} className={inputCls} />
             </label>
-            <label className="grid gap-1 text-xs font-semibold">
+            <label className="grid gap-1.5 text-sm font-medium">
               اولویت نمایش
               <input name="sort" dir="ltr" inputMode="numeric" value={form.sort} onChange={set("sort")} className={inputCls} title="عدد بزرگ‌تر بالاتر" />
             </label>
           </div>
-          <label className="grid gap-1 text-xs font-semibold">
+          <label className="grid gap-1.5 text-sm font-medium">
             تصویر {preview ? "(از لینک خوانده شد؛ برای تعویض فایل بدهید)" : "(اختیاری)"}
             <input name="image" type="file" accept="image/jpeg,image/png,image/webp" className="text-xs file:ml-2 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-white" />
           </label>
@@ -146,7 +146,7 @@ export function ProductManager({ products }: { products: P[] }) {
             <img src={preview} alt="" referrerPolicy="no-referrer" className="h-32 w-full rounded-lg border border-gray-200 object-contain" />
           )}
           <div className="flex gap-2">
-            <button disabled={saving || !form.url} className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50">
+            <button disabled={saving || !form.url} className="flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-blue-600 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50">
               {saving && <Loader2 className="size-4 animate-spin" />}
               {form.id ? "ذخیره‌ی تغییرات" : "افزودن به لندینگ"}
             </button>
@@ -161,14 +161,14 @@ export function ProductManager({ products }: { products: P[] }) {
 
       <section>
         {products.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center text-sm text-gray-500">
+          <div className="rounded-lg border border-dashed bg-card p-10 text-center text-sm text-gray-500">
             هنوز کالایی اضافه نشده. تا وقتی کالای فعالی نباشد، بخش پیشنهادها روی لندینگ نمایش داده نمی‌شود.
           </div>
         ) : (
-          <ul className={cn("divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm", pending && "opacity-70")}>
+          <ul className={cn("divide-y divide-gray-100 rounded-lg border bg-card text-card-foreground shadow-sm", pending && "opacity-70")}>
             {products.map((p) => (
               <li key={p.id} className="flex items-center gap-3 p-3">
-                <div className="size-16 shrink-0 rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div className="size-16 shrink-0 rounded-lg border bg-card text-card-foreground shadow-sm">
                   {p.image && (
                     // eslint-disable-next-line @next/next/no-img-element -- our own /media route
                     <img src={p.image} alt="" className="size-full object-contain" />

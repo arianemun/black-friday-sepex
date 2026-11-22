@@ -1,59 +1,64 @@
 "use client";
 
-import { useActionState, useTransition, useRef, useEffect } from "react";
-import { Loader2, RefreshCw } from "lucide-react";
+import { useActionState, useEffect, useRef, useTransition } from "react";
+import { Loader2, RefreshCw, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { addNoteAction, assignAction, refetchLinksAction, setStatusAction } from "@/app/admin/actions";
 import { statuses } from "@/lib/catalog";
+import { Button } from "@/components/admin-ui/button";
+import { Label } from "@/components/admin-ui/label";
 import { cn } from "@/lib/utils";
 
 export function RequestControls({ requestId, status, assignedTo, meId, staff }: { requestId: number; status: string; assignedTo: number | null; meId: number; staff: { id: number; name: string }[] }) {
   const [pending, start] = useTransition();
   return (
-    <div className={cn("flex flex-col gap-4", pending && "opacity-70")}>
+    <div className={cn("flex flex-col gap-5", pending && "opacity-70")}>
       <div>
-        <h2 className="mb-2 font-bold">وضعیت</h2>
+        <Label className="mb-2 block">وضعیت</Label>
         <div className="grid grid-cols-2 gap-1.5">
           {statuses.map((s) => (
-            <button
+            <Button
               key={s.key}
               type="button"
+              size="sm"
+              variant={status === s.key ? "default" : "outline"}
               disabled={pending}
-              onClick={() => start(async () => {
-                await setStatusAction(requestId, s.key);
-                toast.success(`وضعیت: ${s.name}`);
-              })}
-              className={cn(
-                "rounded-lg border px-2 py-2 text-sm font-semibold transition-colors",
-                status === s.key ? "border-blue-600 bg-blue-600 text-white" : "border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50"
-              )}
+              className={status === s.key ? "bg-blue-600 hover:bg-blue-700" : ""}
+              onClick={() =>
+                start(async () => {
+                  await setStatusAction(requestId, s.key);
+                  toast.success(`وضعیت: ${s.name}`);
+                })
+              }
             >
               {s.name}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
       <div>
-        <h2 className="mb-2 font-bold">کارشناس</h2>
+        <Label htmlFor="assignee" className="mb-2 block">کارشناس مسئول</Label>
         {assignedTo !== meId && (
-          <button
+          <Button
             type="button"
             disabled={pending}
-            onClick={() => start(async () => {
-              await assignAction(requestId, meId);
-              toast.success("درخواست برای شما شد.");
-            })}
-            className="mb-2 h-10 w-full rounded-lg bg-emerald-600 text-sm font-bold text-white hover:bg-emerald-700"
+            className="mb-2 w-full bg-green-600 hover:bg-green-700"
+            onClick={() =>
+              start(async () => {
+                await assignAction(requestId, meId);
+                toast.success("درخواست برای شما شد.");
+              })
+            }
           >
-            برمی‌دارم
-          </button>
+            <UserCheck className="ml-1.5 h-4 w-4" /> برمی‌دارم
+          </Button>
         )}
         <select
+          id="assignee"
           value={assignedTo ?? ""}
           disabled={pending}
           onChange={(e) => start(() => assignAction(requestId, e.target.value ? Number(e.target.value) : null))}
-          className="h-10 w-full rounded-lg border border-gray-300 bg-white px-2 text-sm"
-          aria-label="کارشناس مسئول"
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <option value="">بدون کارشناس</option>
           {staff.map((s) => (
@@ -72,12 +77,18 @@ export function NoteForm({ requestId }: { requestId: number }) {
     if (state?.ok) ref.current?.reset();
   }, [state]);
   return (
-    <form ref={ref} action={action} className="mt-3 flex flex-col gap-2">
-      <textarea name="body" rows={3} maxLength={2000} placeholder="نتیجه‌ی تماس، قیمت اعلام‌شده، …" className="w-full rounded-lg border border-gray-300 p-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20" />
-      {state?.error && <p className="text-xs font-semibold text-destructive">{state.error}</p>}
-      <button disabled={pending} className="flex h-9 items-center justify-center gap-2 rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60">
-        {pending && <Loader2 className="size-4 animate-spin" />} افزودن یادداشت
-      </button>
+    <form ref={ref} action={action} className="mt-2 flex flex-col gap-2">
+      <textarea
+        name="body"
+        rows={3}
+        maxLength={2000}
+        placeholder="نتیجه‌ی تماس، قیمت اعلام‌شده، …"
+        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      />
+      {state?.error && <p className="text-xs font-medium text-destructive">{state.error}</p>}
+      <Button disabled={pending} size="sm">
+        {pending && <Loader2 className="ml-1.5 h-4 w-4 animate-spin" />} افزودن یادداشت
+      </Button>
     </form>
   );
 }
@@ -85,13 +96,8 @@ export function NoteForm({ requestId }: { requestId: number }) {
 export function RefetchButton({ requestId }: { requestId: number }) {
   const [pending, start] = useTransition();
   return (
-    <button
-      type="button"
-      disabled={pending}
-      onClick={() => start(() => refetchLinksAction(requestId))}
-      className="inline-flex w-fit items-center gap-2 text-sm text-gray-500 hover:text-gray-900"
-    >
-      <RefreshCw className={cn("size-4", pending && "animate-spin")} /> خواندن دوباره‌ی اطلاعات لینک‌ها
-    </button>
+    <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={() => start(() => refetchLinksAction(requestId))} className="w-fit text-muted-foreground">
+      <RefreshCw className={cn("ml-1.5 h-4 w-4", pending && "animate-spin")} /> خواندن دوباره‌ی اطلاعات لینک‌ها
+    </Button>
   );
 }

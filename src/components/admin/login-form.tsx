@@ -3,24 +3,25 @@
 import { useActionState } from "react";
 import { Loader2 } from "lucide-react";
 import { loginAction } from "@/app/admin/actions";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/admin-ui/input";
+import { Button } from "@/components/admin-ui/button";
+import { Label } from "@/components/admin-ui/label";
 
 export function LoginForm() {
   const [state, action, pending] = useActionState(loginAction, null);
   return (
     <form action={action} className="mt-5 grid gap-4">
       <div className="grid gap-2">
-        <label htmlFor="username" className="text-sm font-semibold">نام کاربری</label>
-        <Input id="username" name="username" dir="ltr" autoComplete="username" required className="text-left focus-visible:border-blue-500 focus-visible:ring-blue-500/20" />
+        <Label htmlFor="username">نام کاربری</Label>
+        <Input id="username" name="username" dir="ltr" autoComplete="username" required className="text-left" />
       </div>
       <div className="grid gap-2">
-        <label htmlFor="password" className="text-sm font-semibold">رمز عبور</label>
-        <Input id="password" name="password" type="password" dir="ltr" autoComplete="current-password" required className="text-left focus-visible:border-blue-500 focus-visible:ring-blue-500/20" />
+        <Label htmlFor="password">رمز عبور</Label>
+        <Input id="password" name="password" type="password" dir="ltr" autoComplete="current-password" required className="text-left" />
       </div>
       {state?.error && <p role="alert" className="text-sm font-semibold text-destructive">{state.error}</p>}
-      <Button type="submit" size="lg" disabled={pending} className="rounded-lg bg-blue-600 text-white hover:bg-blue-700">
-        {pending && <Loader2 className="animate-spin" />}
+      <Button type="submit" size="lg" disabled={pending} className="w-full bg-blue-600 hover:bg-blue-700">
+        {pending && <Loader2 className="ml-1.5 h-4 w-4 animate-spin" />}
         ورود
       </Button>
     </form>

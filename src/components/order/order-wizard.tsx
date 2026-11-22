@@ -100,7 +100,7 @@ function Field({ label, required, error, hint, htmlFor, children }: { label: str
         {required && <span className="mr-1 text-destructive" aria-hidden>*</span>}
       </label>
       {children}
-      {(error || hint) && <p className={cn("text-xs leading-5", error ? "font-semibold text-destructive" : "text-ink/55")}>{error ?? hint}</p>}
+      {(error || hint) && <p className={cn("text-xs leading-5", error ? "font-semibold text-destructive" : "text-white/55")}>{error ?? hint}</p>}
     </div>
   );
 }
@@ -113,8 +113,8 @@ function Stepper({ step }: { step: number }) {
         const state = i < step ? "done" : i === step ? "current" : "todo";
         return (
           <li key={l} aria-current={state === "current" ? "step" : undefined} className="flex flex-col gap-2">
-            <span className={cn("h-1.5", state === "todo" ? "bg-ink/10" : "bg-ink", state === "current" && "bg-brand outline outline-1 outline-ink")} />
-            <span className={cn("text-xs sm:text-sm", state === "todo" ? "text-ink/45" : "font-bold text-ink")}>
+            <span className={cn("h-1.5", state === "todo" ? "bg-white/10" : "bg-brand/50", state === "current" && "bg-brand outline outline-1 outline-brand")} />
+            <span className={cn("text-xs sm:text-sm", state === "todo" ? "text-white/45" : "font-bold text-white")}>
               {toFaDigits(i + 1)}. {l}
             </span>
           </li>
@@ -328,7 +328,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
   if (!ready) {
     return (
       <div className="flex min-h-80 items-center justify-center" aria-busy>
-        <Loader2 className="size-6 animate-spin text-ink/40" />
+        <Loader2 className="size-6 animate-spin text-white/40" />
       </div>
     );
   }
@@ -356,7 +356,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
       {step === 0 && (
         <section className="mt-8" aria-labelledby="s0">
           <h1 id="s0" className="text-2xl font-black sm:text-3xl">چه چیزی از کالا دارید؟</h1>
-          <p className="mt-2 text-ink/65">هر کدام را دارید انتخاب کنید. قیمت نهایی را بعد از بررسی، کارشناس اعلام می‌کند.</p>
+          <p className="mt-2 text-white/65">هر کدام را دارید انتخاب کنید. قیمت نهایی را بعد از بررسی، کارشناس اعلام می‌کند.</p>
           <div className="mt-6 grid gap-3">
             {(Object.keys(methods) as Method[]).map((m) => {
               const Icon = methodIcons[m];
@@ -370,18 +370,18 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
                     goto(1);
                   }}
                   className={cn(
-                    "group flex items-center gap-4 border-2 bg-white p-4 text-start transition-colors sm:p-5",
-                    active ? "border-ink" : "border-ink/10 hover:border-ink/50"
+                    "group flex items-center gap-4 border-2 bg-[#121212] p-4 text-start transition-colors sm:p-5",
+                    active ? "border-brand" : "border-white/10 hover:border-white/40"
                   )}
                 >
-                  <span className={cn("flex size-12 shrink-0 items-center justify-center", active ? "bg-brand text-ink" : "bg-paper text-ink group-hover:bg-brand")}>
+                  <span className={cn("flex size-12 shrink-0 items-center justify-center", active ? "bg-brand text-ink" : "bg-white/5 text-white group-hover:bg-brand group-hover:text-ink")}>
                     <Icon className="size-6" strokeWidth={1.75} />
                   </span>
                   <span className="flex-1">
                     <span className="block text-base font-black sm:text-lg">{methods[m].title}</span>
-                    <span className="mt-1 block text-sm text-ink/60">{methodBodies[m]}</span>
+                    <span className="mt-1 block text-sm text-white/60">{methodBodies[m]}</span>
                   </span>
-                  <ArrowLeft className="size-5 shrink-0 text-ink/40 transition-transform group-hover:-translate-x-1 group-hover:text-ink" />
+                  <ArrowLeft className="size-5 shrink-0 text-white/40 transition-transform group-hover:-translate-x-1 group-hover:text-white" />
                 </button>
               );
             })}
@@ -394,7 +394,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h1 id="s1" className="text-2xl font-black sm:text-3xl">{methods[method].title}</h1>
-              <p className="mt-2 text-ink/65">
+              <p className="mt-2 text-white/65">
                 {method === "link"
                   ? "لینک صفحه‌ی کالا را بگذارید. متن اشتراک‌گذاری اپ فروشگاه را هم می‌توانید کامل بچسبانید."
                   : method === "photo"
@@ -402,7 +402,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
                     : "بگویید چه باری دارید و از کجا باید حمل شود."}
               </p>
             </div>
-            <button type="button" onClick={() => goto(0)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink/60 hover:text-ink">
+            <button type="button" onClick={() => goto(0)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-white/60 hover:text-white">
               <Pencil className="size-3.5" /> تغییر روش
             </button>
           </div>
@@ -427,7 +427,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
             <button
               type="button"
               onClick={() => setItems((l) => [...l, newItem()])}
-              className="mt-4 flex w-full items-center justify-center gap-2 border-2 border-dashed border-ink/25 bg-white py-4 text-sm font-bold text-ink/75 hover:border-ink hover:text-ink"
+              className="mt-4 flex w-full items-center justify-center gap-2 border-2 border-dashed border-white/25 bg-[#121212] py-4 text-sm font-bold text-white/75 hover:border-white/60 hover:text-white"
             >
               <Plus className="size-4" /> افزودن کالای دیگر
             </button>
@@ -449,11 +449,11 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
       {step === 2 && method && (
         <section className="mt-8" aria-labelledby="s2">
           <h1 id="s2" className="text-2xl font-black sm:text-3xl">اطلاعات تماس</h1>
-          <p className="mt-2 text-ink/65">کارشناس سپکس با همین شماره با شما تماس می‌گیرد.</p>
+          <p className="mt-2 text-white/65">کارشناس سپکس با همین شماره با شما تماس می‌گیرد.</p>
 
           <Summary method={method} items={items} onEdit={() => goto(1)} />
 
-          <div className="mt-6 grid gap-5 border border-ink/10 bg-white p-4 sm:grid-cols-2 sm:p-6">
+          <div className="mt-6 grid gap-5 border border-white/10 bg-[#121212] p-4 sm:grid-cols-2 sm:p-6">
             <Field label="نام" required htmlFor="firstName" error={errors.firstName}>
               <Input id="firstName" autoComplete="given-name" value={contact.firstName} onChange={(e) => setContact({ ...contact, firstName: e.target.value })} aria-invalid={!!errors.firstName} />
             </Field>
@@ -477,7 +477,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
                     role="radio"
                     aria-checked={contact.gender === v}
                     onClick={() => setContact({ ...contact, gender: v })}
-                    className={cn("h-11 text-sm font-semibold transition-colors", contact.gender === v ? "bg-ink text-brand" : "bg-white text-ink/70 hover:bg-paper")}
+                    className={cn("h-11 text-sm font-semibold transition-colors", contact.gender === v ? "bg-brand text-ink" : "bg-[#121212] text-white/70 hover:bg-white/5")}
                   >
                     {l}
                   </button>
@@ -508,7 +508,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
           </div>
 
           {otpSentTo ? (
-            <div className="mt-6 border-2 border-ink bg-white p-4 sm:p-6">
+            <div className="mt-6 border-2 border-brand bg-[#121212] p-4 sm:p-6">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm">
                   کد {toFaDigits(otpLength)} رقمی به <span className="ltr font-bold">{toFaDigits(otpSentTo)}</span> پیامک شد.
@@ -521,7 +521,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
                     setErrors({});
                     requestAnimationFrame(() => document.getElementById("phone")?.focus());
                   }}
-                  className="text-sm font-semibold text-ink/60 underline underline-offset-4 hover:text-ink"
+                  className="text-sm font-semibold text-white/60 underline underline-offset-4 hover:text-white"
                 >
                   ویرایش شماره
                 </button>
@@ -545,7 +545,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
                 >
                   <InputOTPGroup>
                     {Array.from({ length: otpLength }).map((_, i) => (
-                      <InputOTPSlot key={i} index={i} className={cn("rounded-none border-ink/25 bg-white", errors.otp && "border-destructive")} />
+                      <InputOTPSlot key={i} index={i} className={cn("rounded-none border-white/25 bg-[#121212]", errors.otp && "border-destructive")} />
                     ))}
                   </InputOTPGroup>
                 </InputOTP>
@@ -554,7 +554,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
                   type="button"
                   disabled={resendIn > 0 || sending}
                   onClick={sendOtp}
-                  className="text-sm font-semibold text-ink underline underline-offset-4 disabled:text-ink/45 disabled:no-underline"
+                  className="text-sm font-semibold text-white underline underline-offset-4 disabled:text-white/40 disabled:no-underline"
                 >
                   {resendIn > 0 ? `ارسال دوباره‌ی کد تا ${toFaDigits(resendIn)} ثانیه‌ی دیگر` : sending ? "در حال ارسال…" : "ارسال دوباره‌ی کد"}
                 </button>
@@ -569,7 +569,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
             busy={sending || submitting}
             primary
           />
-          <p className="mt-3 text-center text-xs text-ink/50">ثبت درخواست رایگان است. شماره‌ی شما فقط برای تماس کارشناس سپکس استفاده می‌شود.</p>
+          <p className="mt-3 text-center text-xs text-white/50">ثبت درخواست رایگان است. شماره‌ی شما فقط برای تماس کارشناس سپکس استفاده می‌شود.</p>
         </section>
       )}
     </div>
@@ -601,12 +601,12 @@ function ItemCard({
   const store = url ? detectStore(url) : undefined;
   const k = item.key;
   return (
-    <fieldset className="border border-ink/10 bg-white p-4 sm:p-6">
+    <fieldset className="border border-white/10 bg-[#121212] p-4 sm:p-6">
       <legend className="sr-only">کالای {toFaDigits(index + 1)}</legend>
       <div className="mb-4 flex items-center justify-between">
-        <span className="bg-ink px-2.5 py-1 text-xs font-bold text-brand">کالای {toFaDigits(index + 1)}</span>
+        <span className="bg-brand px-2.5 py-1 text-xs font-bold text-ink">کالای {toFaDigits(index + 1)}</span>
         {total > 1 && (
-          <button type="button" onClick={onRemove} className="inline-flex items-center gap-1 text-xs font-semibold text-ink/55 hover:text-destructive">
+          <button type="button" onClick={onRemove} className="inline-flex items-center gap-1 text-xs font-semibold text-white/55 hover:text-destructive">
             <Trash2 className="size-3.5" /> حذف
           </button>
         )}
@@ -729,8 +729,8 @@ function ItemCard({
 
 function NavBar({ onBack, onNext, nextLabel, busy, primary }: { onBack: () => void; onNext: () => void; nextLabel: string; busy?: boolean; primary?: boolean }) {
   return (
-    <div className="pb-safe sticky bottom-0 z-20 -mx-4 mt-8 flex gap-2 border-t border-ink/10 bg-paper/95 px-4 pt-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
-      <button type="button" onClick={onBack} className="flex h-12 items-center gap-1.5 border border-ink/20 bg-white px-4 text-sm font-semibold hover:border-ink">
+    <div className="pb-safe sticky bottom-0 z-20 -mx-4 mt-8 flex gap-2 border-t border-white/10 bg-black/90 px-4 pt-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+      <button type="button" onClick={onBack} className="flex h-12 items-center gap-1.5 border border-white/20 bg-[#121212] px-4 text-sm font-semibold hover:border-white/60">
         <ArrowRight className="size-4" /> قبلی
       </button>
       <button
@@ -739,7 +739,7 @@ function NavBar({ onBack, onNext, nextLabel, busy, primary }: { onBack: () => vo
         disabled={busy}
         className={cn(
           "chamfer-sm flex h-12 flex-1 items-center justify-center gap-2 text-base font-bold transition-colors disabled:opacity-60 sm:flex-none sm:px-10",
-          primary ? "bg-brand text-ink hover:bg-brand-deep" : "bg-ink text-brand hover:bg-neutral-800"
+          primary ? "bg-brand text-ink hover:bg-brand-deep" : "bg-brand text-ink hover:bg-[#ffd633]"
         )}
       >
         {busy && <Loader2 className="size-4 animate-spin" />}
@@ -752,10 +752,10 @@ function NavBar({ onBack, onNext, nextLabel, busy, primary }: { onBack: () => vo
 
 function Summary({ method, items, onEdit }: { method: Method; items: Item[]; onEdit: () => void }) {
   return (
-    <div className="mt-6 flex items-start justify-between gap-3 border-r-4 border-brand bg-white p-4">
+    <div className="mt-6 flex items-start justify-between gap-3 border-r-4 border-brand bg-[#121212] p-4">
       <div className="min-w-0">
         <p className="text-sm font-bold">{methods[method].title}، {toFaDigits(items.length)} کالا</p>
-        <ul className="mt-1 space-y-0.5 text-xs text-ink/60">
+        <ul className="mt-1 space-y-0.5 text-xs text-white/60">
           {items.slice(0, 3).map((it) => {
             const url = extractUrl(it.url);
             const label = it.title || (url ? detectStore(url)?.name ?? hostOf(url) : it.files.length ? `${toFaDigits(it.files.length)} فایل` : "کالا");
@@ -768,7 +768,7 @@ function Summary({ method, items, onEdit }: { method: Method; items: Item[]; onE
           {items.length > 3 && <li>و {toFaDigits(items.length - 3)} کالای دیگر</li>}
         </ul>
       </div>
-      <button type="button" onClick={onEdit} className="shrink-0 text-xs font-semibold text-ink/60 underline underline-offset-4 hover:text-ink">
+      <button type="button" onClick={onEdit} className="shrink-0 text-xs font-semibold text-white/60 underline underline-offset-4 hover:text-white">
         ویرایش
       </button>
     </div>
@@ -783,11 +783,11 @@ function Done({ code, onNew }: { code: string; onNew: () => void }) {
         <Check className="size-8 text-ink" strokeWidth={3} />
       </div>
       <h1 id="done-title" className="mt-6 text-2xl font-black sm:text-3xl">درخواست شما ثبت شد</h1>
-      <p className="mx-auto mt-3 max-w-md leading-8 text-ink/65">کارشناس سپکس به‌زودی با شماره‌ی شما تماس می‌گیرد. کد پیگیری برایتان پیامک هم می‌شود.</p>
-      <div className="mx-auto mt-8 max-w-sm border-2 border-ink bg-white">
+      <p className="mx-auto mt-3 max-w-md leading-8 text-white/65">کارشناس سپکس به‌زودی با شماره‌ی شما تماس می‌گیرد. کد پیگیری برایتان پیامک هم می‌شود.</p>
+      <div className="mx-auto mt-8 max-w-sm border-2 border-brand bg-[#121212]">
         <div className="h-1.5 bg-brand" aria-hidden />
         <div className="p-5">
-          <p className="text-sm text-ink/60">کد پیگیری</p>
+          <p className="text-sm text-white/60">کد پیگیری</p>
           <p dir="ltr" className="mt-1 text-4xl font-black tracking-wider">{code}</p>
           <button
             type="button"
@@ -808,13 +808,13 @@ function Done({ code, onNew }: { code: string; onNew: () => void }) {
         </div>
       </div>
       <div className="mx-auto mt-8 flex max-w-sm flex-col gap-2">
-        <Link href={`/track?code=${encodeURIComponent(code)}`} className="chamfer-sm flex h-12 items-center justify-center bg-ink font-bold text-brand hover:bg-neutral-800">
+        <Link href={`/track?code=${encodeURIComponent(code)}`} className="chamfer-sm flex h-12 items-center justify-center bg-brand font-bold text-ink hover:bg-[#ffd633]">
           پیگیری درخواست
         </Link>
-        <button type="button" onClick={onNew} className="flex h-12 items-center justify-center border border-ink/20 bg-white text-sm font-semibold hover:border-ink">
+        <button type="button" onClick={onNew} className="flex h-12 items-center justify-center border border-white/20 bg-[#121212] text-sm font-semibold hover:border-white/60">
           ثبت درخواست دیگر
         </button>
-        <Link href="/" className="mt-2 text-sm text-ink/60 hover:text-ink">بازگشت به صفحه‌ی اصلی</Link>
+        <Link href="/" className="mt-2 text-sm text-white/60 hover:text-white">بازگشت به صفحه‌ی اصلی</Link>
       </div>
     </section>
   );

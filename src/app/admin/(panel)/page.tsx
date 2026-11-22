@@ -1,9 +1,14 @@
 import Link from "next/link";
-import { CheckCircle2, Clock, Download, Inbox, UserX } from "lucide-react";
+import { CheckCircle2, Clock, Download, Inbox, LayoutDashboard, Search, UserX } from "lucide-react";
 import { requireStaff } from "@/lib/auth";
 import { listRequests, requestCounts } from "@/lib/admin-queries";
-import { methods, statuses, statusInfo } from "@/lib/catalog";
-import { Badge } from "@/components/ui/badge";
+import { methods, statuses } from "@/lib/catalog";
+import { Button } from "@/components/admin-ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/admin-ui/card";
+import { Input } from "@/components/admin-ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/admin-ui/table";
+import { PageHeader, StatCard } from "@/components/admin/page-header";
+import { StatusBadge } from "@/components/admin/status-badge";
 import { cn, formatFaDateTime, toFaDigits } from "@/lib/utils";
 
 export const metadata = { title: "درخواست‌ها" };
@@ -34,114 +39,140 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
     const s = p.toString();
     return s ? `/admin?${s}` : "/admin";
   };
+  const chip = (active: boolean) =>
+    cn(
+      "inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors md:text-sm",
+      active ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+    );
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">درخواست‌ها</h1>
-          <p className="mt-1 text-sm text-gray-500">درخواست‌های ثبت‌شده از لندینگ بلک‌فرایدی</p>
-        </div>
-        <a href="/admin/export" className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold shadow-sm hover:bg-gray-50">
-          <Download className="size-4" /> خروجی اکسل
-        </a>
+    <div className="space-y-4 md:space-y-6">
+      <PageHeader icon={LayoutDashboard} title="داشبورد مدیریت" description="درخواست‌های ثبت‌شده از لندینگ بلک‌فرایدی سپکس" dates />
+
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <StatCard icon={Inbox} title="کل درخواست‌ها" value={toFaDigits(counts.total)} hint="از ابتدای کمپین" color="text-blue-500" />
+        <StatCard icon={Clock} title="۲۴ ساعت گذشته" value={toFaDigits(counts.today)} hint="درخواست جدید" color="text-purple-500" />
+        <StatCard icon={UserX} title="بدون کارشناس" value={toFaDigits(counts.unassigned)} hint="جدید و برداشته‌نشده" color="text-orange-500" />
+        <StatCard icon={CheckCircle2} title="سفارش قطعی" value={toFaDigits(counts.byStatus.ordered ?? 0)} hint="تبدیل به سفارش" color="text-green-500" />
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
-        {[
-          { label: "کل درخواست‌ها", value: counts.total, icon: Inbox, color: "text-blue-600", iconColor: "text-blue-500" },
-          { label: "۲۴ ساعت گذشته", value: counts.today, icon: Clock, color: "text-purple-600", iconColor: "text-purple-500" },
-          { label: "جدید، بدون کارشناس", value: counts.unassigned, icon: UserX, color: "text-orange-600", iconColor: "text-orange-500", href: qs({ view: "unassigned", status: "new" }) },
-          { label: "سفارش قطعی", value: counts.byStatus.ordered ?? 0, icon: CheckCircle2, color: "text-green-600", iconColor: "text-green-500", href: qs({ status: "ordered", view: undefined }) },
-        ].map((c) => {
-          const Icon = c.icon;
-          const body = (
-            <>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-600 md:text-sm">{c.label}</span>
-                <Icon className={`size-4 md:size-5 ${c.iconColor}`} />
-              </div>
-              <p className={`mt-2 text-2xl font-bold ${c.color}`}>{toFaDigits(c.value)}</p>
-            </>
-          );
-          return c.href ? (
-            <Link key={c.label} href={c.href} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md">{body}</Link>
+      <Card>
+        <CardHeader className="p-4 md:p-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <CardTitle className="text-base md:text-lg">لیست درخواست‌ها</CardTitle>
+              <CardDescription className="mt-1 text-xs md:text-sm">{toFaDigits(total)} نتیجه</CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <form action="/admin" className="flex gap-2">
+                {status && <input type="hidden" name="status" value={status} />}
+                {view && <input type="hidden" name="view" value={view} />}
+                <Input name="q" defaultValue={q} placeholder="کد پیگیری، موبایل یا نام" className="h-9 w-full md:w-64" />
+                <Button type="submit" size="sm" variant="outline" aria-label="جستجو">
+                  <Search className="h-4 w-4" />
+                </Button>
+              </form>
+              <Button asChild size="sm" variant="outline">
+                <a href="/admin/export">
+                  <Download className="ml-1.5 h-4 w-4" />
+                  اکسل
+                </a>
+              </Button>
+            </div>
+          </div>
+          <div className="no-scrollbar mt-4 flex gap-1.5 overflow-x-auto">
+            <Link href={qs({ view: undefined, page: undefined })} className={chip(!view)}>همه</Link>
+            <Link href={qs({ view: "mine", page: undefined })} className={chip(view === "mine")}>مال من</Link>
+            <Link href={qs({ view: "unassigned", page: undefined })} className={chip(view === "unassigned")}>بدون کارشناس</Link>
+            <span className="mx-1 w-px shrink-0 bg-gray-200" />
+            <Link href={qs({ status: undefined, page: undefined })} className={chip(!status)}>همه‌ی وضعیت‌ها</Link>
+            {statuses.map((s) => (
+              <Link key={s.key} href={qs({ status: s.key, page: undefined })} className={chip(status === s.key)}>
+                {s.name}
+                <span className="opacity-60">{toFaDigits(counts.byStatus[s.key] ?? 0)}</span>
+              </Link>
+            ))}
+          </div>
+        </CardHeader>
+        <CardContent className="p-0 md:p-6 md:pt-0">
+          {rows.length === 0 ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">درخواستی با این فیلتر نیست.</div>
           ) : (
-            <div key={c.label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">{body}</div>
-          );
-        })}
-      </div>
-
-      <div className="mt-6 flex flex-col gap-3">
-        <form action="/admin" className="flex gap-2">
-          {status && <input type="hidden" name="status" value={status} />}
-          {view && <input type="hidden" name="view" value={view} />}
-          <input
-            name="q"
-            defaultValue={q}
-            placeholder="جستجو: کد پیگیری، موبایل یا نام"
-            className="h-10 w-full max-w-md rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-          />
-          <button className="h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700">جستجو</button>
-        </form>
-        <div className="no-scrollbar flex gap-1.5 overflow-x-auto">
-          {[
-            { key: undefined, label: "همه" },
-            { key: "mine", label: "مال من" },
-            { key: "unassigned", label: "بدون کارشناس" },
-          ].map((v) => (
-            <Link key={v.label} href={qs({ view: v.key, page: undefined })} className={cn("shrink-0 rounded-full border px-3.5 py-1.5 text-sm", view === v.key ? "border-blue-600 bg-blue-600 text-white" : "border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50")}>
-              {v.label}
-            </Link>
-          ))}
-          <span className="mx-1 w-px shrink-0 bg-gray-300" />
-          <Link href={qs({ status: undefined })} className={cn("shrink-0 rounded-full border px-3.5 py-1.5 text-sm", !status ? "border-blue-600 bg-blue-600 text-white" : "border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50")}>
-            همه‌ی وضعیت‌ها
-          </Link>
-          {statuses.map((s) => (
-            <Link key={s.key} href={qs({ status: s.key })} className={cn("shrink-0 rounded-full border px-3.5 py-1.5 text-sm", status === s.key ? "border-blue-600 bg-blue-600 text-white" : "border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50")}>
-              {s.name} <span className="opacity-60">{toFaDigits(counts.byStatus[s.key] ?? 0)}</span>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {rows.length === 0 ? (
-        <div className="mt-6 rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-500">درخواستی با این فیلتر نیست.</div>
-      ) : (
-        <ul className="mt-6 divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm">
-          {rows.map((r) => {
-            const st = statusInfo(r.status);
-            return (
-              <li key={r.id}>
-                <Link href={`/admin/requests/${r.id}`} className="grid gap-1 p-4 hover:bg-blue-50/50 sm:grid-cols-[8rem_1fr_9rem_8rem_9rem] sm:items-center sm:gap-4">
-                  <span dir="ltr" className="text-right font-mono text-sm font-bold sm:text-left">{r.tracking_code}</span>
-                  <span className="min-w-0">
-                    <span className="block font-semibold">{r.first_name} {r.last_name} <span dir="ltr" className="text-sm font-normal text-gray-500">{r.phone}</span></span>
-                    <span dir="auto" className="block truncate text-xs text-gray-500">
-                      {methods[r.method].short}، {toFaDigits(r.item_count)} کالا{r.first_item ? `: ${r.first_item}` : ""}
-                    </span>
-                  </span>
-                  <span>
-                    <Badge variant={st.tone === "brand" ? "brand" : st.tone}>{st.name}</Badge>
-                  </span>
-                  <span className="text-xs text-gray-500">{r.assignee ?? "بدون کارشناس"}</span>
-                  <span className="text-xs text-gray-500">{formatFaDateTime(r.created_at)}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
-      {pages > 1 && (
-        <nav className="mt-4 flex items-center justify-center gap-2 text-sm" aria-label="صفحه‌ها">
-          {page > 1 && <Link href={`${qs({})}${qs({}).includes("?") ? "&" : "?"}page=${page - 1}`} className="rounded-lg border bg-white px-3 py-1.5">قبلی</Link>}
-          <span className="text-gray-500">صفحه‌ی {toFaDigits(page)} از {toFaDigits(pages)}</span>
-          {page < pages && <Link href={`${qs({})}${qs({}).includes("?") ? "&" : "?"}page=${page + 1}`} className="rounded-lg border bg-white px-3 py-1.5">بعدی</Link>}
-        </nav>
-      )}
-      <p className="mt-3 text-center text-xs text-gray-400">{toFaDigits(total)} نتیجه</p>
+            <>
+              {/* desktop */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>کد پیگیری</TableHead>
+                      <TableHead>مشتری</TableHead>
+                      <TableHead>کالا</TableHead>
+                      <TableHead>وضعیت</TableHead>
+                      <TableHead>کارشناس</TableHead>
+                      <TableHead>زمان ثبت</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((r) => (
+                      <TableRow key={r.id} className="relative">
+                        <TableCell>
+                          <Link href={`/admin/requests/${r.id}`} className="font-mono text-sm font-bold text-blue-700 after:absolute after:inset-0" dir="ltr">
+                            {r.tracking_code}
+                          </Link>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">{r.first_name} {r.last_name}</div>
+                          <div dir="ltr" className="text-right text-xs text-muted-foreground">{r.phone}</div>
+                        </TableCell>
+                        <TableCell className="max-w-64">
+                          <div className="text-xs text-muted-foreground">{methods[r.method].short}، {toFaDigits(r.item_count)} کالا</div>
+                          {r.first_item && <div dir="auto" className="truncate text-xs">{r.first_item}</div>}
+                        </TableCell>
+                        <TableCell><StatusBadge status={r.status} /></TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{r.assignee ?? "—"}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{formatFaDateTime(r.created_at)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              {/* mobile */}
+              <ul className="divide-y md:hidden">
+                {rows.map((r) => (
+                  <li key={r.id}>
+                    <Link href={`/admin/requests/${r.id}`} className="flex flex-col gap-1.5 p-4 hover:bg-gray-50">
+                      <div className="flex items-center justify-between gap-2">
+                        <span dir="ltr" className="font-mono text-sm font-bold text-blue-700">{r.tracking_code}</span>
+                        <StatusBadge status={r.status} />
+                      </div>
+                      <div className="text-sm font-medium">{r.first_name} {r.last_name} <span dir="ltr" className="text-xs font-normal text-muted-foreground">{r.phone}</span></div>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>{methods[r.method].short}، {toFaDigits(r.item_count)} کالا</span>
+                        <span>{formatFaDateTime(r.created_at)}</span>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {pages > 1 && (
+            <nav className="flex items-center justify-center gap-2 p-4 text-sm" aria-label="صفحه‌ها">
+              {page > 1 && (
+                <Button asChild variant="outline" size="sm">
+                  <Link href={qs({ page: String(page - 1) })}>قبلی</Link>
+                </Button>
+              )}
+              <span className="text-muted-foreground">صفحه‌ی {toFaDigits(page)} از {toFaDigits(pages)}</span>
+              {page < pages && (
+                <Button asChild variant="outline" size="sm">
+                  <Link href={qs({ page: String(page + 1) })}>بعدی</Link>
+                </Button>
+              )}
+            </nav>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

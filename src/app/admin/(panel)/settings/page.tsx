@@ -1,7 +1,9 @@
 import { requireAdmin } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { smsDryRun } from "@/lib/sms";
+import { Settings } from "lucide-react";
 import { SettingsForm } from "@/components/admin/settings-form";
+import { PageHeader } from "@/components/admin/page-header";
 
 export const metadata = { title: "تنظیمات" };
 
@@ -23,11 +25,11 @@ export default async function SettingsPage() {
     fetchProxy: !!process.env.FETCH_PROXY_URL,
   };
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold">تنظیمات</h1>
+    <div className="max-w-3xl space-y-4 md:space-y-6">
+      <PageHeader icon={Settings} title="تنظیمات" description="زمان کمپین، روش اعلان به کارشناس‌ها و راه‌های ارتباطی فوتر" />
       <SettingsForm settings={{ ...s, countdown_target: toTehranLocal(s.countdown_target), campaign_end: toTehranLocal(s.campaign_end) }} />
-      <section className="mt-6 rounded-xl border border-gray-200 bg-white shadow-sm p-4 text-sm">
-        <h2 className="font-bold">وضعیت سرویس‌ها</h2>
+      <section className="rounded-lg border bg-card p-4 text-sm shadow-sm md:p-6">
+        <h2 className="text-lg font-semibold">وضعیت سرویس‌ها</h2>
         <p className="mt-1 text-xs text-gray-500">این موارد از فایل ‎.env سرور خوانده می‌شوند.</p>
         <ul className="mt-3 space-y-1.5">
           {[

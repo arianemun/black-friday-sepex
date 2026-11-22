@@ -12,11 +12,12 @@ export default async function TrackPage({ searchParams }: { searchParams: Promis
   const sp = await searchParams;
   const code = typeof sp.code === "string" ? sp.code.slice(0, 20) : "";
   return (
-    <div className="min-h-dvh bg-paper text-ink">
-      <SiteHeader variant="light" />
+    <div className="dark relative isolate min-h-dvh overflow-hidden bg-black text-white">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[28rem] bg-[radial-gradient(50%_100%_at_50%_0%,rgb(255_203_5/0.14),transparent)]" aria-hidden />
+      <SiteHeader variant="solid" />
       <main className="mx-auto max-w-xl px-4 pb-16 pt-10 sm:px-6 sm:pt-14">
         <h1 className="text-2xl font-black sm:text-3xl">پیگیری درخواست</h1>
-        <p className="mt-2 text-ink/65">کد پیگیری و شماره‌ی موبایلی را که با آن ثبت کرده‌اید وارد کنید.</p>
+        <p className="mt-2 text-white/65">کد پیگیری و شماره‌ی موبایلی را که با آن ثبت کرده‌اید وارد کنید.</p>
         <TrackForm initialCode={code} />
       </main>
     </div>

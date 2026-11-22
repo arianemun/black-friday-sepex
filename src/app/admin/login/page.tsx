@@ -14,10 +14,11 @@ export default async function LoginPage() {
     <main className="admin-soft flex min-h-dvh items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex justify-center">
-          <span className="rounded-xl bg-brand p-3 shadow-sm"><SepexLogo className="h-9 text-ink" /></span>
+          <span className="rounded-lg bg-brand p-3 shadow-sm"><SepexLogo className="h-9 text-ink" /></span>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-lg">
-          <h1 className="text-lg font-bold">ورود به پنل بلک‌فرایدی</h1>
+        <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-lg">
+          <h1 className="text-2xl font-semibold tracking-tight">ورود به پنل</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">پنل مدیریت بلک‌فرایدی سپکس</p>
           <LoginForm />
         </div>
       </div>
