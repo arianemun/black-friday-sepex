@@ -15,9 +15,12 @@ export function smsDryRun() {
 type Param = { name: string; value: string };
 
 export async function sendTemplateSms(mobile: string, templateId: string | undefined, parameters: Param[]) {
-  const label = `[sms] to=${mobile} template=${templateId ?? "-"} ${parameters.map((p) => `${p.name}=${p.value}`).join(" ")}`;
+  // Logs never contain parameter values (OTP codes) or the full number.
+  const masked = mobile.replace(/^(\d{4})\d+(\d{3})$/, "$1****$2");
+  const label = `[sms] to=${masked} template=${templateId ?? "-"} params=${parameters.map((p) => p.name).join(",")}`;
   if (smsDryRun() || !templateId) {
-    console.info(`${label} (dry-run${!templateId ? ", no template id" : ""})`);
+    const devValues = process.env.NODE_ENV !== "production" ? ` ${parameters.map((p) => `${p.name}=${p.value}`).join(" ")}` : "";
+    console.info(`${label}${devValues} (dry-run${!templateId ? ", no template id" : ""})`);
     return { ok: true, dryRun: true };
   }
   const controller = new AbortController();
@@ -34,11 +37,12 @@ export async function sendTemplateSms(mobile: string, templateId: string | undef
       signal: controller.signal,
       cache: "no-store",
     });
-    const body = (await res.json().catch(() => null)) as { status?: number; message?: string } | null;
+    const body = (await res.json().catch(() => null)) as { status?: number; message?: string; data?: { messageId?: number; cost?: number } } | null;
     if (!res.ok || body?.status !== 1) {
       console.error(`${label} failed: http=${res.status} status=${body?.status} message=${body?.message}`);
       return { ok: false };
     }
+    console.info(`${label} ok messageId=${body?.data?.messageId ?? "-"}`);
     return { ok: true };
   } catch (e) {
     console.error(`${label} error:`, (e as Error).message);
