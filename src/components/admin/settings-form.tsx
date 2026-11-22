@@ -1,12 +1,22 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { saveSettingsAction } from "@/app/admin/actions";
 import type { Settings } from "@/lib/settings";
+import { Button, FieldInput, FormField, FormGrid } from "@/components/admin-ui";
 
-const inputCls = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-4 rounded-xl border border-[#E4E4E7] bg-white p-5">
+      <div>
+        <h2 className="m-0 text-[15px] font-bold">{title}</h2>
+        {hint && <p className="mt-1 text-[13px] text-[#71717A]">{hint}</p>}
+      </div>
+      {children}
+    </section>
+  );
+}
 
 export function SettingsForm({ settings: s }: { settings: Settings }) {
   const [state, action, pending] = useActionState(saveSettingsAction, null);
@@ -15,38 +25,40 @@ export function SettingsForm({ settings: s }: { settings: Settings }) {
     if (state?.ok) toast.success(state.message ?? "ذخیره شد.");
   }, [state]);
   return (
-    <form action={action} className="grid gap-4 md:gap-6">
-      <section className="grid gap-3 rounded-lg border bg-card text-card-foreground shadow-sm p-4">
-        <h2 className="text-lg font-semibold">شمارش معکوس کمپین</h2>
-        <p className="text-xs text-gray-500">زمان‌ها به وقت تهران. قبل از شروع تا «شروع» می‌شمارد؛ بعد از آن، اگر پایان تعیین شده باشد، تا «پایان».</p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="grid gap-1.5 text-sm font-medium">شروع<input type="datetime-local" name="countdown_target" defaultValue={s.countdown_target} dir="ltr" className={inputCls} required /></label>
-          <label className="grid gap-1.5 text-sm font-medium">پایان (اختیاری)<input type="datetime-local" name="campaign_end" defaultValue={s.campaign_end} dir="ltr" className={inputCls} /></label>
-        </div>
-        <label className="grid gap-1.5 text-sm font-medium">متن کنار شمارش تا شروع<input name="countdown_label" defaultValue={s.countdown_label} className={inputCls} /></label>
-      </section>
+    <form action={action} className="flex flex-col gap-4">
+      <Section title="شمارش معکوس کمپین" hint="زمان‌ها به وقت تهران. قبل از شروع تا «شروع» می‌شمارد؛ بعد از آن، اگر پایان تعیین شده باشد، تا «پایان».">
+        <FormGrid>
+          <FormField label="شروع" htmlFor="cd-start"><FieldInput id="cd-start" type="datetime-local" name="countdown_target" defaultValue={s.countdown_target} dir="ltr" required /></FormField>
+          <FormField label="پایان (اختیاری)" htmlFor="cd-end"><FieldInput id="cd-end" type="datetime-local" name="campaign_end" defaultValue={s.campaign_end} dir="ltr" /></FormField>
+        </FormGrid>
+        <FormField label="متن بالای شمارنده تا شروع" htmlFor="cd-label"><FieldInput id="cd-label" name="countdown_label" defaultValue={s.countdown_label} /></FormField>
+      </Section>
 
-      <section className="grid gap-3 rounded-lg border bg-card text-card-foreground shadow-sm p-4">
-        <h2 className="text-lg font-semibold">پیامک درخواست جدید به کارشناس‌ها</h2>
-        <label className="flex items-start gap-2 text-sm"><input type="radio" name="notify_mode" value="all" defaultChecked={s.notify_mode === "all"} className="mt-1 accent-blue-600" />همه‌ی کارشناس‌ها پیامک بگیرند؛ هر کس زودتر «برمی‌دارم» را زد، مسئول درخواست است.</label>
-        <label className="flex items-start gap-2 text-sm"><input type="radio" name="notify_mode" value="round_robin" defaultChecked={s.notify_mode === "round_robin"} className="mt-1 accent-blue-600" />به نوبت؛ هر درخواست خودکار به یک کارشناس سپرده می‌شود و فقط او پیامک می‌گیرد.</label>
-      </section>
+      <Section title="پیامک درخواست جدید به کارشناس‌ها">
+        <label className="flex items-start gap-2 text-sm leading-6">
+          <input type="radio" name="notify_mode" value="all" defaultChecked={s.notify_mode === "all"} className="mt-1.5 accent-[#18181B]" />
+          همه‌ی کارشناس‌ها پیامک بگیرند؛ هر کس زودتر «برمی‌دارم» را زد، مسئول درخواست است.
+        </label>
+        <label className="flex items-start gap-2 text-sm leading-6">
+          <input type="radio" name="notify_mode" value="round_robin" defaultChecked={s.notify_mode === "round_robin"} className="mt-1.5 accent-[#18181B]" />
+          به نوبت؛ هر درخواست خودکار به یک کارشناس سپرده می‌شود و فقط او پیامک می‌گیرد.
+        </label>
+      </Section>
 
-      <section className="grid gap-3 rounded-lg border bg-card text-card-foreground shadow-sm p-4">
-        <h2 className="text-lg font-semibold">راه‌های ارتباطی در فوتر</h2>
-        <p className="text-xs text-gray-500">هر کدام خالی باشد نمایش داده نمی‌شود.</p>
-        <label className="grid gap-1.5 text-sm font-medium">تلفن پشتیبانی<input name="support_phone" defaultValue={s.support_phone} dir="ltr" className={inputCls} /></label>
-        {(["instagram", "telegram", "whatsapp", "bale"] as const).map((k) => (
-          <label key={k} className="grid gap-1.5 text-sm font-medium">
-            {{ instagram: "اینستاگرام", telegram: "تلگرام", whatsapp: "واتس‌اپ", bale: "بله" }[k]}
-            <input name={k} defaultValue={s[k]} dir="ltr" placeholder="https://" className={inputCls} />
-          </label>
-        ))}
-      </section>
+      <Section title="راه‌های ارتباطی در فوتر" hint="هر کدام خالی باشد نمایش داده نمی‌شود.">
+        <FormGrid>
+          <FormField label="تلفن پشتیبانی" htmlFor="st-phone"><FieldInput id="st-phone" name="support_phone" defaultValue={s.support_phone} dir="ltr" /></FormField>
+          {(["instagram", "telegram", "whatsapp", "bale"] as const).map((k) => (
+            <FormField key={k} label={{ instagram: "اینستاگرام", telegram: "تلگرام", whatsapp: "واتس‌اپ", bale: "بله" }[k]} htmlFor={`st-${k}`}>
+              <FieldInput id={`st-${k}`} name={k} defaultValue={s[k]} dir="ltr" placeholder="https://" />
+            </FormField>
+          ))}
+        </FormGrid>
+      </Section>
 
-      <button disabled={pending} className="flex h-11 w-fit items-center gap-2 rounded-md bg-blue-600 px-8 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60">
-        {pending && <Loader2 className="size-4 animate-spin" />} ذخیره‌ی تنظیمات
-      </button>
+      <div>
+        <Button type="submit" size="lg" loading={pending}>ذخیره‌ی تنظیمات</Button>
+      </div>
     </form>
   );
 }

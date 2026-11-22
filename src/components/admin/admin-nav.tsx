@@ -3,106 +3,159 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Inbox, LogOut, Menu, Settings, Tag, User, Users, X } from "lucide-react";
+import { Download, ExternalLink, Inbox, LayoutDashboard, LogOut, Menu, Search, Settings2, Tag, Users, X, type LucideIcon } from "lucide-react";
 import { logoutAction } from "@/app/admin/actions";
-import { SepexLogo } from "@/components/brand/logo";
+import { IconButton, adminButtonVariants } from "@/components/admin-ui";
 import { cn } from "@/lib/utils";
 
-/** Sidebar shell in the soft style of the previous SEPEX panel (sepex-fetchX). */
+/** Admin shell ported from Spinex: white 248px sidebar, sticky top bar, neutral zinc + blue. */
+
+type NavItem = { href: string; label: string; icon: LucideIcon; group: "work" | "system"; adminOnly?: boolean };
+
+const NAV: NavItem[] = [
+  { href: "/admin", label: "داشبورد", icon: LayoutDashboard, group: "work" },
+  { href: "/admin/requests", label: "درخواست‌ها", icon: Inbox, group: "work" },
+  { href: "/admin/products", label: "پیشنهادهای لندینگ", icon: Tag, group: "work" },
+  { href: "/admin/staff", label: "کارشناس‌ها", icon: Users, group: "system", adminOnly: true },
+  { href: "/admin/settings", label: "تنظیمات و سامانه", icon: Settings2, group: "system", adminOnly: true },
+];
+
+const isActive = (path: string, href: string) => (href === "/admin" ? path === "/admin" : path === href || path.startsWith(`${href}/`));
+
+const MARK =
+  "M316 121 L370 143 L424 121 L370 97 Z M124 23 L124 68 L247 121 L370 68 L493 121 L493 75 L370 23 L247 75 Z M193 23 L247 47 L300 23 L247 0 Z";
+
+function Brand() {
+  return (
+    <Link href="/admin" className="mb-1 flex items-center gap-2.5 px-2.5 pb-5 pt-1">
+      <span aria-hidden className="flex size-[30px] items-center justify-center rounded-lg bg-[#18181B]">
+        <svg width="20" height="10" viewBox="124 0 370 143" fill="#FFCB05">
+          <path fillRule="evenodd" d={MARK} />
+        </svg>
+      </span>
+      <span className="flex flex-col">
+        <span className="text-[15px] font-extrabold tracking-[0.2px] text-[#18181B]">SEPEX</span>
+        <span className="text-[11px] text-[#71717A]">پنل بلک‌فرایدی</span>
+      </span>
+    </Link>
+  );
+}
+
+function Nav({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate?: () => void }) {
+  const path = usePathname();
+  const items = NAV.filter((i) => !i.adminOnly || isAdmin);
+  const group = (g: NavItem["group"]) =>
+    items
+      .filter((i) => i.group === g)
+      .map((item) => {
+        const Icon = item.icon;
+        const active = isActive(path, item.href);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onNavigate}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "flex items-center gap-2.5 rounded-lg px-2.5 py-[9px] text-sm transition-colors",
+              active ? "bg-[#F4F4F5] font-bold text-[#18181B]" : "font-medium text-[#3F3F46] hover:bg-[#F4F4F5]"
+            )}
+          >
+            <Icon className="size-[18px] shrink-0" strokeWidth={1.8} aria-hidden />
+            {item.label}
+          </Link>
+        );
+      });
+  return (
+    <nav aria-label="ناوبری اصلی" className="flex flex-col gap-1">
+      <span className="px-2.5 pb-1 pt-2 text-[11px] font-semibold text-[#71717A]">کمپین</span>
+      {group("work")}
+      {isAdmin && <span className="px-2.5 pb-1 pt-4 text-[11px] font-semibold text-[#71717A]">سامانه</span>}
+      {group("system")}
+    </nav>
+  );
+}
+
 export function AdminShell({ name, username, isAdmin, children }: { name: string; username: string; isAdmin: boolean; children: React.ReactNode }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- close the drawer after navigation
   useEffect(() => setOpen(false), [path]);
 
-  const links = [
-    { href: "/admin", label: "درخواست‌ها", icon: Inbox, match: (p: string) => p === "/admin" || p.startsWith("/admin/requests") },
-    { href: "/admin/products", label: "پیشنهادهای لندینگ", icon: Tag, match: (p: string) => p.startsWith("/admin/products") },
-    ...(isAdmin
-      ? [
-          { href: "/admin/staff", label: "کارشناس‌ها", icon: Users, match: (p: string) => p.startsWith("/admin/staff") },
-          { href: "/admin/settings", label: "تنظیمات", icon: Settings, match: (p: string) => p.startsWith("/admin/settings") },
-        ]
-      : []),
-  ];
-
   const sidebar = (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between gap-2 border-b border-gray-200 p-4">
-        <Link href="/admin" className="flex items-center gap-3">
-          <span className="rounded-lg bg-brand p-2"><SepexLogo className="h-5 text-ink" /></span>
-          <span className="leading-tight">
-            <span className="block text-sm font-bold text-gray-900">پنل بلک‌فرایدی</span>
-            <span className="block text-xs text-gray-500">سپکس</span>
+    <>
+      <Brand />
+      <div className="flex-1 overflow-y-auto">
+        <Nav isAdmin={isAdmin} onNavigate={() => setOpen(false)} />
+      </div>
+      <div className="mt-auto flex items-center gap-2.5 border-t border-[#F4F4F5] px-2.5 py-3">
+        <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#E4E4E7] text-[13px] font-bold">
+          {name.trim().charAt(0) || "؟"}
+        </span>
+        <div className="min-w-0 flex-1">
+          <span className="block truncate text-[13px] font-bold text-[#18181B]">{name}</span>
+          <span className="block truncate text-[11px] text-[#71717A]">
+            {isAdmin ? "مدیر سیستم" : "کارشناس"} · <span dir="ltr">{username}</span>
           </span>
-        </Link>
-        <button onClick={() => setOpen(false)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 lg:hidden" aria-label="بستن منو">
-          <X className="size-5" />
-        </button>
-      </div>
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-        {links.map((l) => {
-          const active = l.match(path);
-          const Icon = l.icon;
-          return (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition-colors",
-                active ? "bg-blue-100 font-semibold text-blue-700" : "text-gray-700 hover:bg-gray-100"
-              )}
-            >
-              <Icon className="size-5 shrink-0" />
-              {l.label}
-            </Link>
-          );
-        })}
-      </nav>
-      <div className="border-t border-gray-200 p-3">
-        <div className="flex flex-col gap-3 rounded-lg bg-gray-50 p-3">
-          <div className="flex items-center gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-500">
-              <User className="size-5 text-white" />
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-medium text-gray-900">سلام، {name}</span>
-              <span dir="ltr" className="block truncate text-right text-xs text-gray-500">{username}</span>
-            </span>
-          </div>
-          <form action={logoutAction}>
-            <button type="submit" className="flex h-9 w-full items-center gap-2 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 hover:bg-gray-100">
-              <LogOut className="size-4" /> خروج
-            </button>
-          </form>
         </div>
+        <form action={logoutAction}>
+          <IconButton type="submit" aria-label="خروج" tooltip="خروج">
+            <LogOut />
+          </IconButton>
+        </form>
       </div>
-    </div>
+    </>
   );
 
   return (
-    <div className="admin-soft flex min-h-dvh bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-900">
-      <aside className="sticky top-0 hidden h-dvh w-72 shrink-0 border-l border-gray-200 bg-white lg:block">{sidebar}</aside>
+    <div className="admin-soft flex min-h-dvh bg-[#FAFAFA] text-[#18181B]">
+      <aside className="sticky top-0 hidden h-dvh w-[248px] shrink-0 flex-col border-l border-[#E4E4E7] bg-white p-[20px_14px] md:flex">{sidebar}</aside>
 
-      {open && <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setOpen(false)} aria-hidden />}
+      {/* mobile drawer */}
+      <div className={cn("fixed inset-0 z-40 bg-black/40 transition-opacity md:hidden", open ? "opacity-100" : "pointer-events-none opacity-0")} onClick={() => setOpen(false)} aria-hidden />
       <aside
         className={cn(
-          "fixed inset-y-0 right-0 z-50 w-72 bg-white shadow-xl transition-transform duration-300 lg:hidden",
+          "fixed inset-y-0 right-0 z-50 flex w-[280px] flex-col border-l border-[#E4E4E7] bg-white p-4 shadow-xl transition-transform duration-300 md:hidden",
           open ? "translate-x-0" : "translate-x-full"
         )}
         aria-hidden={!open}
+        aria-label="منوی مدیریت"
       >
+        <IconButton className="absolute left-3 top-3" aria-label="بستن منو" onClick={() => setOpen(false)}>
+          <X />
+        </IconButton>
         {sidebar}
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-gray-200 bg-white/90 px-4 backdrop-blur lg:hidden">
-          <button onClick={() => setOpen(true)} className="rounded-lg p-2 text-gray-600 hover:bg-gray-100" aria-label="باز کردن منو">
-            <Menu className="size-5" />
-          </button>
-          <span className="text-sm font-bold">پنل بلک‌فرایدی سپکس</span>
+        <header className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-[#E4E4E7] bg-white px-4 py-3.5 md:px-8">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <IconButton className="md:hidden" aria-label="باز کردن منو" tooltip="منو" onClick={() => setOpen(true)}>
+              <Menu />
+            </IconButton>
+            <form action="/admin/requests" className="relative w-full max-w-sm">
+              <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[#A1A1AA]" aria-hidden />
+              <input
+                name="q"
+                placeholder="جستجو: کد پیگیری، موبایل یا نام"
+                aria-label="جستجوی درخواست"
+                className="h-[38px] w-full rounded-lg border border-[#E4E4E7] bg-white pl-3 pr-9 text-sm outline-none transition-[border,box-shadow] placeholder:text-[#A1A1AA] focus:border-[#2563EB] focus:shadow-[0_0_0_3px_#DBEAFE]"
+              />
+            </form>
+          </div>
+          <div className="flex items-center gap-2">
+            <a href="/" target="_blank" rel="noopener" className={cn(adminButtonVariants({ variant: "secondary" }), "hidden sm:inline-flex")}>
+              <ExternalLink />
+              مشاهده سایت
+            </a>
+            <a href="/admin/export" className={adminButtonVariants({ variant: "primary" })} aria-label="خروجی Excel">
+              <Download />
+              <span className="hidden sm:inline">خروجی Excel</span>
+            </a>
+          </div>
         </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 p-3 sm:p-4 md:p-6">{children}</main>
+
+        <main className="mx-auto w-full max-w-[1180px] flex-1 px-4 py-7 md:px-8">{children}</main>
       </div>
     </div>
   );

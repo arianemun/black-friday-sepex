@@ -1,14 +1,12 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { Loader2, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { saveStaffAction } from "@/app/admin/actions";
-import { Badge } from "@/components/ui/badge";
+import { AdminTable, AdminTd, AdminTh, AdminTHead, AdminTr, Badge, Button, FieldInput, FormField, IconButton, fieldControlClass } from "@/components/admin-ui";
 
 export type StaffRow = { id: number; name: string; username: string; phone: string | null; role: "admin" | "expert"; notify_sms: number; active: number };
-
-const inputCls = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 function StaffForm({ row, onDone }: { row: StaffRow | null; onDone: () => void }) {
   const [state, action, pending] = useActionState(saveStaffAction, null);
@@ -20,27 +18,25 @@ function StaffForm({ row, onDone }: { row: StaffRow | null; onDone: () => void }
     }
   }, [state, onDone]);
   return (
-    <form action={action} className="grid gap-3" key={row?.id ?? "new"}>
+    <form action={action} className="flex flex-col gap-4">
       {row && <input type="hidden" name="id" value={row.id} />}
-      <label className="grid gap-1.5 text-sm font-medium">نام<input name="name" required defaultValue={row?.name} className={inputCls} /></label>
-      <label className="grid gap-1.5 text-sm font-medium">نام کاربری<input name="username" required dir="ltr" defaultValue={row?.username} className={inputCls} /></label>
-      <label className="grid gap-1.5 text-sm font-medium">
-        {row ? "رمز عبور جدید (خالی = بدون تغییر)" : "رمز عبور (حداقل ۸ کاراکتر)"}
-        <input name="password" type="password" dir="ltr" autoComplete="new-password" required={!row} className={inputCls} />
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium">موبایل<input name="phone" dir="ltr" inputMode="tel" placeholder="09121234567" defaultValue={row?.phone ?? ""} className={inputCls} /></label>
-      <label className="grid gap-1.5 text-sm font-medium">
-        نقش
-        <select name="role" defaultValue={row?.role ?? "expert"} className={inputCls}>
+      <FormField label="نام" htmlFor="s-name"><FieldInput id="s-name" name="name" required defaultValue={row?.name} /></FormField>
+      <FormField label="نام کاربری" htmlFor="s-user" helper="حروف انگلیسی، عدد، نقطه یا خط تیره"><FieldInput id="s-user" name="username" required dir="ltr" defaultValue={row?.username} /></FormField>
+      <FormField label={row ? "رمز عبور جدید" : "رمز عبور"} htmlFor="s-pass" helper={row ? "خالی بگذارید تا تغییر نکند." : "حداقل ۸ کاراکتر"}>
+        <FieldInput id="s-pass" name="password" type="password" dir="ltr" autoComplete="new-password" required={!row} />
+      </FormField>
+      <FormField label="موبایل" htmlFor="s-phone" helper="برای پیامک درخواست جدید لازم است.">
+        <FieldInput id="s-phone" name="phone" dir="ltr" inputMode="tel" placeholder="09121234567" defaultValue={row?.phone ?? ""} />
+      </FormField>
+      <FormField label="نقش" htmlFor="s-role">
+        <select id="s-role" name="role" defaultValue={row?.role ?? "expert"} className={fieldControlClass}>
           <option value="expert">کارشناس</option>
           <option value="admin">مدیر</option>
         </select>
-      </label>
-      <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="notify_sms" defaultChecked={row ? !!row.notify_sms : true} className="size-4 accent-blue-600" />پیامک درخواست جدید</label>
-      {row && <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="active" defaultChecked={!!row.active} className="size-4 accent-blue-600" />فعال</label>}
-      <button disabled={pending} className="flex h-10 items-center justify-center gap-2 rounded-md bg-blue-600 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60">
-        {pending && <Loader2 className="size-4 animate-spin" />} {row ? "ذخیره" : "افزودن کارشناس"}
-      </button>
+      </FormField>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="notify_sms" defaultChecked={row ? !!row.notify_sms : true} className="size-4 accent-[#18181B]" />پیامک درخواست جدید</label>
+      {row && <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="active" defaultChecked={!!row.active} className="size-4 accent-[#18181B]" />فعال</label>}
+      <Button type="submit" loading={pending}>{row ? "ذخیره" : "افزودن کارشناس"}</Button>
     </form>
   );
 }
@@ -49,34 +45,49 @@ export function StaffManager({ rows, meId }: { rows: StaffRow[]; meId: number })
   const [editing, setEditing] = useState<StaffRow | null>(null);
   const [formKey, setFormKey] = useState(0);
   return (
-    <div className="grid gap-4 md:gap-6 lg:grid-cols-[22rem_1fr]">
-      <section className="h-fit rounded-lg border bg-card text-card-foreground shadow-sm p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{editing ? `ویرایش ${editing.name}` : "کارشناس جدید"}</h2>
-          {editing && <button onClick={() => setEditing(null)} className="text-xs text-gray-500 underline">انصراف</button>}
+    <div className="grid items-start gap-4 lg:grid-cols-[20rem_1fr]">
+      <section className="flex flex-col gap-4 rounded-xl border border-[#E4E4E7] bg-white p-5">
+        <div className="flex items-center justify-between">
+          <h2 className="m-0 text-[15px] font-bold">{editing ? `ویرایش ${editing.name}` : "کارشناس جدید"}</h2>
+          {editing && <Button variant="link" size="sm" onClick={() => setEditing(null)}>انصراف</Button>}
         </div>
         <StaffForm key={`${editing?.id ?? "new"}-${formKey}`} row={editing} onDone={() => { setEditing(null); setFormKey((k) => k + 1); }} />
       </section>
-      <ul className="h-fit divide-y divide-gray-100 rounded-lg border bg-card text-card-foreground shadow-sm">
-        {rows.map((r) => (
-          <li key={r.id} className="flex items-center gap-3 p-3">
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold">
-                {r.name} {r.id === meId && <span className="text-xs text-gray-400">(شما)</span>}
-              </p>
-              <p className="text-xs text-gray-500"><span dir="ltr">{r.username}</span>{r.phone ? <>، <span dir="ltr">{r.phone}</span></> : ""}</p>
-            </div>
-            <div className="flex flex-wrap justify-end gap-1">
-              <Badge variant={r.role === "admin" ? "default" : "secondary"}>{r.role === "admin" ? "مدیر" : "کارشناس"}</Badge>
-              {!!r.notify_sms && <Badge variant="brand">پیامک</Badge>}
-              {!r.active && <Badge variant="destructive">غیرفعال</Badge>}
-            </div>
-            <button onClick={() => setEditing(r)} className="flex size-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900" aria-label={`ویرایش ${r.name}`}>
-              <Pencil className="size-4" />
-            </button>
-          </li>
-        ))}
-      </ul>
+      <section className="rounded-xl border border-[#E4E4E7] bg-white">
+        <AdminTable>
+          <AdminTHead>
+            <tr>
+              <AdminTh>نام</AdminTh>
+              <AdminTh className="hidden sm:table-cell">موبایل</AdminTh>
+              <AdminTh>وضعیت</AdminTh>
+              <AdminTh className="w-12" />
+            </tr>
+          </AdminTHead>
+          <tbody>
+            {rows.map((r) => (
+              <AdminTr key={r.id}>
+                <AdminTd>
+                  <div className="font-semibold">{r.name} {r.id === meId && <span className="text-xs font-normal text-[#A1A1AA]">(شما)</span>}</div>
+                  <div dir="ltr" className="text-right text-xs text-[#71717A]">{r.username}</div>
+                </AdminTd>
+                <AdminTd className="hidden text-[13px] text-[#52525B] sm:table-cell" dir="ltr">{r.phone ?? "—"}</AdminTd>
+                <AdminTd>
+                  <div className="flex flex-wrap gap-1">
+                    <Badge variant={r.role === "admin" ? "info" : "neutral"}>{r.role === "admin" ? "مدیر" : "کارشناس"}</Badge>
+                    {!!r.notify_sms && <Badge variant="success">پیامک</Badge>}
+                    {!r.active && <Badge variant="danger">غیرفعال</Badge>}
+                  </div>
+                </AdminTd>
+                <AdminTd>
+                  <IconButton aria-label={`ویرایش ${r.name}`} tooltip="ویرایش" onClick={() => setEditing(r)}>
+                    <Pencil />
+                  </IconButton>
+                </AdminTd>
+              </AdminTr>
+            ))}
+          </tbody>
+        </AdminTable>
+      </section>
     </div>
   );
 }

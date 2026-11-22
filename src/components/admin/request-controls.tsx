@@ -1,12 +1,11 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useTransition } from "react";
-import { Loader2, RefreshCw, UserCheck } from "lucide-react";
+import { RefreshCw, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { addNoteAction, assignAction, refetchLinksAction, setStatusAction } from "@/app/admin/actions";
 import { statuses } from "@/lib/catalog";
-import { Button } from "@/components/admin-ui/button";
-import { Label } from "@/components/admin-ui/label";
+import { Button, FieldTextarea, FormField, fieldControlClass } from "@/components/admin-ui";
 import { cn } from "@/lib/utils";
 
 export function RequestControls({ requestId, status, assignedTo, meId, staff }: { requestId: number; status: string; assignedTo: number | null; meId: number; staff: { id: number; name: string }[] }) {
@@ -14,16 +13,14 @@ export function RequestControls({ requestId, status, assignedTo, meId, staff }: 
   return (
     <div className={cn("flex flex-col gap-5", pending && "opacity-70")}>
       <div>
-        <Label className="mb-2 block">وضعیت</Label>
+        <p className="mb-2 text-[13px] font-semibold text-[#18181B]">وضعیت</p>
         <div className="grid grid-cols-2 gap-1.5">
           {statuses.map((s) => (
             <Button
               key={s.key}
-              type="button"
               size="sm"
-              variant={status === s.key ? "default" : "outline"}
+              variant={status === s.key ? "primary" : "secondary"}
               disabled={pending}
-              className={status === s.key ? "bg-blue-600 hover:bg-blue-700" : ""}
               onClick={() =>
                 start(async () => {
                   await setStatusAction(requestId, s.key);
@@ -36,13 +33,12 @@ export function RequestControls({ requestId, status, assignedTo, meId, staff }: 
           ))}
         </div>
       </div>
-      <div>
-        <Label htmlFor="assignee" className="mb-2 block">کارشناس مسئول</Label>
+      <FormField label="کارشناس مسئول" htmlFor="assignee">
         {assignedTo !== meId && (
           <Button
-            type="button"
+            className="mb-2 w-full bg-[#2563EB] hover:bg-[#1D4ED8]"
+            icon={<UserCheck />}
             disabled={pending}
-            className="mb-2 w-full bg-green-600 hover:bg-green-700"
             onClick={() =>
               start(async () => {
                 await assignAction(requestId, meId);
@@ -50,7 +46,7 @@ export function RequestControls({ requestId, status, assignedTo, meId, staff }: 
               })
             }
           >
-            <UserCheck className="ml-1.5 h-4 w-4" /> برمی‌دارم
+            برمی‌دارم
           </Button>
         )}
         <select
@@ -58,14 +54,14 @@ export function RequestControls({ requestId, status, assignedTo, meId, staff }: 
           value={assignedTo ?? ""}
           disabled={pending}
           onChange={(e) => start(() => assignAction(requestId, e.target.value ? Number(e.target.value) : null))}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={fieldControlClass}
         >
           <option value="">بدون کارشناس</option>
           {staff.map((s) => (
             <option key={s.id} value={s.id}>{s.name}</option>
           ))}
         </select>
-      </div>
+      </FormField>
     </div>
   );
 }
@@ -77,17 +73,11 @@ export function NoteForm({ requestId }: { requestId: number }) {
     if (state?.ok) ref.current?.reset();
   }, [state]);
   return (
-    <form ref={ref} action={action} className="mt-2 flex flex-col gap-2">
-      <textarea
-        name="body"
-        rows={3}
-        maxLength={2000}
-        placeholder="نتیجه‌ی تماس، قیمت اعلام‌شده، …"
-        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      />
-      {state?.error && <p className="text-xs font-medium text-destructive">{state.error}</p>}
-      <Button disabled={pending} size="sm">
-        {pending && <Loader2 className="ml-1.5 h-4 w-4 animate-spin" />} افزودن یادداشت
+    <form ref={ref} action={action} className="flex flex-col gap-2">
+      <FieldTextarea name="body" rows={3} maxLength={2000} placeholder="نتیجه‌ی تماس، قیمت اعلام‌شده، …" aria-label="یادداشت" />
+      {state?.error && <p className="text-xs text-[#B91C1C]">{state.error}</p>}
+      <Button type="submit" size="sm" loading={pending}>
+        افزودن یادداشت
       </Button>
     </form>
   );
@@ -96,8 +86,8 @@ export function NoteForm({ requestId }: { requestId: number }) {
 export function RefetchButton({ requestId }: { requestId: number }) {
   const [pending, start] = useTransition();
   return (
-    <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={() => start(() => refetchLinksAction(requestId))} className="w-fit text-muted-foreground">
-      <RefreshCw className={cn("ml-1.5 h-4 w-4", pending && "animate-spin")} /> خواندن دوباره‌ی اطلاعات لینک‌ها
+    <Button variant="ghost" size="sm" disabled={pending} onClick={() => start(() => refetchLinksAction(requestId))} className="w-fit text-[#52525B]" icon={<RefreshCw className={cn(pending && "animate-spin")} />}>
+      خواندن دوباره‌ی اطلاعات لینک‌ها
     </Button>
   );
 }

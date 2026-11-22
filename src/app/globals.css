@@ -245,31 +245,35 @@
   to { transform: translateX(50%); }
 }
 
-/* ---------- Admin panel: soft look (not the sharp brand language) ---------- */
+/* ---------- Admin panel: Spinex admin theme (neutral zinc + blue, not the brand look) ----------
+ * On the panel wrapper and, via AdminThemeSync, on <html> so portaled dialogs/toasts inherit it. */
 .admin-soft {
-  /* sepex-fetchX panel theme (shadcn slate) */
   --radius: 0.5rem;
-  --background: hsl(0 0% 100%);
-  --foreground: hsl(222.2 84% 4.9%);
-  --card: hsl(0 0% 100%);
-  --card-foreground: hsl(222.2 84% 4.9%);
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(222.2 84% 4.9%);
-  --primary: hsl(222.2 47.4% 11.2%);
-  --primary-foreground: hsl(210 40% 98%);
-  --secondary: hsl(210 40% 96.1%);
-  --secondary-foreground: hsl(222.2 47.4% 11.2%);
-  --muted: hsl(210 40% 96.1%);
-  --muted-foreground: hsl(215.4 16.3% 46.9%);
-  --accent: hsl(210 40% 96.1%);
-  --accent-foreground: hsl(222.2 47.4% 11.2%);
-  --destructive: hsl(0 84.2% 60.2%);
-  --destructive-foreground: hsl(210 40% 98%);
-  --border: hsl(214.3 31.8% 91.4%);
-  --input: hsl(214.3 31.8% 91.4%);
-  --ring: hsl(222.2 84% 4.9%);
+  --background: #fafafa;
+  --foreground: #18181b;
+  --card: #ffffff;
+  --card-foreground: #18181b;
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
+  --primary: #18181b;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #b91c1c;
+  --destructive-foreground: #ffffff;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #2563eb;
 }
-.admin-soft * { border-color: var(--border); }
+.admin-soft :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px #dbeafe;
+}
 
 /* ---------- Split-flap digits ---------- */
 .flip-char { perspective: 300px; }

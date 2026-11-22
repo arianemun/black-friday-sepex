@@ -2,26 +2,37 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentStaff, ensureBootstrapAdmin } from "@/lib/auth";
 import { LoginForm } from "@/components/admin/login-form";
-import { SepexLogo } from "@/components/brand/logo";
 
 export const metadata: Metadata = { title: "ورود به پنل", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
+const MARK =
+  "M316 121 L370 143 L424 121 L370 97 Z M124 23 L124 68 L247 121 L370 68 L493 121 L493 75 L370 23 L247 75 Z M193 23 L247 47 L300 23 L247 0 Z";
+
+/** Spinex admin login, with the SEPEX mark. */
 export default async function LoginPage() {
   ensureBootstrapAdmin();
   if (await getCurrentStaff()) redirect("/admin");
   return (
-    <main className="admin-soft flex min-h-dvh items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+    <div className="admin-soft flex min-h-dvh items-center justify-center bg-[#FAFAFA] px-4 text-[#18181B]">
       <div className="w-full max-w-sm">
-        <div className="mb-6 flex justify-center">
-          <span className="rounded-lg bg-brand p-3 shadow-sm"><SepexLogo className="h-9 text-ink" /></span>
+        <div className="mb-6 flex items-center justify-center gap-3">
+          <span aria-hidden className="flex size-12 items-center justify-center rounded-xl bg-[#18181B]">
+            <svg width="30" height="12" viewBox="124 0 370 143" fill="#FFCB05">
+              <path fillRule="evenodd" d={MARK} />
+            </svg>
+          </span>
+          <div className="flex flex-col">
+            <span className="text-2xl font-extrabold tracking-wide">SEPEX</span>
+            <span className="text-xs text-[#71717A]">پنل بلک‌فرایدی</span>
+          </div>
         </div>
-        <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-lg">
-          <h1 className="text-2xl font-semibold tracking-tight">ورود به پنل</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">پنل مدیریت بلک‌فرایدی سپکس</p>
+        <div className="rounded-xl border border-[#E4E4E7] bg-white p-6 shadow-sm">
+          <h1 className="mb-1 text-xl font-extrabold">ورود به پنل مدیریت</h1>
+          <p className="mb-5 text-sm text-[#71717A]">برای ادامه وارد حساب خود شوید.</p>
           <LoginForm />
         </div>
       </div>
-    </main>
+    </div>
   );
 }

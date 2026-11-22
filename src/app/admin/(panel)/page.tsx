@@ -1,178 +1,219 @@
 import Link from "next/link";
-import { CheckCircle2, Clock, Download, Inbox, LayoutDashboard, Search, UserX } from "lucide-react";
 import { requireStaff } from "@/lib/auth";
-import { listRequests, requestCounts } from "@/lib/admin-queries";
-import { methods, statuses } from "@/lib/catalog";
-import { Button } from "@/components/admin-ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/admin-ui/card";
-import { Input } from "@/components/admin-ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/admin-ui/table";
-import { PageHeader, StatCard } from "@/components/admin/page-header";
+import { dashboard, listRequests, type DashRange } from "@/lib/admin-queries";
+import { methods, statuses, type Method } from "@/lib/catalog";
+import { AdminTable, AdminTd, AdminTh, AdminTHead, AdminTr, EmptyState } from "@/components/admin-ui";
+import { KpiCard, PageHeader, Panel } from "@/components/admin/page-header";
+import { LinkSegments } from "@/components/admin/link-segments";
 import { StatusBadge } from "@/components/admin/status-badge";
-import { cn, formatFaDateTime, toFaDigits } from "@/lib/utils";
+import { formatFaDateTime, toFaDigits } from "@/lib/utils";
+import { Inbox } from "lucide-react";
 
-export const metadata = { title: "درخواست‌ها" };
+export const metadata = { title: "داشبورد" };
 
-type SP = Record<string, string | string[] | undefined>;
-const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : undefined);
+const fa = (n: number) => toFaDigits(n);
+const pct = (part: number, whole: number) => (whole ? `${toFaDigits(((part / whole) * 100).toFixed(0))}٪` : "—");
 
-export default async function RequestsPage({ searchParams }: { searchParams: Promise<SP> }) {
+function dayLabel(b: string) {
+  const d = new Date(`${b}T12:00:00Z`);
+  return Number.isNaN(d.getTime()) ? b : new Intl.DateTimeFormat("fa-IR", { month: "2-digit", day: "2-digit", timeZone: "UTC" }).format(d);
+}
+
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const me = await requireStaff();
   const sp = await searchParams;
-  const status = one(sp.status);
-  const view = one(sp.view);
-  const q = one(sp.q)?.slice(0, 60);
-  const page = Number(one(sp.page) || 1) || 1;
-  const { rows, total, pages } = listRequests({
-    status: statuses.some((s) => s.key === status) ? status : undefined,
-    q,
-    mine: view === "mine" ? me.id : undefined,
-    unassigned: view === "unassigned",
-    page,
-  });
-  const counts = requestCounts();
+  const range: DashRange = sp.range === "today" || sp.range === "all" ? sp.range : "7d";
+  const d = dashboard(range);
+  const recent = listRequests({ page: 1 }).rows.slice(0, 8);
+  const mine = listRequests({ mine: me.id, page: 1 }).total;
 
-  const qs = (patch: Record<string, string | undefined>) => {
-    const p = new URLSearchParams();
-    const merged = { status, view, q, ...patch };
-    for (const [k, v] of Object.entries(merged)) if (v) p.set(k, v);
-    const s = p.toString();
-    return s ? `/admin?${s}` : "/admin";
-  };
-  const chip = (active: boolean) =>
-    cn(
-      "inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors md:text-sm",
-      active ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-    );
+  const delta = d.yesterday ? Math.round(((d.today - d.yesterday) / d.yesterday) * 100) : null;
+  const contacted = d.total - (d.byStatus.new ?? 0);
+  const ordered = d.byStatus.ordered ?? 0;
+  const series = d.filled;
+  const max = Math.max(1, ...series.map((s) => s.c));
+  const chartTitle = range === "today" ? "درخواست‌ها در طول امروز" : range === "7d" ? "درخواست‌ها در ۷ روز اخیر" : "درخواست‌ها در طول کمپین";
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <PageHeader icon={LayoutDashboard} title="داشبورد مدیریت" description="درخواست‌های ثبت‌شده از لندینگ بلک‌فرایدی سپکس" dates />
+    <>
+      <PageHeader
+        title="داشبورد"
+        description="عملکرد کمپین بلک‌فرایدی در یک نگاه"
+        actions={
+          <LinkSegments
+            label="بازهٔ زمانی"
+            items={[
+              { href: "/admin?range=today", label: "امروز", active: range === "today" },
+              { href: "/admin", label: "۷ روز", active: range === "7d" },
+              { href: "/admin?range=all", label: "کل کمپین", active: range === "all" },
+            ]}
+          />
+        }
+      />
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <StatCard icon={Inbox} title="کل درخواست‌ها" value={toFaDigits(counts.total)} hint="از ابتدای کمپین" color="text-blue-500" />
-        <StatCard icon={Clock} title="۲۴ ساعت گذشته" value={toFaDigits(counts.today)} hint="درخواست جدید" color="text-purple-500" />
-        <StatCard icon={UserX} title="بدون کارشناس" value={toFaDigits(counts.unassigned)} hint="جدید و برداشته‌نشده" color="text-orange-500" />
-        <StatCard icon={CheckCircle2} title="سفارش قطعی" value={toFaDigits(counts.byStatus.ordered ?? 0)} hint="تبدیل به سفارش" color="text-green-500" />
-      </div>
+      <div className="flex flex-col gap-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <KpiCard
+            label="درخواست‌ها"
+            value={fa(d.total)}
+            hintTone={delta === null ? "muted" : delta >= 0 ? "good" : "bad"}
+            hint={
+              delta === null ? (
+                `امروز ${fa(d.today)} درخواست`
+              ) : (
+                <>
+                  {delta >= 0 ? "▲" : "▼"} {fa(Math.abs(delta))}٪ <span className="font-normal text-[#71717A]">امروز نسبت به دیروز</span>
+                </>
+              )
+            }
+          />
+          <KpiCard
+            label="جدید، بدون کارشناس"
+            value={fa(d.unassigned)}
+            hintTone={d.unassigned > 0 ? "bad" : "good"}
+            hint={d.unassigned > 0 ? <Link href="/admin/requests?view=unassigned&status=new" className="underline underline-offset-4">منتظر تماس؛ مشاهده</Link> : "همه برداشته شده‌اند"}
+          />
+          <KpiCard label="پیگیری‌شده" value={fa(contacted)} hint={`${pct(contacted, d.total)} از درخواست‌ها`} />
+          <KpiCard label="سفارش قطعی" value={fa(ordered)} hintTone={ordered ? "good" : "muted"} hint={`نرخ تبدیل ${pct(ordered, d.total)}`} />
+        </div>
 
-      <Card>
-        <CardHeader className="p-4 md:p-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <CardTitle className="text-base md:text-lg">لیست درخواست‌ها</CardTitle>
-              <CardDescription className="mt-1 text-xs md:text-sm">{toFaDigits(total)} نتیجه</CardDescription>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <Panel
+            title={chartTitle}
+            className="lg:col-span-2"
+            action={
+              <span className="flex gap-3.5 text-xs text-[#52525B]">
+                <span className="flex items-center gap-1.5"><span className="inline-block size-2.5 rounded-sm bg-[#2563EB]" />درخواست</span>
+                <span className="flex items-center gap-1.5"><span className="inline-block size-2.5 rounded-sm bg-[#BFDBFE]" />سفارش قطعی</span>
+              </span>
+            }
+          >
+            {d.total === 0 ? (
+              <p className="py-16 text-center text-sm text-[#71717A]">داده‌ای در این بازه نیست</p>
+            ) : (
+              <>
+                <div className="flex h-[220px] items-end gap-2.5 border-b border-[#E4E4E7] px-1">
+                  {series.map((s) => (
+                    <div key={s.b} className="flex h-full min-w-0 flex-1 items-end gap-[3px]" title={`${fa(s.c)} درخواست، ${fa(s.o ?? 0)} سفارش`}>
+                      <div className="flex-1 rounded-t bg-[#2563EB] hover:bg-[#1D4ED8]" style={{ height: `${Math.round((s.c / max) * 100)}%` }} />
+                      <div className="flex-1 rounded-t bg-[#BFDBFE]" style={{ height: `${Math.round(((s.o ?? 0) / max) * 100)}%` }} />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2.5 px-1 text-[11px] text-[#71717A]">
+                  {series.map((s) => (
+                    <span key={s.b} className="min-w-0 flex-1 truncate text-center">
+                      {range === "today" ? toFaDigits(Number(s.b)) : dayLabel(s.b)}
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
+          </Panel>
+
+          <Panel title="وضعیت درخواست‌ها">
+            <div className="flex flex-col gap-3">
+              {statuses.map((s) => {
+                const c = d.byStatus[s.key] ?? 0;
+                return (
+                  <Link key={s.key} href={`/admin/requests?status=${s.key}`} className="group flex flex-col gap-1.5">
+                    <div className="flex justify-between text-[13px]">
+                      <span className="group-hover:text-[#2563EB]">{s.name}</span>
+                      <span className="font-bold">{fa(c)}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-[#F4F4F5]">
+                      <div className="h-full rounded-full bg-[#18181B]" style={{ width: `${d.total ? (c / d.total) * 100 : 0}%`, background: s.key === "ordered" ? "#2563EB" : undefined }} />
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
-            <div className="flex gap-2">
-              <form action="/admin" className="flex gap-2">
-                {status && <input type="hidden" name="status" value={status} />}
-                {view && <input type="hidden" name="view" value={view} />}
-                <Input name="q" defaultValue={q} placeholder="کد پیگیری، موبایل یا نام" className="h-9 w-full md:w-64" />
-                <Button type="submit" size="sm" variant="outline" aria-label="جستجو">
-                  <Search className="h-4 w-4" />
-                </Button>
-              </form>
-              <Button asChild size="sm" variant="outline">
-                <a href="/admin/export">
-                  <Download className="ml-1.5 h-4 w-4" />
-                  اکسل
-                </a>
-              </Button>
+            <div className="mt-auto flex justify-between border-t border-[#F4F4F5] pt-3 text-xs text-[#52525B]">
+              <span>درخواست‌های من</span>
+              <Link href="/admin/requests?view=mine" className="font-bold text-[#18181B] hover:text-[#2563EB]">{fa(mine)}</Link>
             </div>
-          </div>
-          <div className="no-scrollbar mt-4 flex gap-1.5 overflow-x-auto">
-            <Link href={qs({ view: undefined, page: undefined })} className={chip(!view)}>همه</Link>
-            <Link href={qs({ view: "mine", page: undefined })} className={chip(view === "mine")}>مال من</Link>
-            <Link href={qs({ view: "unassigned", page: undefined })} className={chip(view === "unassigned")}>بدون کارشناس</Link>
-            <span className="mx-1 w-px shrink-0 bg-gray-200" />
-            <Link href={qs({ status: undefined, page: undefined })} className={chip(!status)}>همه‌ی وضعیت‌ها</Link>
-            {statuses.map((s) => (
-              <Link key={s.key} href={qs({ status: s.key, page: undefined })} className={chip(status === s.key)}>
-                {s.name}
-                <span className="opacity-60">{toFaDigits(counts.byStatus[s.key] ?? 0)}</span>
-              </Link>
-            ))}
-          </div>
-        </CardHeader>
-        <CardContent className="p-0 md:p-6 md:pt-0">
-          {rows.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">درخواستی با این فیلتر نیست.</div>
+          </Panel>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <Panel title="روش ثبت">
+            {d.byMethod.length === 0 ? (
+              <p className="py-6 text-center text-sm text-[#71717A]">هنوز درخواستی نیست</p>
+            ) : (
+              d.byMethod.map((m) => (
+                <div key={m.method} className="flex items-center justify-between border-b border-[#F4F4F5] pb-2.5 text-[13px] last:border-0 last:pb-0">
+                  <span>{methods[m.method as Method]?.short ?? m.method}</span>
+                  <span className="flex items-center gap-2">
+                    <span className="text-xs text-[#71717A]">{pct(m.c, d.total)}</span>
+                    <span className="font-bold">{fa(m.c)}</span>
+                  </span>
+                </div>
+              ))
+            )}
+          </Panel>
+          <Panel title="منبع ورود">
+            {d.bySource.length === 0 ? (
+              <p className="py-6 text-center text-sm text-[#71717A]">هنوز درخواستی نیست</p>
+            ) : (
+              d.bySource.map((s) => (
+                <div key={s.src} className="flex items-center justify-between border-b border-[#F4F4F5] pb-2.5 text-[13px] last:border-0 last:pb-0">
+                  <span dir="auto" className="truncate">{s.src}</span>
+                  <span className="font-bold">{fa(s.c)}</span>
+                </div>
+              ))
+            )}
+          </Panel>
+          <Panel title="کارشناس‌ها">
+            {d.experts.length === 0 ? (
+              <p className="py-6 text-center text-sm text-[#71717A]">کارشناس فعالی نیست</p>
+            ) : (
+              d.experts.map((e) => (
+                <div key={e.id} className="flex items-center justify-between border-b border-[#F4F4F5] pb-2.5 text-[13px] last:border-0 last:pb-0">
+                  <span className="truncate">{e.name}</span>
+                  <span className="flex items-center gap-3 text-xs text-[#71717A]">
+                    <span>باز {fa(e.open ?? 0)}</span>
+                    <span>قطعی {fa(e.ordered ?? 0)}</span>
+                    <span className="text-[13px] font-bold text-[#18181B]">{fa(e.assigned)}</span>
+                  </span>
+                </div>
+              ))
+            )}
+          </Panel>
+        </div>
+
+        <Panel title="آخرین درخواست‌ها" action={<Link href="/admin/requests" className="text-sm font-semibold text-[#2563EB] hover:underline">همه‌ی درخواست‌ها</Link>} className="p-0 pt-5 [&>div:first-child]:px-5">
+          {recent.length === 0 ? (
+            <EmptyState icon={<Inbox />} title="هنوز درخواستی ثبت نشده" hint="درخواست‌های لندینگ اینجا نمایش داده می‌شوند." />
           ) : (
-            <>
-              {/* desktop */}
-              <div className="hidden md:block">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>کد پیگیری</TableHead>
-                      <TableHead>مشتری</TableHead>
-                      <TableHead>کالا</TableHead>
-                      <TableHead>وضعیت</TableHead>
-                      <TableHead>کارشناس</TableHead>
-                      <TableHead>زمان ثبت</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rows.map((r) => (
-                      <TableRow key={r.id} className="relative">
-                        <TableCell>
-                          <Link href={`/admin/requests/${r.id}`} className="font-mono text-sm font-bold text-blue-700 after:absolute after:inset-0" dir="ltr">
-                            {r.tracking_code}
-                          </Link>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">{r.first_name} {r.last_name}</div>
-                          <div dir="ltr" className="text-right text-xs text-muted-foreground">{r.phone}</div>
-                        </TableCell>
-                        <TableCell className="max-w-64">
-                          <div className="text-xs text-muted-foreground">{methods[r.method].short}، {toFaDigits(r.item_count)} کالا</div>
-                          {r.first_item && <div dir="auto" className="truncate text-xs">{r.first_item}</div>}
-                        </TableCell>
-                        <TableCell><StatusBadge status={r.status} /></TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{r.assignee ?? "—"}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{formatFaDateTime(r.created_at)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              {/* mobile */}
-              <ul className="divide-y md:hidden">
-                {rows.map((r) => (
-                  <li key={r.id}>
-                    <Link href={`/admin/requests/${r.id}`} className="flex flex-col gap-1.5 p-4 hover:bg-gray-50">
-                      <div className="flex items-center justify-between gap-2">
-                        <span dir="ltr" className="font-mono text-sm font-bold text-blue-700">{r.tracking_code}</span>
-                        <StatusBadge status={r.status} />
-                      </div>
-                      <div className="text-sm font-medium">{r.first_name} {r.last_name} <span dir="ltr" className="text-xs font-normal text-muted-foreground">{r.phone}</span></div>
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>{methods[r.method].short}، {toFaDigits(r.item_count)} کالا</span>
-                        <span>{formatFaDateTime(r.created_at)}</span>
-                      </div>
-                    </Link>
-                  </li>
+            <AdminTable>
+              <AdminTHead>
+                <tr>
+                  <AdminTh>کد پیگیری</AdminTh>
+                  <AdminTh>مشتری</AdminTh>
+                  <AdminTh className="hidden md:table-cell">روش</AdminTh>
+                  <AdminTh>وضعیت</AdminTh>
+                  <AdminTh className="hidden md:table-cell">زمان</AdminTh>
+                </tr>
+              </AdminTHead>
+              <tbody>
+                {recent.map((r) => (
+                  <AdminTr key={r.id} className="relative">
+                    <AdminTd>
+                      <Link href={`/admin/requests/${r.id}`} dir="ltr" className="font-mono text-[13px] font-bold text-[#2563EB] after:absolute after:inset-0">
+                        {r.tracking_code}
+                      </Link>
+                    </AdminTd>
+                    <AdminTd>{r.first_name} {r.last_name}</AdminTd>
+                    <AdminTd className="hidden text-[#52525B] md:table-cell">{methods[r.method].short}</AdminTd>
+                    <AdminTd><StatusBadge status={r.status} /></AdminTd>
+                    <AdminTd className="hidden text-xs text-[#71717A] md:table-cell">{formatFaDateTime(r.created_at)}</AdminTd>
+                  </AdminTr>
                 ))}
-              </ul>
-            </>
+              </tbody>
+            </AdminTable>
           )}
-          {pages > 1 && (
-            <nav className="flex items-center justify-center gap-2 p-4 text-sm" aria-label="صفحه‌ها">
-              {page > 1 && (
-                <Button asChild variant="outline" size="sm">
-                  <Link href={qs({ page: String(page - 1) })}>قبلی</Link>
-                </Button>
-              )}
-              <span className="text-muted-foreground">صفحه‌ی {toFaDigits(page)} از {toFaDigits(pages)}</span>
-              {page < pages && (
-                <Button asChild variant="outline" size="sm">
-                  <Link href={qs({ page: String(page + 1) })}>بعدی</Link>
-                </Button>
-              )}
-            </nav>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        </Panel>
+      </div>
+    </>
   );
 }

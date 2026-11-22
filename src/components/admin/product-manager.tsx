@@ -1,11 +1,13 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
-import { Loader2, Pencil, Trash2, Wand2 } from "lucide-react";
+import { Package, Pencil, Trash2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { deleteProductAction, fetchProductMetaAction, saveProductAction, toggleProductAction } from "@/app/admin/actions";
 import { categories, categoryName, countries, countryName, stores, storeByKey } from "@/lib/catalog";
 import type { ProductRow } from "@/lib/products";
+import { AdminTable, AdminTd, AdminTh, AdminTHead, AdminTr, Badge, Button, EmptyState, FieldInput, FormField, IconButton, fieldControlClass } from "@/components/admin-ui";
+import { useConfirm } from "@/components/admin-ui/confirm-dialog";
 import { cn, toFaDigits } from "@/lib/utils";
 
 type P = ProductRow & { image: string | null };
@@ -28,8 +30,6 @@ const fromRow = (p: P): Form => ({
   image_url: "",
 });
 
-const inputCls = "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-
 export function ProductManager({ products }: { products: P[] }) {
   const [form, setForm] = useState<Form>(empty);
   const [preview, setPreview] = useState<string | null>(null);
@@ -37,6 +37,7 @@ export function ProductManager({ products }: { products: P[] }) {
   const [saveState, saveAction, saving] = useActionState(saveProductAction, null);
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, start] = useTransition();
+  const confirm = useConfirm();
 
   useEffect(() => {
     if (!fetchState) return;
@@ -73,135 +74,145 @@ export function ProductManager({ products }: { products: P[] }) {
   const set = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   return (
-    <div className="grid gap-4 md:gap-6 lg:grid-cols-[24rem_1fr]">
-      <section className="h-fit rounded-lg border bg-card text-card-foreground shadow-sm p-4 lg:sticky lg:top-6">
-        <h2 className="text-lg font-semibold">{form.id ? "ویرایش کالا" : "افزودن کالا"}</h2>
-        <form action={fetchAction} className="mt-3 flex gap-2">
-          <input name="url" dir="ltr" value={form.url} onChange={set("url")} placeholder="https://" className={cn(inputCls, "text-left")} aria-label="لینک کالا" />
-          <button disabled={fetching || !form.url} className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-3 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-50" title="خواندن خودکار اطلاعات">
-            {fetching ? <Loader2 className="size-4 animate-spin" /> : <Wand2 className="size-4" />} خواندن
-          </button>
+    <div className="grid items-start gap-4 lg:grid-cols-[22rem_1fr]">
+      <section className="flex flex-col gap-4 rounded-xl border border-[#E4E4E7] bg-white p-5 lg:sticky lg:top-24">
+        <h2 className="m-0 text-[15px] font-bold">{form.id ? "ویرایش کالا" : "افزودن کالا"}</h2>
+
+        <form action={fetchAction} className="flex flex-col gap-1.5">
+          <label htmlFor="p-url" className="text-[13px] font-semibold">لینک کالا</label>
+          <div className="flex gap-2">
+            <FieldInput id="p-url" name="url" dir="ltr" value={form.url} onChange={set("url")} placeholder="https://" className="text-left" />
+            <Button type="submit" variant="secondary" loading={fetching} disabled={!form.url} icon={<Wand2 />} title="خواندن خودکار اطلاعات">
+              خواندن
+            </Button>
+          </div>
+          <p className="text-xs text-[#71717A]">اگر فروشگاه اجازه ندهد، مشخصات را دستی پر کنید.</p>
         </form>
 
-        <form ref={formRef} action={saveAction} className="mt-3 grid gap-3">
+        <form ref={formRef} action={saveAction} className="flex flex-col gap-4">
           <input type="hidden" name="id" value={form.id} />
           <input type="hidden" name="url" value={form.url} />
           <input type="hidden" name="image_url" value={form.image_url} />
-          <label className="grid gap-1.5 text-sm font-medium">
-            عنوان
-            <input name="title" dir="auto" required value={form.title} onChange={set("title")} className={inputCls} />
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            <label className="grid gap-1.5 text-sm font-medium">
-              دسته
-              <select name="category" value={form.category} onChange={set("category")} className={inputCls}>
+          <FormField label="عنوان" htmlFor="p-title">
+            <FieldInput id="p-title" name="title" dir="auto" required value={form.title} onChange={set("title")} />
+          </FormField>
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label="دسته" htmlFor="p-cat">
+              <select id="p-cat" name="category" value={form.category} onChange={set("category")} className={fieldControlClass}>
                 {categories.map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
               </select>
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium">
-              کشور
-              <select name="country" value={form.country} onChange={set("country")} className={inputCls}>
+            </FormField>
+            <FormField label="کشور" htmlFor="p-country">
+              <select id="p-country" name="country" value={form.country} onChange={set("country")} className={fieldControlClass}>
                 <option value="">—</option>
                 {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
               </select>
-            </label>
+            </FormField>
           </div>
-          <label className="grid gap-1.5 text-sm font-medium">
-            فروشگاه
-            <select name="store_key" value={form.store_key} onChange={set("store_key")} className={inputCls}>
+          <FormField label="فروشگاه" htmlFor="p-store">
+            <select id="p-store" name="store_key" value={form.store_key} onChange={set("store_key")} className={fieldControlClass}>
               <option value="">تشخیص از لینک</option>
               {stores.map((s) => <option key={s.key} value={s.key}>{s.name}</option>)}
             </select>
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            <label className="grid gap-1.5 text-sm font-medium">
-              قیمت
-              <input name="price" dir="ltr" value={form.price} onChange={set("price")} className={inputCls} />
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium">
-              قیمت قبل
-              <input name="old_price" dir="ltr" value={form.old_price} onChange={set("old_price")} className={inputCls} />
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium">
-              ارز
-              <input name="currency" dir="ltr" placeholder="AED" value={form.currency} onChange={set("currency")} className={inputCls} />
-            </label>
+          </FormField>
+          <div className="grid grid-cols-3 gap-3">
+            <FormField label="قیمت" htmlFor="p-price"><FieldInput id="p-price" name="price" dir="ltr" value={form.price} onChange={set("price")} /></FormField>
+            <FormField label="قیمت قبل" htmlFor="p-old"><FieldInput id="p-old" name="old_price" dir="ltr" value={form.old_price} onChange={set("old_price")} /></FormField>
+            <FormField label="ارز" htmlFor="p-cur"><FieldInput id="p-cur" name="currency" dir="ltr" placeholder="AED" value={form.currency} onChange={set("currency")} /></FormField>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <label className="grid gap-1.5 text-sm font-medium">
-              درصد تخفیف
-              <input name="discount_percent" dir="ltr" inputMode="numeric" value={form.discount_percent} onChange={set("discount_percent")} className={inputCls} />
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium">
-              اولویت نمایش
-              <input name="sort" dir="ltr" inputMode="numeric" value={form.sort} onChange={set("sort")} className={inputCls} title="عدد بزرگ‌تر بالاتر" />
-            </label>
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label="درصد تخفیف" htmlFor="p-disc"><FieldInput id="p-disc" name="discount_percent" dir="ltr" inputMode="numeric" value={form.discount_percent} onChange={set("discount_percent")} /></FormField>
+            <FormField label="اولویت نمایش" htmlFor="p-sort" helper="عدد بزرگ‌تر، جلوتر"><FieldInput id="p-sort" name="sort" dir="ltr" inputMode="numeric" value={form.sort} onChange={set("sort")} /></FormField>
           </div>
-          <label className="grid gap-1.5 text-sm font-medium">
-            تصویر {preview ? "(از لینک خوانده شد؛ برای تعویض فایل بدهید)" : "(اختیاری)"}
-            <input name="image" type="file" accept="image/jpeg,image/png,image/webp" className="text-xs file:ml-2 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-white" />
-          </label>
+          <FormField label="تصویر" htmlFor="p-img" helper={preview ? "از لینک خوانده شد؛ برای تعویض فایل بدهید." : "JPG، PNG یا WebP؛ سبک (زیر ۳۰۰ کیلوبایت)."}>
+            <input id="p-img" name="image" type="file" accept="image/jpeg,image/png,image/webp" className="block w-full text-xs text-[#52525B] file:ml-3 file:h-8 file:rounded-lg file:border file:border-[#E4E4E7] file:bg-white file:px-3 file:text-[13px] file:font-semibold file:text-[#18181B] hover:file:bg-[#FAFAFA]" />
+          </FormField>
           {preview && (
             // eslint-disable-next-line @next/next/no-img-element -- remote preview before saving
-            <img src={preview} alt="" referrerPolicy="no-referrer" className="h-32 w-full rounded-lg border border-gray-200 object-contain" />
+            <img src={preview} alt="" referrerPolicy="no-referrer" className="h-32 w-full rounded-lg border border-[#E4E4E7] object-contain" />
           )}
           <div className="flex gap-2">
-            <button disabled={saving || !form.url} className="flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-blue-600 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50">
-              {saving && <Loader2 className="size-4 animate-spin" />}
+            <Button type="submit" className="flex-1" loading={saving} disabled={!form.url}>
               {form.id ? "ذخیره‌ی تغییرات" : "افزودن به لندینگ"}
-            </button>
+            </Button>
             {form.id && (
-              <button type="button" onClick={() => { setForm(empty); setPreview(null); }} className="h-10 rounded-lg border border-gray-300 px-3 text-sm hover:bg-gray-50">
+              <Button variant="secondary" onClick={() => { setForm(empty); setPreview(null); }}>
                 انصراف
-              </button>
+              </Button>
             )}
           </div>
         </form>
       </section>
 
-      <section>
+      <section className={cn("rounded-xl border border-[#E4E4E7] bg-white", pending && "opacity-70")}>
         {products.length === 0 ? (
-          <div className="rounded-lg border border-dashed bg-card p-10 text-center text-sm text-gray-500">
-            هنوز کالایی اضافه نشده. تا وقتی کالای فعالی نباشد، بخش پیشنهادها روی لندینگ نمایش داده نمی‌شود.
-          </div>
+          <EmptyState icon={<Package />} title="هنوز کالایی اضافه نشده" hint="تا وقتی کالای فعالی نباشد، بخش پیشنهادها روی لندینگ نمایش داده نمی‌شود." />
         ) : (
-          <ul className={cn("divide-y divide-gray-100 rounded-lg border bg-card text-card-foreground shadow-sm", pending && "opacity-70")}>
-            {products.map((p) => (
-              <li key={p.id} className="flex items-center gap-3 p-3">
-                <div className="size-16 shrink-0 rounded-lg border bg-card text-card-foreground shadow-sm">
-                  {p.image && (
-                    // eslint-disable-next-line @next/next/no-img-element -- our own /media route
-                    <img src={p.image} alt="" className="size-full object-contain" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p dir="auto" className="truncate text-sm font-semibold">{p.title}</p>
-                  <p className="text-xs text-gray-500">
-                    {storeByKey(p.store_key)?.name ?? "فروشگاه"}، {countryName(p.country)}، {categoryName(p.category)}
-                    {p.discount_percent ? `، ٪${toFaDigits(p.discount_percent)}` : ""}
-                    {p.source === "sample" && <span className="mr-1 bg-amber-100 px-1 text-amber-800">نمونه</span>}
-                  </p>
-                </div>
-                <label className="flex shrink-0 items-center gap-1.5 text-xs">
-                  <input type="checkbox" checked={!!p.active} onChange={(e) => start(() => toggleProductAction(p.id, e.target.checked))} className="size-4 accent-blue-600" />
-                  فعال
-                </label>
-                <button type="button" onClick={() => { setForm(fromRow(p)); setPreview(p.image); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="flex size-9 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900" aria-label="ویرایش">
-                  <Pencil className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (confirm(`«${p.title}» حذف شود؟`)) start(() => deleteProductAction(p.id));
-                  }}
-                  className="flex size-9 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-700"
-                  aria-label="حذف"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-              </li>
-            ))}
-          </ul>
+          <AdminTable>
+            <AdminTHead>
+              <tr>
+                <AdminTh>کالا</AdminTh>
+                <AdminTh className="hidden sm:table-cell">فروشگاه</AdminTh>
+                <AdminTh className="hidden sm:table-cell" numeric>تخفیف</AdminTh>
+                <AdminTh>فعال</AdminTh>
+                <AdminTh className="w-20" />
+              </tr>
+            </AdminTHead>
+            <tbody>
+              {products.map((p) => (
+                <AdminTr key={p.id}>
+                  <AdminTd>
+                    <div className="flex items-center gap-3">
+                      <div className="size-11 shrink-0 overflow-hidden rounded-lg border border-[#E4E4E7] bg-white">
+                        {p.image && (
+                          // eslint-disable-next-line @next/next/no-img-element -- our own /media route
+                          <img src={p.image} alt="" className="size-full object-contain" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p dir="auto" className="max-w-[18rem] truncate font-semibold">{p.title}</p>
+                        <p className="text-xs text-[#71717A]">
+                          {categoryName(p.category)}
+                          {p.source === "sample" && <Badge variant="warning" className="mr-1.5">نمونه</Badge>}
+                        </p>
+                      </div>
+                    </div>
+                  </AdminTd>
+                  <AdminTd className="hidden text-[13px] text-[#52525B] sm:table-cell">
+                    {storeByKey(p.store_key)?.name ?? "—"}، {countryName(p.country)}
+                  </AdminTd>
+                  <AdminTd numeric className="hidden sm:table-cell">{p.discount_percent ? `٪${toFaDigits(p.discount_percent)}` : "—"}</AdminTd>
+                  <AdminTd>
+                    <input
+                      type="checkbox"
+                      aria-label="نمایش روی لندینگ"
+                      checked={!!p.active}
+                      onChange={(e) => start(() => toggleProductAction(p.id, e.target.checked))}
+                      className="size-4 accent-[#18181B]"
+                    />
+                  </AdminTd>
+                  <AdminTd>
+                    <div className="flex justify-end gap-1">
+                      <IconButton aria-label="ویرایش" tooltip="ویرایش" onClick={() => { setForm(fromRow(p)); setPreview(p.image); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                        <Pencil />
+                      </IconButton>
+                      <IconButton
+                        variant="destructive"
+                        aria-label="حذف"
+                        tooltip="حذف"
+                        onClick={async () => {
+                          const ok = await confirm({ title: "حذف کالا", message: `«${p.title}» از لندینگ حذف شود؟`, confirmLabel: "حذف", danger: true });
+                          if (ok) start(() => deleteProductAction(p.id));
+                        }}
+                      >
+                        <Trash2 />
+                      </IconButton>
+                    </div>
+                  </AdminTd>
+                </AdminTr>
+              ))}
+            </tbody>
+          </AdminTable>
         )}
       </section>
     </div>

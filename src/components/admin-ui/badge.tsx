@@ -1,37 +1,55 @@
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
+import type { ComponentProps } from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '@/lib/utils';
 
-import { cn } from "@/lib/utils"
-
-const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+const adminBadgeVariants = cva(
+  'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold leading-none',
   {
     variants: {
       variant: {
-        default:
-          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive:
-          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
+        neutral: 'bg-[#F4F4F5] border-[#E4E4E7] text-[#3F3F46]',
+        success: 'bg-[#F0FDF4] border-[#BBF7D0] text-[#15803D]',
+        warning: 'bg-[#FFFBEB] border-[#FDE68A] text-[#B45309]',
+        danger: 'bg-[#FEF2F2] border-[#FECACA] text-[#B91C1C]',
+        info: 'bg-[#EFF6FF] border-[#BFDBFE] text-[#1D4ED8]',
       },
     },
-    defaultVariants: {
-      variant: "default",
-    },
+    defaultVariants: { variant: 'neutral' },
   }
-)
+);
 
-export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+export type AdminBadgeProps = ComponentProps<'span'> &
+  VariantProps<typeof adminBadgeVariants>;
 
-function Badge({ className, variant, ...props }: BadgeProps) {
+export function Badge({ className, variant, ...props }: AdminBadgeProps) {
   return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
-  )
+    <span
+      data-slot="admin-badge"
+      className={cn(adminBadgeVariants({ variant }), className)}
+      {...props}
+    />
+  );
 }
 
-export { Badge, badgeVariants }
+type BadgeVariant = NonNullable<VariantProps<typeof adminBadgeVariants>['variant']>;
 
+/** Request status → badge variant. */
+export function requestStatusVariant(status: string): BadgeVariant {
+  switch (status) {
+    case 'new':
+      return 'warning';
+    case 'contacted':
+    case 'reviewing':
+      return 'info';
+    case 'quoted':
+      return 'info';
+    case 'ordered':
+      return 'success';
+    case 'cancelled':
+      return 'danger';
+    default:
+      return 'neutral';
+  }
+}
+
+export { adminBadgeVariants };
