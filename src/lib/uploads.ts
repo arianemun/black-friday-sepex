@@ -2,9 +2,9 @@ import "server-only";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import sharp from "sharp";
 import { getDb, UPLOAD_DIR } from "./db";
 import { safeFetch } from "./safe-fetch";
+import { loadSharp, sniffImage } from "./image";
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 // No HEIC in the list on purpose: iOS then converts photos to JPEG before upload.
@@ -52,24 +52,34 @@ export async function storeUpload(
     mime = "application/pdf";
     ext = "pdf";
   } else {
-    let img: ReturnType<typeof sharp>;
-    try {
-      img = sharp(buf, { failOn: "error", limitInputPixels: 60_000_000, animated: false });
-      await img.metadata();
-    } catch {
-      throw new Error("bad_type");
+    const sharp = await loadSharp();
+    if (sharp) {
+      let img: ReturnType<typeof sharp>;
+      try {
+        img = sharp(buf, { failOn: "error", limitInputPixels: 60_000_000, animated: false });
+        await img.metadata();
+      } catch {
+        throw new Error("bad_type");
+      }
+      const max = opts.maxSide ?? 2000;
+      const res = await img
+        .rotate()
+        .resize({ width: max, height: max, fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 82 })
+        .toBuffer({ resolveWithObject: true });
+      out = res.data;
+      width = res.info.width;
+      height = res.info.height;
+      mime = "image/webp";
+      ext = "webp";
+    } else {
+      // Fallback without sharp: accept known image formats as they are.
+      const kind = sniffImage(buf);
+      if (!kind) throw new Error("bad_type");
+      out = buf;
+      mime = kind.mime;
+      ext = kind.ext;
     }
-    const max = opts.maxSide ?? 2000;
-    const res = await img
-      .rotate()
-      .resize({ width: max, height: max, fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 82 })
-      .toBuffer({ resolveWithObject: true });
-    out = res.data;
-    width = res.info.width;
-    height = res.info.height;
-    mime = "image/webp";
-    ext = "webp";
   }
 
   const fileName = `${id}.${ext}`;

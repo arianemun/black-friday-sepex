@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { smsDryRun } from "@/lib/sms";
+import { loadSharp } from "@/lib/image";
 import { Settings } from "lucide-react";
 import { SettingsForm } from "@/components/admin/settings-form";
 import { PageHeader } from "@/components/admin/page-header";
@@ -23,6 +24,7 @@ export default async function SettingsPage() {
     customerTemplate: !!process.env.SMSIR_CUSTOMER_TEMPLATE_ID,
     expertTemplate: !!process.env.SMSIR_EXPERT_TEMPLATE_ID,
     fetchProxy: !!process.env.FETCH_PROXY_URL,
+    sharp: !!(await loadSharp()),
   };
   return (
     <div className="max-w-3xl space-y-4 md:space-y-6">
@@ -38,6 +40,7 @@ export default async function SettingsPage() {
             ["قالب پیامک ثبت درخواست (مشتری)", env.customerTemplate, "تنظیم شده", "تنظیم نشده"],
             ["قالب پیامک درخواست جدید (کارشناس)", env.expertTemplate, "تنظیم شده", "تنظیم نشده"],
             ["پراکسی خارج برای خواندن لینک‌ها", env.fetchProxy, "تنظیم شده", "تنظیم نشده؛ بیشتر فروشگاه‌ها از ایران خوانده نمی‌شوند"],
+            ["پردازش تصویر (sharp)", env.sharp, "فعال", "غیرفعال؛ عکس‌ها بدون فشرده‌سازی ذخیره می‌شوند"],
           ].map(([label, ok, yes, no]) => (
             <li key={label as string} className="flex justify-between gap-4">
               <span>{label}</span>
