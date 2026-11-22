@@ -25,35 +25,37 @@ export type Store = {
   country: CountryCode;
   domains: string[]; // host suffixes used for detection
   featured?: boolean;
+  short?: string; // short Persian name for tight places (hero tags)
+  hint?: string; // what people usually buy there
 };
 
 export const stores: Store[] = [
   // China
-  { key: "taobao", name: "تائوبائو", latin: "Taobao", url: "https://www.taobao.com", country: "CN", domains: ["taobao.com", "tb.cn"], featured: true },
-  { key: "1688", name: "۱۶۸۸", latin: "1688", url: "https://www.1688.com", country: "CN", domains: ["1688.com"], featured: true },
-  { key: "alibaba", name: "علی‌بابا", latin: "Alibaba", url: "https://www.alibaba.com", country: "CN", domains: ["alibaba.com"], featured: true },
-  { key: "aliexpress", name: "علی‌اکسپرس", latin: "AliExpress", url: "https://www.aliexpress.com", country: "CN", domains: ["aliexpress.com", "aliexpress.ru", "aliexpress.us"], featured: true },
+  { key: "taobao", name: "تائوبائو", latin: "Taobao", url: "https://www.taobao.com", country: "CN", domains: ["taobao.com", "tb.cn"], featured: true, short: "تائوبائو", hint: "همه‌چیز با قیمت داخلی چین" },
+  { key: "1688", name: "۱۶۸۸", latin: "1688", url: "https://www.1688.com", country: "CN", domains: ["1688.com"], featured: true, short: "۱۶۸۸", hint: "عمده و مستقیم از کارخانه" },
+  { key: "alibaba", name: "علی‌بابا", latin: "Alibaba", url: "https://www.alibaba.com", country: "CN", domains: ["alibaba.com"], featured: true, short: "علی‌بابا", hint: "تأمین‌کننده و سفارش عمده" },
+  { key: "aliexpress", name: "علی‌اکسپرس", latin: "AliExpress", url: "https://www.aliexpress.com", country: "CN", domains: ["aliexpress.com", "aliexpress.ru", "aliexpress.us"], featured: true, short: "علی‌اکسپرس", hint: "خرده و تک‌عدد از چین" },
   { key: "tmall", name: "تی‌مال", latin: "Tmall", url: "https://www.tmall.com", country: "CN", domains: ["tmall.com"] },
   { key: "jd", name: "جی‌دی", latin: "JD.com", url: "https://www.jd.com", country: "CN", domains: ["jd.com"] },
-  { key: "temu", name: "تمو", latin: "Temu", url: "https://www.temu.com", country: "CN", domains: ["temu.com"] },
-  { key: "shein", name: "شین", latin: "SHEIN", url: "https://www.shein.com", country: "CN", domains: ["shein.com"] },
+  { key: "temu", name: "تمو", latin: "Temu", url: "https://www.temu.com", country: "CN", domains: ["temu.com"], short: "تمو", hint: "لوازم خانه و گجت" },
+  { key: "shein", name: "شین", latin: "SHEIN", url: "https://www.shein.com", country: "CN", domains: ["shein.com"], short: "شین", hint: "مد و پوشاک ارزان" },
   // UAE
-  { key: "amazon-ae", name: "آمازون امارات", latin: "amazon.ae", url: "https://www.amazon.ae", country: "AE", domains: ["amazon.ae"], featured: true },
-  { key: "noon", name: "نون", latin: "noon", url: "https://www.noon.com/uae-en/", country: "AE", domains: ["noon.com"], featured: true },
-  { key: "namshi", name: "نمشی", latin: "Namshi", url: "https://www.namshi.com", country: "AE", domains: ["namshi.com"] },
-  { key: "sharafdg", name: "شرف دی‌جی", latin: "Sharaf DG", url: "https://uae.sharafdg.com", country: "AE", domains: ["sharafdg.com"] },
+  { key: "amazon-ae", name: "آمازون امارات", latin: "amazon.ae", url: "https://www.amazon.ae", country: "AE", domains: ["amazon.ae"], featured: true, short: "آمازون", hint: "دیجیتال، خانه و برندها" },
+  { key: "noon", name: "نون", latin: "noon", url: "https://www.noon.com/uae-en/", country: "AE", domains: ["noon.com"], featured: true, short: "نون", hint: "دیجیتال، عطر و مد" },
+  { key: "namshi", name: "نمشی", latin: "Namshi", url: "https://www.namshi.com", country: "AE", domains: ["namshi.com"], short: "نمشی", hint: "مد و کفش برند" },
+  { key: "sharafdg", name: "شرف دی‌جی", latin: "Sharaf DG", url: "https://uae.sharafdg.com", country: "AE", domains: ["sharafdg.com"], short: "شرف دی‌جی", hint: "لوازم الکترونیکی" },
   // Europe
   { key: "amazon-de", name: "آمازون آلمان", latin: "amazon.de", url: "https://www.amazon.de", country: "EU", domains: ["amazon.de", "amazon.fr", "amazon.it", "amazon.es", "amazon.nl"] },
   { key: "amazon-uk", name: "آمازون انگلیس", latin: "amazon.co.uk", url: "https://www.amazon.co.uk", country: "EU", domains: ["amazon.co.uk"] },
-  { key: "zalando", name: "زالاندو", latin: "Zalando", url: "https://www.zalando.de", country: "EU", domains: ["zalando.de", "zalando.com", "zalando.co.uk"] },
+  { key: "zalando", name: "زالاندو", latin: "Zalando", url: "https://www.zalando.de", country: "EU", domains: ["zalando.de", "zalando.com", "zalando.co.uk"], short: "زالاندو", hint: "مد و کفش اروپایی" },
   { key: "asos", name: "ایسوس (ASOS)", latin: "ASOS", url: "https://www.asos.com", country: "EU", domains: ["asos.com"] },
   // USA
-  { key: "amazon-us", name: "آمازون آمریکا", latin: "amazon.com", url: "https://www.amazon.com", country: "US", domains: ["amazon.com", "amzn.to", "a.co"] },
-  { key: "ebay", name: "ای‌بی", latin: "eBay", url: "https://www.ebay.com", country: "US", domains: ["ebay.com", "ebay.de", "ebay.co.uk"] },
+  { key: "amazon-us", name: "آمازون آمریکا", latin: "amazon.com", url: "https://www.amazon.com", country: "US", domains: ["amazon.com", "amzn.to", "a.co"], short: "آمازون آمریکا", hint: "برندهای آمریکایی" },
+  { key: "ebay", name: "ای‌بی", latin: "eBay", url: "https://www.ebay.com", country: "US", domains: ["ebay.com", "ebay.de", "ebay.co.uk"], short: "ای‌بی", hint: "قطعات، کلکسیون و دست‌دوم" },
   { key: "walmart", name: "والمارت", latin: "Walmart", url: "https://www.walmart.com", country: "US", domains: ["walmart.com"] },
   { key: "bestbuy", name: "بست‌بای", latin: "Best Buy", url: "https://www.bestbuy.com", country: "US", domains: ["bestbuy.com"] },
   // Turkey
-  { key: "trendyol", name: "ترندیول", latin: "Trendyol", url: "https://www.trendyol.com", country: "TR", domains: ["trendyol.com", "ty.gl"] },
+  { key: "trendyol", name: "ترندیول", latin: "Trendyol", url: "https://www.trendyol.com", country: "TR", domains: ["trendyol.com", "ty.gl"], short: "ترندیول", hint: "پوشاک و خانه ترکیه" },
   { key: "hepsiburada", name: "هپسی‌بورادا", latin: "Hepsiburada", url: "https://www.hepsiburada.com", country: "TR", domains: ["hepsiburada.com"] },
   { key: "amazon-tr", name: "آمازون ترکیه", latin: "amazon.com.tr", url: "https://www.amazon.com.tr", country: "TR", domains: ["amazon.com.tr"] },
 ];

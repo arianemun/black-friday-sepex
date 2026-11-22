@@ -3,6 +3,7 @@ import { SepexLogo } from "@/components/brand/logo";
 
 const nav = [
   { href: "/#deals", label: "پیشنهادها" },
+  { href: "/#categories", label: "چی بیاریم؟" },
   { href: "/#how", label: "روش کار" },
   { href: "/#stores", label: "فروشگاه‌ها" },
   { href: "/#faq", label: "سؤالات" },
@@ -12,18 +13,18 @@ export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "light" })
   const dark = variant === "dark";
   return (
     <header className={dark ? "absolute inset-x-0 top-0 z-30 text-white" : "border-b border-ink/10 bg-paper text-ink"}>
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:h-20 sm:px-6">
-        <Link href="/" className="flex items-center gap-3" aria-label="بلک‌فرایدی سپکس، صفحه‌ی اصلی">
+      <div className="mx-auto grid h-16 max-w-7xl grid-cols-[1fr_auto] items-center gap-6 px-4 sm:h-20 sm:px-6 md:grid-cols-[1fr_auto_1fr]">
+        <Link href="/" className="flex w-fit items-center gap-3" aria-label="بلک‌فرایدی سپکس، صفحه‌ی اصلی">
           <SepexLogo className={dark ? "h-7 text-brand sm:h-8" : "h-7 text-ink sm:h-8"} />
         </Link>
-        <nav aria-label="بخش‌های صفحه" className="hidden items-center gap-6 text-sm md:flex">
+        <nav aria-label="بخش‌های صفحه" className="hidden items-center gap-1 border border-white/10 bg-black/40 p-1 text-sm backdrop-blur md:flex">
           {nav.map((n) => (
-            <Link key={n.href} href={n.href} className={dark ? "text-white/70 hover:text-brand" : "text-ink/70 hover:text-ink"}>
+            <Link key={n.href} href={n.href} className={dark ? "px-4 py-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white" : "px-4 py-2 text-ink/70 hover:bg-ink/5 hover:text-ink"}>
               {n.label}
             </Link>
           ))}
         </nav>
-        <div className="ms-auto flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2">
           <Link
             href="/track"
             className={

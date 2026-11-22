@@ -179,7 +179,7 @@
 
 /* ---------- Landing: midnight-sale stage (the page's single load moment) ---------- */
 .hero-wordmark {
-  font-size: clamp(3.2rem, 13vw, 10.5rem);
+  font-size: clamp(3.2rem, 12vw, 9rem);
   letter-spacing: -0.03em;
   line-height: 0.86;
   text-shadow: 0 0 40px rgb(255 203 5 / 0.35), 0 0 120px rgb(255 203 5 / 0.25);
@@ -247,4 +247,59 @@
 /* ---------- Admin panel: soft look (not the sharp brand language) ---------- */
 .admin-soft {
   --radius: 0.625rem;
+}
+
+/* ---------- Split-flap digits ---------- */
+.flip-char { perspective: 300px; }
+.flip-top, .flip-bottom { backface-visibility: hidden; }
+.flip-top { animation: flip-top 300ms ease-in both; z-index: 2; }
+.flip-bottom { animation: flip-bottom 300ms ease-out 300ms both; z-index: 2; }
+@keyframes flip-top { from { transform: rotateX(0deg); } to { transform: rotateX(-90deg); } }
+@keyframes flip-bottom { from { transform: rotateX(90deg); } to { transform: rotateX(0deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .flip-top, .flip-bottom { animation-duration: 1ms; animation-delay: 0ms; }
+}
+.board-blink { animation: board-blink 1.2s steps(2, jump-none) infinite; }
+@keyframes board-blink { 50% { opacity: 0.2; } }
+@media (prefers-reduced-motion: no-preference) {
+  .scroll-cue { animation: scroll-cue 1.8s ease-in-out infinite; transform-origin: top; }
+}
+@keyframes scroll-cue { 0% { transform: scaleY(0); } 50% { transform: scaleY(1); } 100% { transform: scaleY(1); opacity: 0; } }
+
+/* ---------- Category wall ---------- */
+.wall-row { animation: wall 80s linear infinite; }
+.wall-row-rev { animation-direction: reverse; }
+@keyframes wall { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) { .wall-row, .ticker { animation: none; } }
+
+/* ---------- How-it-works phone ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .screen-in { animation: screen-in 450ms ease-out both; }
+  .plane-run { animation: plane-run 3.2s ease-in-out infinite; }
+  .ring-pulse { animation: ring-pulse 1.4s ease-out infinite; }
+  .step-progress { animation: step-progress 4.5s linear both; }
+}
+@keyframes screen-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes plane-run { from { right: 4%; } to { right: 84%; } }
+@keyframes ring-pulse { 0% { box-shadow: 0 0 0 0 rgb(255 203 5 / 0.6); } 100% { box-shadow: 0 0 0 22px rgb(255 203 5 / 0); } }
+@keyframes step-progress { from { width: 0; } to { width: 100%; } }
+
+/* ---------- SEPEX pattern (logo mark tiled) ---------- */
+.sepex-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2284%22%20height%3D%2256%22%20viewBox%3D%220%200%2084%2056%22%3E%3Cg%20transform%3D%22translate%2814%2017%29%20scale%280.152%29%20translate%28-124%200%29%22%3E%3Cpath%20fill%3D%22%23FFCB05%22%20fill-rule%3D%22evenodd%22%20d%3D%22M316%20121%20L370%20143%20L424%20121%20L370%2097%20Z%20M124%2023%20L124%2068%20L247%20121%20L370%2068%20L493%20121%20L493%2075%20L370%2023%20L247%2075%20Z%20M193%2023%20L247%2047%20L300%2023%20L247%200%20Z%22/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 84px 56px;
+}
+
+/* ---------- Orbit + footer ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .route-dash { animation: route-dash 2.6s linear infinite; }
+}
+@keyframes route-dash { from { stroke-dashoffset: 62; } to { stroke-dashoffset: 0; } }
+.footer-giant {
+  font-size: clamp(2.4rem, 8.6vw, 7.6rem);
+  white-space: nowrap;
+  background: linear-gradient(to bottom, #ffcb05 0%, #ffcb05 40%, rgb(255 203 5 / 0.15) 85%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }

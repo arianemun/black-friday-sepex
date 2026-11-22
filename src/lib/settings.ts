@@ -16,7 +16,7 @@ export type Settings = {
 export const defaultSettings: Settings = {
   // Black Friday 2026: Friday 27 Nov (7 Azar 1405), 00:00 Tehran time.
   countdown_target: "2026-11-26T20:30:00.000Z",
-  countdown_label: "تا شروع بلک‌فرایدی",
+  countdown_label: "زمان باقی‌مانده تا پرواز بلک‌فرایدی",
   campaign_end: "",
   notify_mode: "all",
   support_phone: "",

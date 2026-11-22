@@ -1,9 +1,15 @@
-import { Hero, Ticker } from "@/components/landing/hero";
-import { Deals } from "@/components/landing/deals";
-import { About, Faq, FinalCta, HowItWorks, Paths, Stores } from "@/components/landing/sections";
+import { Hero } from "@/components/landing/hero";
+import { DealsCoverflow } from "@/components/landing/deals-coverflow";
+import { CategoryWall } from "@/components/landing/category-wall";
+import { HowItWorks } from "@/components/landing/how-it-works";
+import { PopularStores } from "@/components/landing/popular-stores";
+import { ShuffleDeck } from "@/components/landing/shuffle-deck";
+import { RouteOrbit } from "@/components/landing/route-orbit";
+import { LandingFooter } from "@/components/landing/landing-footer";
+import { storeLogos } from "@/lib/store-logos";
+import { Faq, Paths } from "@/components/landing/sections";
 import { StickyCta } from "@/components/landing/sticky-cta";
 import { SiteHeader } from "@/components/site/site-header";
-import { SiteFooter } from "@/components/site/site-footer";
 import { faqs } from "@/content/landing";
 import { getPublicProducts } from "@/lib/products";
 import { activeCountdown, getSettings } from "@/lib/settings";
@@ -47,32 +53,29 @@ export default function HomePage() {
       <SiteHeader />
       <main>
         <Hero countdownTarget={countdown.target} countdownLabel={countdown.label} />
-        <Ticker />
         {products.length > 0 && (
-          <section id="deals" className="scroll-mt-4 bg-[#0b0b0b] py-20 text-white sm:py-28" aria-labelledby="deals-title">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div className="max-w-2xl">
-                  <h2 id="deals-title" className="text-3xl font-black leading-tight sm:text-[2.6rem]">پیشنهادهای بلک‌فرایدی</h2>
-                  <p className="mt-3 leading-8 text-white/55">
-                    چند کالای منتخب از فروشگاه‌های خارجی. قیمت‌ها قیمت خود فروشگاه‌اند و ممکن است تغییر کنند؛ قیمت نهایی را کارشناس اعلام می‌کند.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-8">
-                <Deals products={products} />
+          <section id="deals" className="relative isolate scroll-mt-4 overflow-hidden bg-[#070707] py-20 text-white sm:py-24" aria-labelledby="deals-title">
+            <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 bg-[radial-gradient(45%_100%_at_50%_0%,rgb(255_203_5/0.12),transparent)]" aria-hidden />
+            <div className="mx-auto max-w-7xl px-4 text-center sm:px-6">
+              <h2 id="deals-title" className="text-3xl font-black leading-tight sm:text-[2.6rem]">پیشنهادهای بلک‌فرایدی</h2>
+              <p className="mx-auto mt-3 max-w-2xl leading-8 text-white/55">
+                چند کالای منتخب از فروشگاه‌های خارجی. قیمت‌ها قیمت خود فروشگاه‌اند و ممکن است تغییر کنند؛ قیمت نهایی را کارشناس اعلام می‌کند.
+              </p>
+              <div className="mt-12">
+                <DealsCoverflow products={products} />
               </div>
             </div>
           </section>
         )}
+        <CategoryWall />
         <HowItWorks />
         <Paths />
-        <Stores />
-        <About />
+        <PopularStores logos={storeLogos()} />
+        <ShuffleDeck products={products} />
+        <RouteOrbit />
         <Faq />
-        <FinalCta />
       </main>
-      <SiteFooter settings={settings} />
+      <LandingFooter settings={settings} />
       <StickyCta />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
     </>
