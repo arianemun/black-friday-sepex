@@ -1,0 +1,10 @@
+[program:sepex-bf]
+directory=/www/wwwroot/sepex-bf
+command=/usr/bin/env npm start
+environment=NODE_ENV="production",PORT="3250"
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+stdout_logfile=/var/log/sepex-bf.out.log
+stderr_logfile=/var/log/sepex-bf.err.log

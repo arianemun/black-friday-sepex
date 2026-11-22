@@ -1,0 +1,15 @@
+# Inside the site's server { } block (aaPanel → Site → Config). Replace the default
+# static-file locations aaPanel adds: everything must be proxied to Next.
+client_max_body_size 12m;
+
+location / {
+    proxy_pass http://127.0.0.1:3250;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;           # used for rate limits (TRUST_PROXY=1)
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_cache off;                                    # aaPanel's global proxy_cache serves stale pages otherwise
+    proxy_read_timeout 60s;
+}

@@ -1,0 +1,13 @@
+import { cn } from "@/lib/utils";
+
+const D =
+  "M316 121 L370 143 L424 121 L370 97 Z M124 23 L124 68 L247 121 L370 68 L493 121 L493 75 L370 23 L247 75 Z M193 23 L247 47 L300 23 L247 0 Z M507 241 L547 312 L507 384 L536 384 L562 339 L588 384 L616 384 L576 312 L616 241 L588 241 L562 285 L536 241 Z M380 241 L380 384 L480 384 L480 358 L406 358 L406 326 L480 326 L480 300 L406 300 L406 266 L480 266 L480 241 Z M353 241 L253 241 L253 266 L328 266 L328 296 L253 312 L253 384 L278 384 L278 332 L353 316 Z M124 241 L124 384 L226 384 L226 358 L152 358 L152 326 L226 326 L226 300 L152 300 L152 266 L226 266 L226 241 Z M0 241 L0 316 L74 332 L74 358 L0 358 L0 384 L100 384 L100 312 L26 296 L26 266 L100 266 L100 241 Z";
+
+/** SEPEX logo (mark + wordmark). Inherits text color. */
+export function SepexLogo({ className, title = "سپکس" }: { className?: string; title?: string }) {
+  return (
+    <svg viewBox="0 0 617 385" fill="currentColor" role="img" aria-label={title} className={cn("h-8 w-auto", className)}>
+      <path fillRule="evenodd" d={D} />
+    </svg>
+  );
+}
