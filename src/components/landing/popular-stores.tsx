@@ -5,7 +5,7 @@ import { toFaDigits } from "@/lib/utils";
 
 /** Popular stores as logo tiles, plus "didn't find it?" and the store count. */
 
-const FEATURED = ["taobao", "1688", "alibaba", "aliexpress", "amazon-ae", "noon", "shein", "temu", "trendyol", "namshi", "amazon-us", "ebay"];
+const FEATURED = ["amazon-ae", "noon", "namshi", "sharafdg", "amazon-us", "ebay", "walmart", "bestbuy", "amazon-de", "zalando", "trendyol", "hepsiburada"];
 
 export function PopularStores({ logos }: { logos: Record<string, string> }) {
   const list = FEATURED.map((k) => stores.find((s) => s.key === k)!).filter(Boolean);
@@ -16,7 +16,7 @@ export function PopularStores({ logos }: { logos: Record<string, string> }) {
           <div>
             <p className="text-sm font-semibold text-brand">نمی‌دانید از کجا بخرید؟</p>
             <h2 id="stores-title" className="mt-2 text-3xl font-black leading-tight text-white sm:text-[2.6rem]">سایت‌های محبوب برای خرید</h2>
-            <p className="mt-3 max-w-xl leading-8 text-white/55">سر بزنید، کالا را پیدا کنید و لینکش را برای ما بفرستید. تمرکز ویژه‌ی ما روی فروشگاه‌های چین و امارات است.</p>
+            <p className="mt-3 max-w-xl leading-8 text-white/55">سر بزنید، کالا را پیدا کنید و لینکش را برای ما بفرستید. تمرکز ویژه‌ی ما روی فروشگاه‌های امارات است.</p>
 
             <ul className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
               {list.map((s) => (

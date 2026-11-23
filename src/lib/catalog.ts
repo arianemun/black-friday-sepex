@@ -45,18 +45,18 @@ export const stores: Store[] = [
   { key: "namshi", name: "نمشی", latin: "Namshi", url: "https://www.namshi.com", country: "AE", domains: ["namshi.com"], short: "نمشی", hint: "مد و کفش برند" },
   { key: "sharafdg", name: "شرف دی‌جی", latin: "Sharaf DG", url: "https://uae.sharafdg.com", country: "AE", domains: ["sharafdg.com"], short: "شرف دی‌جی", hint: "لوازم الکترونیکی" },
   // Europe
-  { key: "amazon-de", name: "آمازون آلمان", latin: "amazon.de", url: "https://www.amazon.de", country: "EU", domains: ["amazon.de", "amazon.fr", "amazon.it", "amazon.es", "amazon.nl"] },
+  { key: "amazon-de", name: "آمازون آلمان", latin: "amazon.de", url: "https://www.amazon.de", country: "EU", domains: ["amazon.de", "amazon.fr", "amazon.it", "amazon.es", "amazon.nl"], short: "آمازون آلمان", hint: "برندهای اروپایی و ابزار" },
   { key: "amazon-uk", name: "آمازون انگلیس", latin: "amazon.co.uk", url: "https://www.amazon.co.uk", country: "EU", domains: ["amazon.co.uk"] },
   { key: "zalando", name: "زالاندو", latin: "Zalando", url: "https://www.zalando.de", country: "EU", domains: ["zalando.de", "zalando.com", "zalando.co.uk"], short: "زالاندو", hint: "مد و کفش اروپایی" },
   { key: "asos", name: "ایسوس (ASOS)", latin: "ASOS", url: "https://www.asos.com", country: "EU", domains: ["asos.com"] },
   // USA
   { key: "amazon-us", name: "آمازون آمریکا", latin: "amazon.com", url: "https://www.amazon.com", country: "US", domains: ["amazon.com", "amzn.to", "a.co"], short: "آمازون آمریکا", hint: "برندهای آمریکایی" },
   { key: "ebay", name: "ای‌بی", latin: "eBay", url: "https://www.ebay.com", country: "US", domains: ["ebay.com", "ebay.de", "ebay.co.uk"], short: "ای‌بی", hint: "قطعات، کلکسیون و دست‌دوم" },
-  { key: "walmart", name: "والمارت", latin: "Walmart", url: "https://www.walmart.com", country: "US", domains: ["walmart.com"] },
-  { key: "bestbuy", name: "بست‌بای", latin: "Best Buy", url: "https://www.bestbuy.com", country: "US", domains: ["bestbuy.com"] },
+  { key: "walmart", name: "والمارت", latin: "Walmart", url: "https://www.walmart.com", country: "US", domains: ["walmart.com"], short: "والمارت", hint: "خانه، آشپزخانه و مصرفی" },
+  { key: "bestbuy", name: "بست‌بای", latin: "Best Buy", url: "https://www.bestbuy.com", country: "US", domains: ["bestbuy.com"], short: "بست‌بای", hint: "لپ‌تاپ، کنسول و دیجیتال" },
   // Turkey
   { key: "trendyol", name: "ترندیول", latin: "Trendyol", url: "https://www.trendyol.com", country: "TR", domains: ["trendyol.com", "ty.gl"], short: "ترندیول", hint: "پوشاک و خانه ترکیه" },
-  { key: "hepsiburada", name: "هپسی‌بورادا", latin: "Hepsiburada", url: "https://www.hepsiburada.com", country: "TR", domains: ["hepsiburada.com"] },
+  { key: "hepsiburada", name: "هپسی‌بورادا", latin: "Hepsiburada", url: "https://www.hepsiburada.com", country: "TR", domains: ["hepsiburada.com"], short: "هپسی‌بورادا", hint: "فروشگاه همه‌چیز ترکیه" },
   { key: "amazon-tr", name: "آمازون ترکیه", latin: "amazon.com.tr", url: "https://www.amazon.com.tr", country: "TR", domains: ["amazon.com.tr"] },
 ];
 

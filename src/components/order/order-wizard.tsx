@@ -619,7 +619,7 @@ function ItemCard({
               required
               htmlFor={`url-${k}`}
               error={errors[`url-${k}`]}
-              hint={store ? `فروشگاه: ${store.name}، ${countryName(store.country)}` : url ? "لینک دریافت شد." : "آمازون، علی‌بابا، تائوبائو، ۱۶۸۸، نون، ترندیول یا هر فروشگاه خارجی دیگر."}
+              hint={store ? `فروشگاه: ${store.name}، ${countryName(store.country)}` : url ? "لینک دریافت شد." : "آمازون، نون، ترندیول، ای‌بی یا هر فروشگاه خارجی دیگر."}
             >
               <Textarea
                 id={`url-${k}`}

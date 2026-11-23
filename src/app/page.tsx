@@ -53,6 +53,7 @@ export default function HomePage() {
       <SiteHeader />
       <main>
         <Hero countdownTarget={countdown.target} countdownLabel={countdown.label} />
+        <Paths />
         {products.length > 0 && (
           <section id="deals" className="relative isolate scroll-mt-4 overflow-hidden bg-black py-20 text-white sm:py-24" aria-labelledby="deals-title">
             <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(45%_40%_at_50%_45%,rgb(255_203_5/0.08),transparent_70%)]" aria-hidden />
@@ -69,7 +70,6 @@ export default function HomePage() {
         )}
         <CategoryWall />
         <HowItWorks />
-        <Paths />
         <PopularStores logos={storeLogos()} />
         <ShuffleDeck products={products} />
         <RouteOrbit />
