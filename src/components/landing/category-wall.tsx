@@ -60,19 +60,15 @@ function Row({ offset, reverse, speed }: { offset: number; reverse?: boolean; sp
 
 export function CategoryWall() {
   return (
-    <section id="categories" className="relative isolate scroll-mt-4 overflow-hidden bg-black py-10 sm:py-14" aria-labelledby="cat-title">
-      <div className="flex flex-col gap-3">
+    <section id="categories" className="relative isolate scroll-mt-4 overflow-hidden bg-black py-28 sm:py-40" aria-labelledby="cat-title">
+      <div className="flex flex-col gap-3 [mask-image:linear-gradient(to_bottom,transparent,#000_12%,#000_88%,transparent)]">
         <Row offset={0} speed={70} />
         <Row offset={5} reverse speed={85} />
         <Row offset={10} speed={75} />
         <Row offset={14} reverse speed={90} />
-        <Row offset={3} speed={80} />
-        <Row offset={8} reverse speed={72} />
       </div>
       {/* dark pool for the title */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(36%_30%_at_50%_50%,#000_35%,rgb(0_0_0/0.7)_60%,transparent_100%)]" aria-hidden />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black sm:h-32" aria-hidden />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black sm:h-32" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_210px_170px_at_50%_50%,#000_55%,rgb(0_0_0/0.75)_75%,transparent_100%)] sm:bg-[radial-gradient(ellipse_400px_190px_at_50%_50%,#000_55%,rgb(0_0_0/0.75)_75%,transparent_100%)]" aria-hidden />
       <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-black sm:w-48" aria-hidden />
       <div className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black sm:w-48" aria-hidden />
       <div className="absolute inset-0 flex items-center justify-center px-6">
