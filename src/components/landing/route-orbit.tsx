@@ -38,11 +38,11 @@ export function RouteOrbit() {
 
         <div className="relative mx-auto aspect-square w-full max-w-[34rem]" aria-hidden>
           {/* radar sweep */}
-          <div className="orbit-sweep absolute inset-[9%] rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,transparent_300deg,rgb(255_203_5/0.16)_355deg,transparent_360deg)]" />
+          <div className="orbit-sweep absolute inset-[9%] rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,transparent_300deg,rgb(255_203_5/0.09)_355deg,transparent_360deg)]" />
           <div className="absolute inset-0 bg-[radial-gradient(closest-side,rgb(255_203_5/0.16),transparent_50%)]" />
 
           <svg viewBox="0 0 100 100" className="absolute inset-0 size-full overflow-visible">
-            {[14, 26, R].map((r) => (
+            {[8, 14, 20, 26, 32, R, 44].map((r) => (
               <circle key={r} cx="50" cy="50" r={r} fill="none" stroke={r === R ? "rgb(255 203 5 / 0.14)" : "rgb(255 255 255 / 0.06)"} strokeWidth="0.25" />
             ))}
             <circle cx="50" cy="50" r="49" fill="none" stroke="rgb(255 255 255 / 0.06)" strokeWidth="0.25" strokeDasharray="0.6 1.4" />
@@ -66,7 +66,7 @@ export function RouteOrbit() {
             {/* nodes sit exactly on the line ends */}
             {NODES.map((n) => (
               <g key={n.name} transform={`translate(${n.x} ${n.y})`}>
-                {n.main && <circle r="3.4" fill="rgb(255 203 5 / 0.18)" className="orbit-node-pulse" />}
+                {n.main && <circle r="3" fill="rgb(255 203 5 / 0.14)" />}
                 <rect x="-1.5" y="-1.5" width="3" height="3" transform={`rotate(${n.deg - 45})`} fill={n.main ? "#FFCB05" : "#000"} stroke="#FFCB05" strokeOpacity={n.main ? 1 : 0.75} strokeWidth="0.45" />
               </g>
             ))}
@@ -85,8 +85,6 @@ export function RouteOrbit() {
 
           {/* centre: SEPEX mark */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-            <span className="orbit-pulse absolute inset-0 chamfer bg-brand/40" />
-            <span className="orbit-pulse absolute inset-0 chamfer bg-brand/30 [animation-delay:-1.5s]" />
             <span className="chamfer relative flex size-24 items-center justify-center bg-[linear-gradient(145deg,#FFE066_0%,#FFCB05_45%,#E0A800_100%)] shadow-[0_0_90px_rgb(255_203_5/0.55)] sm:size-28">
               <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgb(255_255_255/0.45)_0%,transparent_35%)]" />
               <SepexLogo className="relative h-9 text-ink sm:h-11" />
