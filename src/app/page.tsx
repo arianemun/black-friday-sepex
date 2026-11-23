@@ -52,7 +52,7 @@ export default function HomePage() {
     <>
       <SiteHeader />
       <main>
-        <Hero countdownTarget={countdown.target} countdownLabel={countdown.label} />
+        <Hero countdownTarget={countdown.target} />
         <Paths />
         {products.length > 0 && (
           <section id="deals" className="relative isolate scroll-mt-4 overflow-hidden bg-black py-20 text-white sm:py-24" aria-labelledby="deals-title">

@@ -275,16 +275,6 @@
   box-shadow: 0 0 0 3px #dbeafe;
 }
 
-/* ---------- Split-flap digits ---------- */
-.flip-char { perspective: 300px; }
-.flip-top, .flip-bottom { backface-visibility: hidden; }
-.flip-top { animation: flip-top 300ms ease-in both; z-index: 2; }
-.flip-bottom { animation: flip-bottom 300ms ease-out 300ms both; z-index: 2; }
-@keyframes flip-top { from { transform: rotateX(0deg); } to { transform: rotateX(-90deg); } }
-@keyframes flip-bottom { from { transform: rotateX(90deg); } to { transform: rotateX(0deg); } }
-@media (prefers-reduced-motion: reduce) {
-  .flip-top, .flip-bottom { animation-duration: 1ms; animation-delay: 0ms; }
-}
 .board-blink { animation: board-blink 1.2s steps(2, jump-none) infinite; }
 @keyframes board-blink { 50% { opacity: 0.2; } }
 @media (prefers-reduced-motion: no-preference) {

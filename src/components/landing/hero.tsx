@@ -42,7 +42,7 @@ function PriceTag({ t }: { t: Tag }) {
   );
 }
 
-export function Hero({ countdownTarget, countdownLabel }: { countdownTarget: string; countdownLabel: string }) {
+export function Hero({ countdownTarget }: { countdownTarget: string }) {
   return (
     <section className="relative isolate overflow-hidden bg-black text-white" aria-labelledby="hero-title">
       <div className="spotlight pointer-events-none absolute inset-0 -z-10" aria-hidden />
@@ -75,7 +75,7 @@ export function Hero({ countdownTarget, countdownLabel }: { countdownTarget: str
           ))}
         </div>
 
-        <Countdown target={countdownTarget} label={countdownLabel} doneLabel="بلک‌فرایدی شروع شده؛ همین حالا سفارش بدهید." className="mt-12" />
+        <Countdown target={countdownTarget} className="mt-12" />
 
         {/* Small screens: the tags sit in a row instead of floating around the stage. */}
         <ul className="mt-10 flex flex-wrap justify-center gap-x-2 gap-y-3 xl:hidden" aria-label="چند فروشگاه">
