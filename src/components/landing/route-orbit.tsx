@@ -63,15 +63,11 @@ export function RouteOrbit() {
                 />
               </g>
             ))}
-            {/* rotating ring around the mark */}
-            <g className="orbit-spin" style={{ transformOrigin: "50px 50px" }}>
-              <circle cx="50" cy="50" r="17.5" fill="none" stroke="rgb(255 203 5 / 0.55)" strokeWidth="0.35" strokeDasharray="6 3 1 3" />
-            </g>
             {/* nodes sit exactly on the line ends */}
             {NODES.map((n) => (
               <g key={n.name} transform={`translate(${n.x} ${n.y})`}>
                 {n.main && <circle r="3.4" fill="rgb(255 203 5 / 0.18)" className="orbit-node-pulse" />}
-                <rect x="-1.5" y="-1.5" width="3" height="3" transform="rotate(45)" fill={n.main ? "#FFCB05" : "#000"} stroke="#FFCB05" strokeOpacity={n.main ? 1 : 0.75} strokeWidth="0.45" />
+                <rect x="-1.5" y="-1.5" width="3" height="3" transform={`rotate(${n.deg - 45})`} fill={n.main ? "#FFCB05" : "#000"} stroke="#FFCB05" strokeOpacity={n.main ? 1 : 0.75} strokeWidth="0.45" />
               </g>
             ))}
           </svg>

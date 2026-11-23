@@ -320,7 +320,6 @@
 @media (prefers-reduced-motion: no-preference) {
   .route-dash { animation: route-dash 2.6s linear infinite; }
   .orbit-sweep { animation: orbit-spin 7s linear infinite; }
-  .orbit-spin { animation: orbit-spin 24s linear infinite; }
   .orbit-pulse { animation: orbit-pulse 3s ease-out infinite; }
   .orbit-node-pulse { animation: orbit-node-pulse 2.4s ease-out infinite; transform-box: fill-box; transform-origin: center; }
 }
