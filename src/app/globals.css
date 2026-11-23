@@ -218,12 +218,20 @@
     border-radius: 999px;
     background: #000;
   }
+  /* Mirrored tag: pointed end and hole on the left. */
+  .price-tag-l {
+    clip-path: polygon(16px 0, 100% 0, 100% 100%, 16px 100%, 0 50%);
+    padding-right: unset;
+    padding-left: 1.7rem;
+  }
+  .price-tag-l::after { right: auto; left: 11px; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .spotlight { animation: light-on 1.4s ease-out both; }
   .tag-drop { animation: tag-drop 900ms cubic-bezier(0.25, 1.4, 0.45, 1) both; animation-delay: var(--d, 0ms); }
   .tag-sway { animation: tag-sway 6s ease-in-out infinite; animation-delay: var(--s, 0s); transform-origin: 100% 50%; }
+  .tag-sway-l { transform-origin: 0 50%; }
   .ticker { animation: ticker 50s linear infinite; }
 }
 @keyframes light-on {

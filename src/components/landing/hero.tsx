@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { hero } from "@/content/landing";
-import { stores } from "@/lib/catalog";
+import { storeLabel, stores } from "@/lib/catalog";
 import { Countdown } from "./countdown";
 import { LinkStarter } from "./link-starter";
 
@@ -21,17 +21,22 @@ const TAGS: Tag[] = [
 
 const tagName = (key: string) => {
   const s = stores.find((x) => x.key === key);
-  return s?.short ?? s?.name ?? key;
+  return s ? storeLabel(s) : key;
 };
 
 function PriceTag({ t }: { t: Tag }) {
-  const size =
-    t.size === "lg" ? "text-[2rem] pl-6 pr-12 py-4" : t.size === "md" ? "text-[1.6rem] pl-5 pr-11 py-3.5" : "text-[1.3rem] pl-4 pr-10 py-3";
+  // Tags on the right of the stage hang toward the headline: hole on their left side.
+  const toLeft = t.pos.startsWith("right");
+  const size = {
+    lg: toLeft ? "py-4 text-[2rem] pr-6 pl-12" : "py-4 text-[2rem] pl-6 pr-12",
+    md: toLeft ? "py-3.5 text-[1.6rem] pr-5 pl-11" : "py-3.5 text-[1.6rem] pl-5 pr-11",
+    sm: toLeft ? "py-3 text-[1.3rem] pr-4 pl-10" : "py-3 text-[1.3rem] pl-4 pr-10",
+  }[t.size];
   return (
-    <div className={`tag-drop absolute hidden xl:block ${t.pos}`} style={{ "--d": `${t.d}ms` } as React.CSSProperties} aria-hidden>
-      <div className="tag-sway" style={{ "--r": `${t.r}deg`, "--s": `${t.s}s`, transform: `rotate(${t.r}deg)` } as React.CSSProperties}>
+    <div className={`tag-drop absolute hidden origin-center scale-75 lg:block xl:scale-100 ${t.pos}`} style={{ "--d": `${t.d}ms` } as React.CSSProperties} aria-hidden>
+      <div className={`tag-sway ${toLeft ? "tag-sway-l" : ""}`} style={{ "--r": `${t.r}deg`, "--s": `${t.s}s`, transform: `rotate(${t.r}deg)` } as React.CSSProperties}>
         <div
-          className={`price-tag font-black leading-none shadow-2xl ${size} ${
+          className={`price-tag ${toLeft ? "price-tag-l" : ""} font-black leading-none shadow-2xl ${size} ${
             t.tone === "yellow" ? "bg-brand text-ink" : "bg-[#1b1b1b] text-brand ring-1 ring-inset ring-brand/35"
           }`}
         >
@@ -78,10 +83,10 @@ export function Hero({ countdownTarget }: { countdownTarget: string }) {
         <Countdown target={countdownTarget} className="mt-12" />
 
         {/* Small screens: the tags sit in a row instead of floating around the stage. */}
-        <ul className="mt-10 flex flex-wrap justify-center gap-x-2 gap-y-3 xl:hidden" aria-label="چند فروشگاه">
+        <ul className="mt-10 flex flex-wrap justify-center gap-x-2 gap-y-3 lg:hidden" aria-label="چند فروشگاه" dir="ltr">
           {TAGS.map((t, i) => (
             <li key={t.key} style={{ transform: `rotate(${i % 2 ? 3 : -3}deg)` }}>
-              <span className={`price-tag inline-block py-2 pl-3.5 pr-8 text-base font-black ${t.tone === "yellow" ? "bg-brand text-ink" : "bg-[#1b1b1b] text-brand ring-1 ring-inset ring-brand/35"}`}>
+              <span className={`price-tag inline-block py-2 pl-3.5 pr-8 text-base font-black leading-none ${t.tone === "yellow" ? "bg-brand text-ink" : "bg-[#1b1b1b] text-brand ring-1 ring-inset ring-brand/35"}`}>
                 {tagName(t.key)}
               </span>
             </li>

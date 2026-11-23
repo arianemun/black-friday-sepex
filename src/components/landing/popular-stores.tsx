@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowUpLeft, Camera } from "lucide-react";
-import { countryName, stores } from "@/lib/catalog";
+import { countryName, storeLabel, stores } from "@/lib/catalog";
 import { toFaDigits } from "@/lib/utils";
 
 /** Popular stores as logo tiles, plus "didn't find it?" and the store count. */
@@ -32,7 +32,7 @@ export function PopularStores({ logos }: { logos: Record<string, string> }) {
                         // eslint-disable-next-line @next/next/no-img-element -- small static logo files
                         <img src={logos[s.key]} alt={s.name} className="max-h-10 max-w-[8rem] object-contain" loading="lazy" />
                       ) : (
-                        <span className="text-2xl font-black text-white transition-colors group-hover:text-brand">{s.short ?? s.name}</span>
+                        <span className="text-2xl font-black text-white transition-colors group-hover:text-brand">{storeLabel(s)}</span>
                       )}
                     </span>
                     <span className="mt-3 text-xs leading-5 text-white/50">{s.hint}</span>

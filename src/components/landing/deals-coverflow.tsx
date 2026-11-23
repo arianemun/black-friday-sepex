@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
-import { countryName, storeByKey } from "@/lib/catalog";
+import { countryName, storeByKey, storeLabel } from "@/lib/catalog";
 import type { PublicProduct } from "@/lib/products";
 import { cn, toFaDigits } from "@/lib/utils";
 
@@ -102,7 +102,7 @@ export function DealsCoverflow({ products }: { products: PublicProduct[] }) {
                 </div>
                 <div className="flex flex-col gap-1.5 px-1.5 pb-1.5 pt-3">
                   <p className="text-xs text-white/45">
-                    {store?.name ?? "فروشگاه خارجی"}
+                    {store ? storeLabel(store) : "فروشگاه خارجی"}
                     {p.country ? `، ${countryName(p.country)}` : ""}
                   </p>
                   <h3 dir="auto" className="line-clamp-2 min-h-10 text-sm font-semibold leading-5 text-white">{p.title}</h3>

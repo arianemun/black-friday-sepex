@@ -25,7 +25,8 @@ export type Store = {
   country: CountryCode;
   domains: string[]; // host suffixes used for detection
   featured?: boolean;
-  short?: string; // short Persian name for tight places (hero tags)
+  short?: string; // short Persian name for tight places
+  brand?: string; // English display name when `latin` is a domain
   hint?: string; // what people usually buy there
 };
 
@@ -36,28 +37,28 @@ export const stores: Store[] = [
   { key: "alibaba", name: "علی‌بابا", latin: "Alibaba", url: "https://www.alibaba.com", country: "CN", domains: ["alibaba.com"], featured: true, short: "علی‌بابا", hint: "تأمین‌کننده و سفارش عمده" },
   { key: "aliexpress", name: "علی‌اکسپرس", latin: "AliExpress", url: "https://www.aliexpress.com", country: "CN", domains: ["aliexpress.com", "aliexpress.ru", "aliexpress.us"], featured: true, short: "علی‌اکسپرس", hint: "خرده و تک‌عدد از چین" },
   { key: "tmall", name: "تی‌مال", latin: "Tmall", url: "https://www.tmall.com", country: "CN", domains: ["tmall.com"] },
-  { key: "jd", name: "جی‌دی", latin: "JD.com", url: "https://www.jd.com", country: "CN", domains: ["jd.com"] },
+  { key: "jd", name: "جی‌دی", latin: "JD.com", url: "https://www.jd.com", country: "CN", domains: ["jd.com"], brand: "JD" },
   { key: "temu", name: "تمو", latin: "Temu", url: "https://www.temu.com", country: "CN", domains: ["temu.com"], short: "تمو", hint: "لوازم خانه و گجت" },
   { key: "shein", name: "شین", latin: "SHEIN", url: "https://www.shein.com", country: "CN", domains: ["shein.com"], short: "شین", hint: "مد و پوشاک ارزان" },
   // UAE
-  { key: "amazon-ae", name: "آمازون امارات", latin: "amazon.ae", url: "https://www.amazon.ae", country: "AE", domains: ["amazon.ae"], featured: true, short: "آمازون", hint: "دیجیتال، خانه و برندها" },
+  { key: "amazon-ae", name: "آمازون امارات", latin: "amazon.ae", url: "https://www.amazon.ae", country: "AE", domains: ["amazon.ae"], featured: true, short: "آمازون", hint: "دیجیتال، خانه و برندها", brand: "Amazon UAE" },
   { key: "noon", name: "نون", latin: "noon", url: "https://www.noon.com/uae-en/", country: "AE", domains: ["noon.com"], featured: true, short: "نون", hint: "دیجیتال، عطر و مد" },
   { key: "namshi", name: "نمشی", latin: "Namshi", url: "https://www.namshi.com", country: "AE", domains: ["namshi.com"], short: "نمشی", hint: "مد و کفش برند" },
   { key: "sharafdg", name: "شرف دی‌جی", latin: "Sharaf DG", url: "https://uae.sharafdg.com", country: "AE", domains: ["sharafdg.com"], short: "شرف دی‌جی", hint: "لوازم الکترونیکی" },
   // Europe
-  { key: "amazon-de", name: "آمازون آلمان", latin: "amazon.de", url: "https://www.amazon.de", country: "EU", domains: ["amazon.de", "amazon.fr", "amazon.it", "amazon.es", "amazon.nl"], short: "آمازون آلمان", hint: "برندهای اروپایی و ابزار" },
-  { key: "amazon-uk", name: "آمازون انگلیس", latin: "amazon.co.uk", url: "https://www.amazon.co.uk", country: "EU", domains: ["amazon.co.uk"] },
+  { key: "amazon-de", name: "آمازون آلمان", latin: "amazon.de", url: "https://www.amazon.de", country: "EU", domains: ["amazon.de", "amazon.fr", "amazon.it", "amazon.es", "amazon.nl"], short: "آمازون آلمان", hint: "برندهای اروپایی و ابزار", brand: "Amazon DE" },
+  { key: "amazon-uk", name: "آمازون انگلیس", latin: "amazon.co.uk", url: "https://www.amazon.co.uk", country: "EU", domains: ["amazon.co.uk"], brand: "Amazon UK" },
   { key: "zalando", name: "زالاندو", latin: "Zalando", url: "https://www.zalando.de", country: "EU", domains: ["zalando.de", "zalando.com", "zalando.co.uk"], short: "زالاندو", hint: "مد و کفش اروپایی" },
   { key: "asos", name: "ایسوس (ASOS)", latin: "ASOS", url: "https://www.asos.com", country: "EU", domains: ["asos.com"] },
   // USA
-  { key: "amazon-us", name: "آمازون آمریکا", latin: "amazon.com", url: "https://www.amazon.com", country: "US", domains: ["amazon.com", "amzn.to", "a.co"], short: "آمازون آمریکا", hint: "برندهای آمریکایی" },
+  { key: "amazon-us", name: "آمازون آمریکا", latin: "amazon.com", url: "https://www.amazon.com", country: "US", domains: ["amazon.com", "amzn.to", "a.co"], short: "آمازون آمریکا", hint: "برندهای آمریکایی", brand: "Amazon US" },
   { key: "ebay", name: "ای‌بی", latin: "eBay", url: "https://www.ebay.com", country: "US", domains: ["ebay.com", "ebay.de", "ebay.co.uk"], short: "ای‌بی", hint: "قطعات، کلکسیون و دست‌دوم" },
   { key: "walmart", name: "والمارت", latin: "Walmart", url: "https://www.walmart.com", country: "US", domains: ["walmart.com"], short: "والمارت", hint: "خانه، آشپزخانه و مصرفی" },
   { key: "bestbuy", name: "بست‌بای", latin: "Best Buy", url: "https://www.bestbuy.com", country: "US", domains: ["bestbuy.com"], short: "بست‌بای", hint: "لپ‌تاپ، کنسول و دیجیتال" },
   // Turkey
   { key: "trendyol", name: "ترندیول", latin: "Trendyol", url: "https://www.trendyol.com", country: "TR", domains: ["trendyol.com", "ty.gl"], short: "ترندیول", hint: "پوشاک و خانه ترکیه" },
   { key: "hepsiburada", name: "هپسی‌بورادا", latin: "Hepsiburada", url: "https://www.hepsiburada.com", country: "TR", domains: ["hepsiburada.com"], short: "هپسی‌بورادا", hint: "فروشگاه همه‌چیز ترکیه" },
-  { key: "amazon-tr", name: "آمازون ترکیه", latin: "amazon.com.tr", url: "https://www.amazon.com.tr", country: "TR", domains: ["amazon.com.tr"] },
+  { key: "amazon-tr", name: "آمازون ترکیه", latin: "amazon.com.tr", url: "https://www.amazon.com.tr", country: "TR", domains: ["amazon.com.tr"], brand: "Amazon TR" },
 ];
 
 export const storeByKey = (key?: string | null) => stores.find((s) => s.key === key);
@@ -118,3 +119,6 @@ export const statuses: { key: string; name: string; tone: "brand" | "info" | "wa
   { key: "cancelled", name: "لغو شد", tone: "destructive" },
 ];
 export const statusInfo = (key: string) => statuses.find((s) => s.key === key) ?? statuses[0];
+
+/** English name shown on the landing (store titles are written in Latin script). */
+export const storeLabel = (s: Pick<Store, "brand" | "latin">) => s.brand ?? s.latin;
