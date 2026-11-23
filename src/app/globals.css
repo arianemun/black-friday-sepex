@@ -324,11 +324,8 @@
 @keyframes route-dash { from { stroke-dashoffset: 43; } to { stroke-dashoffset: 0; } }
 @keyframes orbit-spin { to { transform: rotate(360deg); } }
 @keyframes orbit-fade { 0%, 100% { opacity: 0; } 45%, 60% { opacity: 1; } }
-.footer-giant {
-  font-size: clamp(2.4rem, 8.6vw, 7.6rem);
-  white-space: nowrap;
-  background: linear-gradient(to bottom, #ffcb05 0%, #ffcb05 40%, rgb(255 203 5 / 0.15) 85%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+
+/* Shipping-label silhouette for the footer: chamfered corners plus a small hang-tab notch. */
+.label-notch {
+  clip-path: polygon(22px 0, calc(50% - 28px) 0, calc(50% - 16px) 10px, calc(50% + 16px) 10px, calc(50% + 28px) 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%, 0 22px);
 }
