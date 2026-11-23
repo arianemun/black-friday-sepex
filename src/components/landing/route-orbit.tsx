@@ -4,13 +4,19 @@ import { SepexLogo } from "@/components/brand/logo";
 
 /** Routes from the five origins to Iran, drawn as an orbit around the SEPEX mark. */
 
+const R = 38; // node ring radius (viewBox units)
+const LABEL_R = 46.5;
 const NODES = [
-  { name: "چین", x: 50, y: 12, main: true },
-  { name: "امارات", x: 86, y: 38, main: true },
-  { name: "ترکیه", x: 74, y: 82, main: false },
-  { name: "آمریکا", x: 24, y: 82, main: false },
-  { name: "اروپا", x: 13, y: 38, main: false },
-];
+  { name: "چین", deg: -90, main: true },
+  { name: "امارات", deg: -18, main: true },
+  { name: "ترکیه", deg: 54, main: false },
+  { name: "آمریکا", deg: 126, main: false },
+  { name: "اروپا", deg: 198, main: false },
+].map((n) => {
+  const rad = (n.deg * Math.PI) / 180;
+  const at = (r: number) => ({ x: +(50 + r * Math.cos(rad)).toFixed(2), y: +(50 + r * Math.sin(rad)).toFixed(2) });
+  return { ...n, ...at(R), label: at(LABEL_R) };
+});
 
 export function RouteOrbit() {
   return (
@@ -31,34 +37,65 @@ export function RouteOrbit() {
         </div>
 
         <div className="relative mx-auto aspect-square w-full max-w-[34rem]" aria-hidden>
-          <svg viewBox="0 0 100 100" className="absolute inset-0 size-full">
-            {[18, 30, 44].map((r) => (
-              <circle key={r} cx="50" cy="50" r={r} fill="none" stroke="rgb(255 255 255 / 0.07)" strokeWidth="0.25" />
+          {/* radar sweep */}
+          <div className="orbit-sweep absolute inset-[9%] rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,transparent_300deg,rgb(255_203_5/0.16)_355deg,transparent_360deg)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(closest-side,rgb(255_203_5/0.16),transparent_50%)]" />
+
+          <svg viewBox="0 0 100 100" className="absolute inset-0 size-full overflow-visible">
+            {[14, 26, R].map((r) => (
+              <circle key={r} cx="50" cy="50" r={r} fill="none" stroke={r === R ? "rgb(255 203 5 / 0.14)" : "rgb(255 255 255 / 0.06)"} strokeWidth="0.25" />
             ))}
-            <circle cx="50" cy="50" r="49" fill="none" stroke="rgb(255 255 255 / 0.05)" strokeWidth="0.25" strokeDasharray="0.6 1.4" />
-            {NODES.map((n) => (
+            <circle cx="50" cy="50" r="49" fill="none" stroke="rgb(255 255 255 / 0.06)" strokeWidth="0.25" strokeDasharray="0.6 1.4" />
+            {NODES.map((n, i) => (
               <g key={n.name}>
-                <line x1={n.x} y1={n.y} x2="50" y2="50" stroke={n.main ? "rgb(255 203 5 / 0.55)" : "rgb(255 203 5 / 0.25)"} strokeWidth="0.3" />
-                <line x1={n.x} y1={n.y} x2="50" y2="50" stroke="#FFCB05" strokeWidth="0.6" strokeLinecap="round" className="route-dash" strokeDasharray="2 60" />
+                <line x1={n.x} y1={n.y} x2="50" y2="50" stroke={n.main ? "rgb(255 203 5 / 0.5)" : "rgb(255 203 5 / 0.22)"} strokeWidth="0.3" />
+                <line
+                  x1={n.x}
+                  y1={n.y}
+                  x2="50"
+                  y2="50"
+                  stroke="#FFCB05"
+                  strokeWidth="0.7"
+                  strokeLinecap="round"
+                  className="route-dash"
+                  strokeDasharray="3 40"
+                  style={{ animationDelay: `${-i * 0.55}s`, filter: "drop-shadow(0 0 1.2px #FFCB05)" }}
+                />
+              </g>
+            ))}
+            {/* rotating ring around the mark */}
+            <g className="orbit-spin" style={{ transformOrigin: "50px 50px" }}>
+              <circle cx="50" cy="50" r="17.5" fill="none" stroke="rgb(255 203 5 / 0.55)" strokeWidth="0.35" strokeDasharray="6 3 1 3" />
+            </g>
+            {/* nodes sit exactly on the line ends */}
+            {NODES.map((n) => (
+              <g key={n.name} transform={`translate(${n.x} ${n.y})`}>
+                {n.main && <circle r="3.4" fill="rgb(255 203 5 / 0.18)" className="orbit-node-pulse" />}
+                <rect x="-1.5" y="-1.5" width="3" height="3" transform="rotate(45)" fill={n.main ? "#FFCB05" : "#000"} stroke="#FFCB05" strokeOpacity={n.main ? 1 : 0.75} strokeWidth="0.45" />
               </g>
             ))}
           </svg>
-          <div className="absolute inset-0 bg-[radial-gradient(closest-side,rgb(255_203_5/0.18),transparent_55%)]" />
 
-          {/* centre: Iran */}
-          <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
-            <span className="flex size-24 items-center justify-center bg-brand shadow-[0_0_80px_rgb(255_203_5/0.5)] sm:size-28">
-              <SepexLogo className="h-9 text-ink sm:h-11" />
-            </span>
-            <span className="mt-2 text-sm font-black text-white">ایران</span>
-          </div>
-
+          {/* labels, pushed outward along each route */}
           {NODES.map((n) => (
-            <div key={n.name} className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2" style={{ left: `${n.x}%`, top: `${n.y}%` }}>
-              <span className={`size-4 rotate-45 ${n.main ? "bg-brand shadow-[0_0_24px_rgb(255_203_5/0.8)]" : "border-2 border-brand/70 bg-black"}`} />
-              <span className={`whitespace-nowrap bg-black/70 px-2 py-0.5 text-sm font-black ${n.main ? "text-brand" : "text-white/80"}`}>{n.name}</span>
-            </div>
+            <span
+              key={n.name}
+              className={`absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-xs font-black sm:text-sm ${n.main ? "text-brand" : "text-white/75"}`}
+              style={{ left: `${n.label.x}%`, top: `${n.label.y}%` }}
+            >
+              {n.name}
+            </span>
           ))}
+
+          {/* centre: SEPEX mark */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <span className="orbit-pulse absolute inset-0 chamfer bg-brand/40" />
+            <span className="orbit-pulse absolute inset-0 chamfer bg-brand/30 [animation-delay:-1.5s]" />
+            <span className="chamfer relative flex size-24 items-center justify-center bg-[linear-gradient(145deg,#FFE066_0%,#FFCB05_45%,#E0A800_100%)] shadow-[0_0_90px_rgb(255_203_5/0.55)] sm:size-28">
+              <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgb(255_255_255/0.45)_0%,transparent_35%)]" />
+              <SepexLogo className="relative h-9 text-ink sm:h-11" />
+            </span>
+          </div>
         </div>
       </div>
     </section>
