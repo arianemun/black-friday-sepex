@@ -26,12 +26,14 @@ const ITEMS = [
 
 // Warm, brand-friendly tints (glow from one corner, like light on a box).
 const TINTS = [
-  "from-[#a07600] via-[#3d3008]",
-  "from-[#a8520f] via-[#3b1e0a]",
-  "from-[#962c2c] via-[#3a1414]",
-  "from-[#56627a] via-[#1e232b]",
-  "from-[#79751a] via-[#2c2a0c]",
-  "from-[#8a5a2c] via-[#332010]",
+  "from-[#e0a400] via-[#5a4204]",
+  "from-[#d4472b] via-[#4f1a10]",
+  "from-[#7b4ae0] via-[#2c1a52]",
+  "from-[#1f9e86] via-[#0b3a32]",
+  "from-[#2f6fe0] via-[#11285a]",
+  "from-[#d63f86] via-[#4d1631]",
+  "from-[#e5781c] via-[#55290a]",
+  "from-[#5fa82a] via-[#22400f]",
 ];
 
 function Row({ offset, reverse, speed }: { offset: number; reverse?: boolean; speed: number }) {
