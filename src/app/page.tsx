@@ -54,8 +54,8 @@ export default function HomePage() {
       <main>
         <Hero countdownTarget={countdown.target} countdownLabel={countdown.label} />
         {products.length > 0 && (
-          <section id="deals" className="relative isolate scroll-mt-4 overflow-hidden bg-[#070707] py-20 text-white sm:py-24" aria-labelledby="deals-title">
-            <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 bg-[radial-gradient(45%_100%_at_50%_0%,rgb(255_203_5/0.12),transparent)]" aria-hidden />
+          <section id="deals" className="relative isolate scroll-mt-4 overflow-hidden bg-black py-20 text-white sm:py-24" aria-labelledby="deals-title">
+            <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(45%_40%_at_50%_45%,rgb(255_203_5/0.08),transparent_70%)]" aria-hidden />
             <div className="mx-auto max-w-7xl px-4 text-center sm:px-6">
               <h2 id="deals-title" className="text-3xl font-black leading-tight sm:text-[2.6rem]">پیشنهادهای بلک‌فرایدی</h2>
               <p className="mx-auto mt-3 max-w-2xl leading-8 text-white/55">

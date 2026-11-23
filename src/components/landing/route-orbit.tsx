@@ -14,7 +14,7 @@ const NODES = [
 
 export function RouteOrbit() {
   return (
-    <section className="relative isolate overflow-hidden bg-[#070707] py-20 sm:py-28" aria-labelledby="orbit-title">
+    <section className="relative isolate overflow-hidden bg-black py-20 sm:py-28" aria-labelledby="orbit-title">
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-[1fr_1.1fr]">
         <div>
           <span className="inline-block border border-brand/40 px-3 py-1 text-xs font-semibold text-brand">بلک‌فرایدی سپکس</span>

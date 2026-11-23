@@ -21,9 +21,9 @@ export function SiteHeader({ variant = "dark" }: { variant?: "dark" | "solid" | 
         <Link href="/" className="flex w-fit items-center gap-3" aria-label="بلک‌فرایدی سپکس، صفحه‌ی اصلی">
           <SepexLogo className={dark ? "h-7 text-brand sm:h-8" : "h-7 text-ink sm:h-8"} />
         </Link>
-        <nav aria-label="بخش‌های صفحه" className="hidden items-center gap-1 border border-white/10 bg-black/40 p-1 text-sm backdrop-blur md:flex">
+        <nav aria-label="بخش‌های صفحه" className="hidden items-center gap-1 text-sm md:flex">
           {nav.map((n) => (
-            <Link key={n.href} href={n.href} className={dark ? "px-4 py-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white" : "px-4 py-2 text-ink/70 hover:bg-ink/5 hover:text-ink"}>
+            <Link key={n.href} href={n.href} className={dark ? "chamfer-sm px-4 py-2 font-medium text-white/75 transition-colors hover:bg-brand hover:text-ink focus-visible:bg-brand focus-visible:text-ink focus-visible:outline-none" : "chamfer-sm px-4 py-2 font-medium text-ink/70 transition-colors hover:bg-brand hover:text-ink"}>
               {n.label}
             </Link>
           ))}

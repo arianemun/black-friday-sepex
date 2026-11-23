@@ -9,10 +9,10 @@ import { cn, toFaDigits } from "@/lib/utils";
 
 function Screen({ step }: { step: number }) {
   return (
-    <div className="relative h-full overflow-hidden bg-[#0e0e0e] px-4 pb-4 pt-10 text-right">
-      <div className="flex items-center justify-between text-[10px] text-white/40">
-        <span>سپکس</span>
-        <span dir="ltr">bf.sepex.net</span>
+    <div className="relative h-full overflow-hidden bg-[#0e0e0e] px-4 pb-8 pt-12 text-right">
+      <div className="flex items-center justify-center gap-1.5 rounded-lg bg-white/[0.07] py-1.5 text-[10px] text-white/55" dir="ltr">
+        <svg viewBox="0 0 10 12" className="h-2.5 w-auto fill-white/50"><path d="M2 5V3.5a3 3 0 0 1 6 0V5h.5A1.5 1.5 0 0 1 10 6.5v4A1.5 1.5 0 0 1 8.5 12h-7A1.5 1.5 0 0 1 0 10.5v-4A1.5 1.5 0 0 1 1.5 5H2Zm1.3 0h3.4V3.5a1.7 1.7 0 0 0-3.4 0V5Z" /></svg>
+        black.sepex.net
       </div>
 
       {step === 0 && (
@@ -106,7 +106,7 @@ export function HowItWorks() {
   }, [auto]);
 
   return (
-    <section id="how" className="relative isolate scroll-mt-4 overflow-hidden bg-[#070707] py-20 sm:py-28" aria-labelledby="how-title">
+    <section id="how" className="relative isolate scroll-mt-4 overflow-hidden bg-black py-20 sm:py-28" aria-labelledby="how-title">
       <div className="pointer-events-none absolute left-[10%] top-1/2 -z-10 size-[36rem] -translate-y-1/2 bg-[radial-gradient(closest-side,rgb(255_203_5/0.14),transparent)]" aria-hidden />
       <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-[1fr_auto]">
         <div>
@@ -147,11 +147,39 @@ export function HowItWorks() {
         </div>
 
         {/* phone */}
-        <div className="mx-auto hidden w-[17rem] rotate-[-4deg] sm:block" aria-hidden>
-          <div className="rounded-[2.4rem] bg-gradient-to-b from-[#2a2a2a] to-[#111] p-2.5 shadow-[0_40px_100px_-30px_rgb(255_203_5/0.35)] ring-1 ring-white/15">
-            <div className="relative h-[33rem] overflow-hidden rounded-[1.9rem]">
-              <div className="absolute left-1/2 top-2 z-10 h-5 w-20 -translate-x-1/2 rounded-full bg-black" />
-              <Screen key={active} step={active} />
+        <div className="relative mx-auto hidden w-[17.5rem] rotate-[-4deg] sm:block" aria-hidden>
+          {/* side buttons */}
+          <span className="absolute -left-[3px] top-24 h-7 w-[3px] rounded-l-sm bg-gradient-to-b from-[#6b6b6b] to-[#3a3a3a]" />
+          <span className="absolute -left-[3px] top-36 h-12 w-[3px] rounded-l-sm bg-gradient-to-b from-[#6b6b6b] to-[#3a3a3a]" />
+          <span className="absolute -left-[3px] top-[13.5rem] h-12 w-[3px] rounded-l-sm bg-gradient-to-b from-[#6b6b6b] to-[#3a3a3a]" />
+          <span className="absolute -right-[3px] top-40 h-20 w-[3px] rounded-r-sm bg-gradient-to-b from-[#6b6b6b] to-[#3a3a3a]" />
+          {/* titanium frame */}
+          <div className="rounded-[3rem] bg-[linear-gradient(145deg,#8a8a8a_0%,#3c3c3c_18%,#1c1c1c_45%,#4a4a4a_70%,#9a9a9a_100%)] p-[3px] shadow-[0_50px_120px_-30px_rgb(255_203_5/0.35),0_30px_60px_-20px_rgb(0_0_0/0.9)]">
+            {/* black bezel */}
+            <div className="rounded-[2.85rem] bg-black p-[9px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.06)]">
+              <div className="relative h-[34rem] overflow-hidden rounded-[2.35rem] bg-[#0e0e0e]">
+                {/* status bar */}
+                <div className="absolute inset-x-0 top-0 z-20 flex h-11 items-center justify-between px-6 text-[11px] font-semibold text-white" dir="ltr">
+                  <span className="tabular-nums">9:41</span>
+                  <span className="flex items-center gap-1.5">
+                    <svg viewBox="0 0 17 11" className="h-[9px] w-auto fill-white"><rect x="0" y="7" width="3" height="4" rx="0.7" /><rect x="4.5" y="5" width="3" height="6" rx="0.7" /><rect x="9" y="2.5" width="3" height="8.5" rx="0.7" /><rect x="13.5" y="0" width="3" height="11" rx="0.7" /></svg>
+                    <svg viewBox="0 0 15 11" className="h-[9px] w-auto fill-white"><path d="M7.5 2.2c2.1 0 4 .8 5.5 2.1l1.1-1.2A9.6 9.6 0 0 0 7.5.5 9.6 9.6 0 0 0 .9 3.1L2 4.3a8 8 0 0 1 5.5-2.1Zm0 3.3c1.2 0 2.3.4 3.2 1.2l1.1-1.2a6.4 6.4 0 0 0-8.6 0l1.1 1.2c.9-.8 2-1.2 3.2-1.2Zm0 3.3-1.6 1.7L7.5 11l1.6-1.5-1.6-1.7Z" /></svg>
+                    <span className="relative flex h-[11px] w-[22px] items-center rounded-[3px] border border-white/45 p-[1.5px]">
+                      <span className="h-full w-[72%] rounded-[1.5px] bg-white" />
+                      <span className="absolute -right-[3px] top-1/2 h-1 w-[1.5px] -translate-y-1/2 rounded-r bg-white/45" />
+                    </span>
+                  </span>
+                </div>
+                {/* dynamic island */}
+                <div className="absolute left-1/2 top-2.5 z-30 flex h-[1.6rem] w-[5.8rem] -translate-x-1/2 items-center justify-end rounded-full bg-black pr-2.5">
+                  <span className="size-2 rounded-full bg-[radial-gradient(circle_at_35%_35%,#2a3a5a,#05070c_70%)] ring-1 ring-white/5" />
+                </div>
+                <Screen key={active} step={active} />
+                {/* home indicator */}
+                <div className="absolute bottom-2 left-1/2 z-20 h-[4px] w-28 -translate-x-1/2 rounded-full bg-white/70" />
+                {/* glass glare */}
+                <div className="pointer-events-none absolute inset-0 z-40 bg-[linear-gradient(115deg,rgb(255_255_255/0.09)_0%,rgb(255_255_255/0.03)_28%,transparent_42%)]" />
+              </div>
             </div>
           </div>
         </div>

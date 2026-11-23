@@ -26,12 +26,12 @@ const ITEMS = [
 
 // Warm, brand-friendly tints (glow from one corner, like light on a box).
 const TINTS = [
-  "from-[#6b4f00] via-[#2a2207]",
-  "from-[#7a3a0c] via-[#2b1609]",
-  "from-[#6e1f1f] via-[#2a0f0f]",
-  "from-[#3a4250] via-[#171a1f]",
-  "from-[#4c4a12] via-[#1f1e09]",
-  "from-[#5b3a1e] via-[#24170d]",
+  "from-[#a07600] via-[#3d3008]",
+  "from-[#a8520f] via-[#3b1e0a]",
+  "from-[#962c2c] via-[#3a1414]",
+  "from-[#56627a] via-[#1e232b]",
+  "from-[#79751a] via-[#2c2a0c]",
+  "from-[#8a5a2c] via-[#332010]",
 ];
 
 function Row({ offset, reverse, speed }: { offset: number; reverse?: boolean; speed: number }) {
@@ -41,7 +41,7 @@ function Row({ offset, reverse, speed }: { offset: number; reverse?: boolean; sp
       {items.map((label, i) => (
         <li
           key={label}
-          className={`flex h-16 shrink-0 items-center justify-center bg-gradient-to-br ${TINTS[(i + offset) % TINTS.length]} to-[#0d0d0d] px-7 text-base font-black text-white/90 ring-1 ring-inset ring-white/10 sm:h-20 sm:px-10 sm:text-xl`}
+          className={`chamfer-sm flex h-[4.5rem] shrink-0 items-center justify-center bg-gradient-to-br ${TINTS[(i + offset) % TINTS.length]} to-[#141414] px-7 text-base font-black text-white sm:h-24 sm:px-11 sm:text-xl`}
         >
           {label}
         </li>
@@ -60,15 +60,19 @@ function Row({ offset, reverse, speed }: { offset: number; reverse?: boolean; sp
 
 export function CategoryWall() {
   return (
-    <section id="categories" className="relative isolate scroll-mt-4 overflow-hidden bg-black py-20 sm:py-28" aria-labelledby="cat-title">
-      <div className="flex flex-col gap-3 opacity-90">
+    <section id="categories" className="relative isolate scroll-mt-4 overflow-hidden bg-black py-10 sm:py-14" aria-labelledby="cat-title">
+      <div className="flex flex-col gap-3">
         <Row offset={0} speed={70} />
         <Row offset={5} reverse speed={85} />
         <Row offset={10} speed={75} />
         <Row offset={14} reverse speed={90} />
+        <Row offset={3} speed={80} />
+        <Row offset={8} reverse speed={72} />
       </div>
       {/* dark pool for the title */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(38%_42%_at_50%_50%,#000_45%,rgb(0_0_0/0.85)_65%,transparent_100%)]" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(36%_30%_at_50%_50%,#000_35%,rgb(0_0_0/0.7)_60%,transparent_100%)]" aria-hidden />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black sm:h-32" aria-hidden />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black sm:h-32" aria-hidden />
       <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-black sm:w-48" aria-hidden />
       <div className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black sm:w-48" aria-hidden />
       <div className="absolute inset-0 flex items-center justify-center px-6">
