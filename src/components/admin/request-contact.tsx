@@ -56,7 +56,6 @@ export function ItemImage({ src }: { src: string | null }) {
   useEffect(() => {
     // The image may have failed before hydration, when onError wasn't attached yet.
     const img = ref.current;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync with the already-loaded <img>
     if (img && img.complete && img.naturalWidth === 0) setBroken(true);
   }, []);
   return (

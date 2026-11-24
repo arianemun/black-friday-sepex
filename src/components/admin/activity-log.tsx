@@ -123,7 +123,7 @@ const FILTERS: { key: Filter; label: string }[] = [
 ];
 
 /** Step-by-step activity of one request: who opened it, what they pressed, what the system did. */
-export function ActivityLog({ events }: { events: LogEvent[] }) {
+export function ActivityLog({ events, composer }: { events: LogEvent[]; composer?: React.ReactNode }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
@@ -162,7 +162,8 @@ export function ActivityLog({ events }: { events: LogEvent[] }) {
         </h2>
         <span className="rounded-full bg-[#F4F4F5] px-2 py-0.5 text-[11px] font-semibold text-[#52525B]">{toFaDigits(events.length)} رویداد</span>
       </div>
-      <div className="flex gap-1 overflow-x-auto px-4 pt-3" role="tablist" aria-label="فیلتر گزارش">
+      {composer && <div className="border-b border-[#F4F4F5] px-5 py-4">{composer}</div>}
+      <div className="flex flex-wrap gap-1 px-4 pt-3" role="tablist" aria-label="فیلتر گزارش">
         {FILTERS.map((f) => (
           <button
             key={f.key}
@@ -181,7 +182,7 @@ export function ActivityLog({ events }: { events: LogEvent[] }) {
         ))}
       </div>
 
-      <div className="px-5 pb-5 pt-2 xl:max-h-[calc(100dvh-13rem)] xl:overflow-y-auto">
+      <div className="px-5 pb-5 pt-2">
         {groups.length === 0 && <p className="py-8 text-center text-sm text-[#A1A1AA]">رویدادی نیست.</p>}
         {groups.map((g) => (
           <div key={g.key}>

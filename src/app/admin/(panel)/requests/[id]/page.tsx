@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, CalendarClock, ExternalLink, FileText, Globe, UserRound } from "lucide-react";
+import { ArrowRight, CalendarClock, ExternalLink, FileText, Globe, Package, UserRound } from "lucide-react";
 import { requireStaff } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { listActiveStaff } from "@/lib/admin-queries";
@@ -16,6 +16,14 @@ import { ContactButtons, CopyCode, ItemImage } from "@/components/admin/request-
 import { logView } from "@/lib/events";
 
 export const metadata = { title: "جزئیات درخواست" };
+
+const hostOf = (u: string) => {
+  try {
+    return new URL(u).hostname.replace(/^www\./, "");
+  } catch {
+    return u.slice(0, 40);
+  }
+};
 
 type Req = {
   id: number; tracking_code: string; method: Method; first_name: string; last_name: string; gender: "male" | "female"; phone: string;
@@ -69,6 +77,10 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
               {formatFaDateTime(r.created_at)}
             </span>
             <span className="inline-flex items-center gap-1">
+              <Package className="size-3.5 text-[#A1A1AA]" aria-hidden />
+              {toFaDigits(items.length)} کالا
+            </span>
+            <span className="inline-flex items-center gap-1">
               <UserRound className="size-3.5 text-[#A1A1AA]" aria-hidden />
               {assignee ?? "بدون کارشناس"}
             </span>
@@ -77,13 +89,42 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         <ContactButtons requestId={r.id} phone={r.phone} intl={intl} />
       </header>
 
-      <div className="grid items-start gap-4 [grid-template-areas:'main''side''log'] lg:grid-cols-[minmax(0,1fr)_20rem] lg:[grid-template-areas:'main_side''main_log'] xl:grid-cols-[19rem_minmax(0,1fr)_18rem] xl:[grid-template-areas:'log_main_side']">
-        <div className="flex min-w-0 flex-col gap-4 [grid-area:main]">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[18.5rem_minmax(0,1fr)]">
+        <aside className="flex flex-col gap-4 lg:sticky lg:top-20">
+          <Panel>
+            <RequestControls requestId={r.id} status={r.status} assignedTo={r.assigned_to} meId={me.id} staff={staff} />
+          </Panel>
+          <Panel title="مشتری" className="hidden lg:flex">
+            <dl className="grid gap-2.5 text-[13px]">
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-[#71717A]">نام</dt>
+                <dd className="font-semibold">{r.first_name} {r.last_name}</dd>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-[#71717A]">موبایل</dt>
+                <dd dir="ltr" className="font-mono font-semibold">{r.phone}</dd>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-[#71717A]">ثبت</dt>
+                <dd>{formatFaDateTime(r.created_at)}</dd>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-[#71717A]">منبع</dt>
+                <dd className="inline-flex items-center gap-1 truncate">
+                  <Globe className="size-3.5 text-[#A1A1AA]" aria-hidden />
+                  {[r.utm_source, r.utm_medium, r.utm_campaign].filter(Boolean).join(" / ") || (r.referrer ? hostOf(r.referrer) : "مستقیم")}
+                </dd>
+              </div>
+            </dl>
+          </Panel>
+        </aside>
+
+        <div className="flex min-w-0 flex-col gap-4">
           {items.map((it, i) => {
             const store = storeByKey(it.store_key);
             const itemFiles = files.filter((f) => f.request_item_id === it.id);
             return (
-              <Panel key={it.id} title={`کالای ${toFaDigits(i + 1)}`} action={<span className="rounded-md bg-[#F4F4F5] px-2 py-0.5 text-xs font-semibold text-[#52525B]">تعداد: {toFaDigits(it.quantity)}</span>}>
+              <Panel key={it.id} title={items.length > 1 ? `کالای ${toFaDigits(i + 1)}` : "کالا"} action={<span className="rounded-md bg-[#F4F4F5] px-2 py-0.5 text-xs font-semibold text-[#52525B]">تعداد: {toFaDigits(it.quantity)}</span>}>
                 <div className="flex gap-4">
                   {(it.url || it.meta_image) && <ItemImage src={it.meta_image} />}
                   <div className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm">
@@ -139,28 +180,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
               <p className="whitespace-pre-line text-sm leading-7">{r.note}</p>
             </Panel>
           )}
-          {(r.utm_source || r.referrer) && (
-            <Panel title="منبع ورود">
-              <p className="inline-flex items-center gap-1.5 text-[13px] text-[#52525B]">
-                <Globe className="size-3.5 text-[#A1A1AA]" aria-hidden />
-                {[r.utm_source, r.utm_medium, r.utm_campaign].filter(Boolean).join(" / ") || "—"}
-              </p>
-              {r.referrer && <p dir="ltr" className="truncate text-left text-xs text-[#71717A]">{r.referrer}</p>}
-            </Panel>
-          )}
-        </div>
-
-        <aside className="flex flex-col gap-4 [grid-area:side] xl:sticky xl:top-24">
-          <Panel>
-            <RequestControls requestId={r.id} status={r.status} assignedTo={r.assigned_to} meId={me.id} staff={staff} />
-          </Panel>
-          <Panel title="یادداشت تازه">
-            <NoteForm requestId={r.id} />
-          </Panel>
-        </aside>
-
-        <div className="[grid-area:log] xl:sticky xl:top-24">
-          <ActivityLog events={events} />
+          <ActivityLog events={events} composer={<NoteForm requestId={r.id} />} />
         </div>
       </div>
     </>
