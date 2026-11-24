@@ -102,14 +102,14 @@ export function LandingFooter({ settings }: { settings: Pick<Settings, "support_
                 ))}
               </svg>
               <nav className="flex flex-col gap-2.5 text-sm font-bold" aria-label="لینک‌های پایانی">
-                <Link href="/#faq" className="hover:underline">
+                <Link href="/#faq" className="hover:text-ink/60">
                   سؤالات متداول
                 </Link>
-                <a href={siteConfig.mainSite} className="hover:underline" rel="noopener">
+                <a href={siteConfig.mainSite} className="hover:text-ink/60" rel="noopener">
                   سایت سپکس
                 </a>
                 {settings.support_phone && (
-                  <a href={`tel:${settings.support_phone.replace(/[^\d+]/g, "")}`} className="ltr text-right hover:underline">
+                  <a href={`tel:${settings.support_phone.replace(/[^\d+]/g, "")}`} className="ltr text-right hover:text-ink/60">
                     {toFaDigits(settings.support_phone)}
                   </a>
                 )}

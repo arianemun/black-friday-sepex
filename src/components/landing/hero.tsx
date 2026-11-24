@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Camera, Ship } from "lucide-react";
 import { hero } from "@/content/landing";
 import { storeLabel, stores } from "@/lib/catalog";
 import { Countdown } from "./countdown";
@@ -72,12 +73,20 @@ export function Hero({ countdownTarget }: { countdownTarget: string }) {
         <div className="mt-9 w-full max-w-2xl">
           <LinkStarter placeholder={hero.inputPlaceholder} submit={hero.submit} />
         </div>
-        <div className="mt-3 flex flex-col items-center gap-3 text-sm sm:flex-row sm:gap-6">
-          {hero.alt.map((a) => (
-            <Link key={a.href} href={a.href} className="font-semibold text-white/75 underline decoration-brand/50 decoration-2 underline-offset-[6px] hover:text-brand hover:decoration-brand">
-              {a.label}
-            </Link>
-          ))}
+        <div className="mt-4 flex flex-col items-center gap-2 text-sm sm:flex-row sm:gap-3">
+          {hero.alt.map((a, i) => {
+            const Icon = i === 0 ? Camera : Ship;
+            return (
+              <Link
+                key={a.href}
+                href={a.href}
+                className="chamfer-sm inline-flex h-10 items-center gap-2 bg-white/[0.07] px-4 font-semibold text-white/80 transition-colors hover:bg-brand hover:text-ink"
+              >
+                <Icon className="size-4" aria-hidden />
+                {a.label}
+              </Link>
+            );
+          })}
         </div>
 
         <Countdown target={countdownTarget} className="mt-12" />

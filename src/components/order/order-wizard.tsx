@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Camera, Check, ClipboardPaste, Copy, Link2, Loader2, Package, Pencil, Plus, Ship, Trash2, UserRound, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, Check, ClipboardPaste, Copy, Link2, Loader2, Package, Pencil, Plus, RotateCw, ShieldCheck, Ship, Trash2, UserRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { countries, countryName, detectStore, extractUrl, methods, type Method } from "@/lib/catalog";
 import { cn, toEnDigits, toFaDigits } from "@/lib/utils";
@@ -270,6 +270,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
         return;
       }
       setOtpSentTo(phoneNorm);
+      requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
       setOtp("");
       setOtpLength(data.length ?? 5);
       setResendAt(Date.now() + (data.resendIn ?? 60) * 1000);
@@ -466,7 +467,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
         </section>
       )}
 
-      {step === 2 && method && (
+      {step === 2 && method && !otpSentTo && (
         <section className="mt-8" aria-labelledby="s2">
           <div className="flex items-start gap-3">
             <StepIcon icon={UserRound} />
@@ -520,7 +521,6 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
                 placeholder="09121234567"
                 className="text-left"
                 value={contact.phone}
-                disabled={!!otpSentTo}
                 onChange={(e) => setContact({ ...contact, phone: e.target.value })}
                 aria-invalid={!!errors.phone}
               />
@@ -532,69 +532,68 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
             </div>
           </Frame>
 
-          {otpSentTo ? (
-            <Frame tone="brand" className="mt-6">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm">
-                  کد {toFaDigits(otpLength)} رقمی به <span className="ltr font-bold">{toFaDigits(otpSentTo)}</span> پیامک شد.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOtpSentTo(null);
-                    setOtp("");
-                    setErrors({});
-                    requestAnimationFrame(() => document.getElementById("phone")?.focus());
-                  }}
-                  className="text-sm font-semibold text-white/60 underline underline-offset-4 hover:text-white"
-                >
-                  ویرایش شماره
-                </button>
-              </div>
-              <div className="mt-5 flex flex-col items-center gap-3">
-                <label htmlFor="otp" className="text-sm font-semibold">کد تأیید</label>
-                <InputOTP
-                  id="otp"
-                  maxLength={otpLength}
-                  value={otp}
-                  autoFocus
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  pattern="^[0-9۰-۹]*$"
-                  onChange={(v) => {
-                    const clean = toEnDigits(v);
-                    setOtp(clean);
-                    setErrors({});
-                    if (clean.length === otpLength) void submit(clean);
-                  }}
-                >
-                  <InputOTPGroup>
-                    {Array.from({ length: otpLength }).map((_, i) => (
-                      <InputOTPSlot key={i} index={i} className={cn("rounded-none border-white/25 bg-[#121212]", errors.otp && "border-destructive")} />
-                    ))}
-                  </InputOTPGroup>
-                </InputOTP>
-                {errors.otp && <p className="text-sm font-semibold text-destructive" role="alert">{errors.otp}</p>}
-                <button
-                  type="button"
-                  disabled={resendIn > 0 || sending}
-                  onClick={sendOtp}
-                  className="text-sm font-semibold text-white underline underline-offset-4 disabled:text-white/40 disabled:no-underline"
-                >
-                  {resendIn > 0 ? `ارسال دوباره‌ی کد تا ${toFaDigits(resendIn)} ثانیه‌ی دیگر` : sending ? "در حال ارسال…" : "ارسال دوباره‌ی کد"}
-                </button>
-              </div>
-            </Frame>
-          ) : null}
-
-          <NavBar
-            onBack={() => goto(1)}
-            onNext={() => (otpSentTo ? submit() : sendOtp())}
-            nextLabel={otpSentTo ? "ثبت درخواست" : "دریافت کد تأیید"}
-            busy={sending || submitting}
-            primary
-          />
+          <NavBar onBack={() => goto(1)} onNext={sendOtp} nextLabel="دریافت کد تأیید" busy={sending} />
           <p className="mt-3 text-center text-xs text-white/50">ثبت درخواست رایگانه و شماره‌ات فقط برای تماس کارشناس سپکس استفاده می‌شه.</p>
+        </section>
+      )}
+
+      {step === 2 && method && otpSentTo && (
+        <section className="mx-auto mt-10 max-w-md text-center" aria-labelledby="s3">
+          <div className="flex justify-center">
+            <StepIcon icon={ShieldCheck} />
+          </div>
+          <h1 id="s3" className="mt-5 text-2xl font-black sm:text-3xl">کد تأیید رو وارد کن</h1>
+          <p className="mt-3 leading-7 text-white/65">
+            یه کد {toFaDigits(otpLength)} رقمی به <span className="ltr font-bold text-white">{toFaDigits(otpSentTo)}</span> پیامک کردیم.
+          </p>
+          <Frame tone="brand" className="mt-7" innerClassName="flex flex-col items-center gap-4">
+            <label htmlFor="otp" className="sr-only">کد تأیید</label>
+            <InputOTP
+              id="otp"
+              maxLength={otpLength}
+              value={otp}
+              autoFocus
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="^[0-9۰-۹]*$"
+              disabled={submitting}
+              onChange={(v) => {
+                const clean = toEnDigits(v);
+                setOtp(clean);
+                setErrors({});
+                if (clean.length === otpLength) void submit(clean);
+              }}
+            >
+              <InputOTPGroup dir="ltr">
+                {Array.from({ length: otpLength }).map((_, i) => (
+                  <InputOTPSlot key={i} index={i} className={cn("size-12 rounded-none border-white/25 bg-[#0d0d0d] text-lg font-black", errors.otp && "border-destructive")} />
+                ))}
+              </InputOTPGroup>
+            </InputOTP>
+            {errors.otp && <p className="text-sm font-semibold text-destructive" role="alert">{errors.otp}</p>}
+            <button type="button" onClick={() => submit()} disabled={submitting || otp.length !== otpLength} className={cn(btn.primary, "w-full")}>
+              {submitting && <Loader2 className="size-4 animate-spin" />}
+              ثبت درخواست
+            </button>
+          </Frame>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+            <button type="button" disabled={resendIn > 0 || sending} onClick={sendOtp} className={cn(btn.secondary, "h-10 px-4 text-xs")}>
+              {sending ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCw className="size-3.5" />}
+              {resendIn > 0 ? `ارسال دوباره تا ${toFaDigits(resendIn)} ثانیه` : "ارسال دوباره‌ی کد"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOtpSentTo(null);
+                setOtp("");
+                setErrors({});
+                requestAnimationFrame(() => document.getElementById("phone")?.focus());
+              }}
+              className={cn(btn.secondary, "h-10 px-4 text-xs")}
+            >
+              <Pencil className="size-3.5" /> ویرایش شماره یا اطلاعات
+            </button>
+          </div>
         </section>
       )}
     </div>
@@ -679,7 +678,7 @@ function LinkField({ item, error, onChange }: { item: Item; error?: string; onCh
             <X className="size-3.5" /> پاک کردن
           </button>
         ) : canPaste ? (
-          <button type="button" onClick={paste} className="inline-flex items-center gap-1 text-xs font-bold text-brand hover:underline">
+          <button type="button" onClick={paste} className="inline-flex items-center gap-1 text-xs font-bold text-brand hover:opacity-80">
             <ClipboardPaste className="size-3.5" /> چسباندن لینک
           </button>
         ) : null}
@@ -962,7 +961,7 @@ function Done({ code, onNew }: { code: string; onNew: () => void }) {
         <button type="button" onClick={onNew} className={btn.secondary}>
           ثبت یه درخواست دیگه
         </button>
-        <Link href="/" className="mt-2 text-sm text-white/60 hover:text-white">برگشت به صفحه‌ی اصلی</Link>
+        <Link href="/" className={cn(btn.secondary, "bg-transparent text-white/60 hover:bg-white/[0.06] hover:text-white")}>برگشت به صفحه‌ی اصلی</Link>
       </div>
     </section>
   );
