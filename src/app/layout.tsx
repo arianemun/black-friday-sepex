@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
-import { GoogleTagManager } from "@/components/site/google-tag-manager";
+import { GoogleTagManagerHead, GoogleTagManagerNoScript } from "@/components/site/google-tag-manager";
 import { Toaster } from "@/components/ui/sonner";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
@@ -52,10 +52,13 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fa" dir="rtl" className={peyda.variable} suppressHydrationWarning>
+      <head>
+        <GoogleTagManagerHead />
+      </head>
       <body className="min-h-dvh bg-black font-sans">
+        <GoogleTagManagerNoScript />
         {children}
         <Toaster />
-        <GoogleTagManager />
       </body>
     </html>
   );
