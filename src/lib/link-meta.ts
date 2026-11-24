@@ -259,7 +259,9 @@ export function titleFromUrl(raw: string): string | null {
     if (words.length >= 2 && cleaned.length >= 8 && (!best || cleaned.length > best.length)) best = cleaned;
   }
   if (!best) return null;
-  return best.replace(/\b\p{Ll}/gu, (ch) => ch.toUpperCase()).slice(0, 160);
+  // Title-case only all-lowercase slugs (trendyol); keep the store's own casing (iPad, eBay).
+  const titled = best === best.toLowerCase() ? best.replace(/(^|\s)(\p{Ll})/gu, (_, sp: string, ch: string) => sp + ch.toUpperCase()) : best;
+  return titled.slice(0, 160);
 }
 
 export async function fetchLinkMeta(url: string): Promise<LinkMeta | null> {

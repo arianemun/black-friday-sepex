@@ -77,7 +77,8 @@ describe("fetchProxies", () => {
 
 describe("titleFromUrl", () => {
   it("reads product slugs", () => {
-    expect(titleFromUrl("https://www.amazon.ae/Apple-AirPods-Pro-2nd-generation/dp/B0CHWRXH8B?th=1")).toBe("Apple AirPods Pro 2nd Generation");
+    expect(titleFromUrl("https://www.amazon.ae/Apple-AirPods-Pro-2nd-generation/dp/B0CHWRXH8B?th=1")).toBe("Apple AirPods Pro 2nd generation");
+    expect(titleFromUrl("https://www.amazon.ae/Apple-iPad-Air-5th-Generation/dp/B09V3HN1KC")).toBe("Apple iPad Air 5th Generation");
     expect(titleFromUrl("https://www.trendyol.com/apple/iphone-15-128-gb-siyah-p-760258890")).toBe("Iphone 15 128 Gb Siyah");
     expect(titleFromUrl("https://www.ebay.com/itm/Sony-WH-1000XM5-Wireless-Headphones/123456789012")).toBe("Sony WH 1000XM5 Wireless Headphones");
   });
