@@ -14,7 +14,8 @@ const globalForDb = globalThis as unknown as { __sepexDb?: DB };
  * Versioned, additive, idempotent migrations (PRAGMA user_version).
  * Never edit a released migration: append a new one.
  */
-type Migration = string | { sql: string; rebuild: true };
+/** A rebuild copies `table` into a new table; the runner checks its row count and foreign keys. */
+type Migration = string | { sql: string; rebuild: true; table?: string };
 
 const migrations: Migration[] = [
   /* 1 */ `
@@ -186,6 +187,48 @@ const migrations: Migration[] = [
   CREATE UNIQUE INDEX IF NOT EXISTS idx_requests_external_ref ON requests(external_ref) WHERE external_ref IS NOT NULL;
   `,
   },
+  /*
+   * 4: a third role, 'supervisor' (an expert who can also plan shifts).
+   * Same rebuild as migration 3, for `staff`; sessions, assignments and events keep their staff ids.
+   */
+  {
+    rebuild: true,
+    table: "staff",
+    sql: `
+  CREATE TABLE staff_v4 (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    phone TEXT,
+    role TEXT NOT NULL DEFAULT 'expert' CHECK (role IN ('admin','supervisor','expert')),
+    notify_sms INTEGER NOT NULL DEFAULT 1,
+    active INTEGER NOT NULL DEFAULT 1,
+    last_notified_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  );
+  INSERT INTO staff_v4(id, name, username, password_hash, phone, role, notify_sms, active, last_notified_at, created_at)
+  SELECT id, name, username, password_hash, phone, role, notify_sms, active, last_notified_at, created_at FROM staff;
+  DROP TABLE staff;
+  ALTER TABLE staff_v4 RENAME TO staff;
+  `,
+  },
+  /*
+   * 5: shifts and the "nobody picked this up" alert.
+   * - shifts: one row per staff member per Tehran calendar day (YYYY-MM-DD).
+   * - requests.escalated_at: when the 1-hour alert went out. Existing requests are marked as
+   *   already handled so the first run doesn't alert about old leads.
+   */ `
+  CREATE TABLE IF NOT EXISTS shifts (
+    day TEXT NOT NULL,
+    staff_id INTEGER NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+    created_by INTEGER REFERENCES staff(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    PRIMARY KEY (day, staff_id)
+  );
+  ALTER TABLE requests ADD COLUMN escalated_at TEXT;
+  UPDATE requests SET escalated_at = created_at;
+  `,
 ];
 
 /** Exported for tests; `upTo` lets a test build an older schema version. */
@@ -195,14 +238,15 @@ export function migrate(db: DB, upTo = migrations.length) {
     const m = migrations[v];
     const rebuild = typeof m !== "string";
     const sql = typeof m === "string" ? m : m.sql;
+    const table = typeof m === "string" ? "" : (m.table ?? "requests");
     // A table rebuild needs foreign keys off, and that pragma is ignored inside a transaction.
     if (rebuild) db.pragma("foreign_keys = OFF");
     try {
       db.transaction(() => {
-        const before = rebuild ? (db.prepare("SELECT COUNT(*) AS n FROM requests").get() as { n: number }).n : 0;
+        const before = rebuild ? (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n : 0;
         db.exec(sql);
         if (rebuild) {
-          const after = (db.prepare("SELECT COUNT(*) AS n FROM requests").get() as { n: number }).n;
+          const after = (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n;
           if (after !== before) throw new Error(`migration ${v + 1}: row count changed ${before} -> ${after}`);
           const broken = db.pragma("foreign_key_check") as unknown[];
           if (broken.length) throw new Error(`migration ${v + 1}: ${broken.length} foreign key problems`);

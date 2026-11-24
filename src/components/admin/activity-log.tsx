@@ -84,6 +84,16 @@ function describe(e: LogEvent): View {
         group: "system",
       };
     case "sms": {
+      if (e.body === "escalation") {
+        const to = Array.isArray(m.to) ? (m.to as string[]).join("، ") : "";
+        return {
+          icon: MessageSquareText,
+          tone: "bg-[#FEF3C7] text-[#B45309]",
+          title: "هشدار: یک ساعت بدون بررسی",
+          detail: `${m.dryRun ? "ارسال نشد (قالب پیامک تنظیم نشده)" : m.ok ? "پیامک هشدار ارسال شد" : "ارسال پیامک هشدار ناموفق بود"}${to ? ` · ${to}` : ""}`,
+          group: "system",
+        };
+      }
       const who = e.body === "expert" ? `کارشناس${typeof m.to === "string" ? ` (${m.to})` : ""}` : "مشتری";
       const state = m.dryRun ? "ارسال نشد (قالب پیامک تنظیم نشده)" : m.ok ? "ارسال شد" : "ارسال ناموفق بود";
       return {

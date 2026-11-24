@@ -32,14 +32,15 @@ describe("migration 3 on an existing v2 database", () => {
     db.prepare("INSERT INTO request_events(request_id, type, body) VALUES(7, 'created', 'b')").run();
     const before = db.prepare("SELECT * FROM requests ORDER BY id").all();
 
-    migrate(db);
+    migrate(db, 3);
     expect(db.pragma("user_version", { simple: true })).toBe(3);
 
     const after = db.prepare("SELECT * FROM requests ORDER BY id").all() as Record<string, unknown>[];
     expect(after).toHaveLength(50);
     // Every pre-existing column is byte-identical; new columns take their defaults.
     after.forEach((row, i) => {
-      const { source, source_label, external_ref, ...old } = row;
+      const { source, source_label, external_ref, escalated_at, ...old } = row;
+      void escalated_at;
       expect(old).toEqual(before[i]);
       expect(source).toBe("web");
       expect(source_label).toBeNull();
@@ -62,7 +63,7 @@ describe("migration 3 on an existing v2 database", () => {
     expect(db.prepare("SELECT COUNT(*) AS n FROM request_events WHERE request_id = 7").get()).toEqual({ n: 0 });
 
     // Running again is a no-op.
-    migrate(db);
+    migrate(db, 3);
     expect(db.pragma("user_version", { simple: true })).toBe(3);
     db.close();
   });

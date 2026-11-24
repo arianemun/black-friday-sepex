@@ -1,4 +1,5 @@
 import "server-only";
+import { onShiftIds } from "./shifts";
 import { z } from "zod";
 import { getDb, nowIso } from "./db";
 import { detectStore, extractUrl, methods, type Method } from "./catalog";
@@ -170,17 +171,24 @@ export function createRequest(
 
 export class UploadOwnershipError extends Error {}
 
-/** Picks who gets notified (and, in round-robin mode, assigned). */
+/**
+ * Picks who gets notified (and, in round-robin mode, assigned).
+ * When today has a shift plan, only staff on shift are notified; otherwise everyone with SMS on.
+ */
 function pickExperts(
   requestId: number,
 ): { id: number; phone: string; name: string }[] {
   const db = getDb();
-  const experts = db
+  const onShift = onShiftIds();
+  const all = db
     .prepare(
       `SELECT id, phone, name FROM staff WHERE active = 1 AND notify_sms = 1 AND phone IS NOT NULL AND phone != ''
        ORDER BY COALESCE(last_notified_at, '') ASC, id ASC`,
     )
     .all() as { id: number; phone: string; name: string }[];
+  const shifted = onShift ? all.filter((e) => onShift.has(e.id)) : all;
+  // A plan whose people can't receive SMS (no phone, SMS off) must not silence new leads.
+  const experts = shifted.length ? shifted : all;
   if (!experts.length) return [];
   const settings = getSettings();
   const chosen =

@@ -1,12 +1,13 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { roleLabels, type Role } from "@/lib/roles";
 import { Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { saveStaffAction } from "@/app/admin/actions";
 import { AdminTable, AdminTd, AdminTh, AdminTHead, AdminTr, Badge, Button, FieldInput, FormField, IconButton, fieldControlClass } from "@/components/admin-ui";
 
-export type StaffRow = { id: number; name: string; username: string; phone: string | null; role: "admin" | "expert"; notify_sms: number; active: number };
+export type StaffRow = { id: number; name: string; username: string; phone: string | null; role: Role; notify_sms: number; active: number };
 
 function StaffForm({ row, onDone }: { row: StaffRow | null; onDone: () => void }) {
   const [state, action, pending] = useActionState(saveStaffAction, null);
@@ -31,6 +32,7 @@ function StaffForm({ row, onDone }: { row: StaffRow | null; onDone: () => void }
       <FormField label="نقش" htmlFor="s-role">
         <select id="s-role" name="role" defaultValue={row?.role ?? "expert"} className={fieldControlClass}>
           <option value="expert">کارشناس</option>
+          <option value="supervisor">سرپرست</option>
           <option value="admin">مدیر</option>
         </select>
       </FormField>
@@ -73,7 +75,7 @@ export function StaffManager({ rows, meId }: { rows: StaffRow[]; meId: number })
                 <AdminTd className="hidden text-[13px] text-[#52525B] sm:table-cell" dir="ltr">{r.phone ?? "—"}</AdminTd>
                 <AdminTd>
                   <div className="flex flex-wrap gap-1">
-                    <Badge variant={r.role === "admin" ? "info" : "neutral"}>{r.role === "admin" ? "مدیر" : "کارشناس"}</Badge>
+                    <Badge variant={r.role === "admin" ? "info" : r.role === "supervisor" ? "warning" : "neutral"}>{roleLabels[r.role]}</Badge>
                     {!!r.notify_sms && <Badge variant="success">پیامک</Badge>}
                     {!r.active && <Badge variant="danger">غیرفعال</Badge>}
                   </div>

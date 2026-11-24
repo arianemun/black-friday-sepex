@@ -3,21 +3,23 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Download, ExternalLink, Inbox, LayoutDashboard, LogOut, Menu, Search, Settings2, Tag, Users, X, type LucideIcon } from "lucide-react";
+import { CalendarClock, Download, ExternalLink, Inbox, LayoutDashboard, LogOut, Menu, Search, Settings2, Tag, Users, X, type LucideIcon } from "lucide-react";
 import { logoutAction } from "@/app/admin/actions";
 import { IconButton, adminButtonVariants } from "@/components/admin-ui";
 import { cn } from "@/lib/utils";
+import { canManageShifts, roleLabels, type Role } from "@/lib/roles";
 
 /** Admin shell ported from Spinex: white 248px sidebar, sticky top bar, neutral zinc + blue. */
 
-type NavItem = { href: string; label: string; icon: LucideIcon; group: "work" | "system"; adminOnly?: boolean };
+type NavItem = { href: string; label: string; icon: LucideIcon; group: "work" | "system"; only?: (role: Role) => boolean };
 
 const NAV: NavItem[] = [
   { href: "/admin", label: "داشبورد", icon: LayoutDashboard, group: "work" },
   { href: "/admin/requests", label: "درخواست‌ها", icon: Inbox, group: "work" },
   { href: "/admin/products", label: "پیشنهادهای لندینگ", icon: Tag, group: "work" },
-  { href: "/admin/staff", label: "کارشناس‌ها", icon: Users, group: "system", adminOnly: true },
-  { href: "/admin/settings", label: "تنظیمات و سامانه", icon: Settings2, group: "system", adminOnly: true },
+  { href: "/admin/shifts", label: "شیفت‌بندی", icon: CalendarClock, group: "work", only: canManageShifts },
+  { href: "/admin/staff", label: "کارشناس‌ها", icon: Users, group: "system", only: (r) => r === "admin" },
+  { href: "/admin/settings", label: "تنظیمات و سامانه", icon: Settings2, group: "system", only: (r) => r === "admin" },
 ];
 
 const isActive = (path: string, href: string) => (href === "/admin" ? path === "/admin" : path === href || path.startsWith(`${href}/`));
@@ -41,9 +43,10 @@ function Brand() {
   );
 }
 
-function Nav({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate?: () => void }) {
+function Nav({ role, onNavigate }: { role: Role; onNavigate?: () => void }) {
   const path = usePathname();
-  const items = NAV.filter((i) => !i.adminOnly || isAdmin);
+  const isAdmin = role === "admin";
+  const items = NAV.filter((i) => !i.only || i.only(role));
   const group = (g: NavItem["group"]) =>
     items
       .filter((i) => i.group === g)
@@ -76,7 +79,7 @@ function Nav({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate?: () => voi
   );
 }
 
-export function AdminShell({ name, username, isAdmin, children }: { name: string; username: string; isAdmin: boolean; children: React.ReactNode }) {
+export function AdminShell({ name, username, role, notice, children }: { name: string; username: string; role: Role; notice?: React.ReactNode; children: React.ReactNode }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- close the drawer after navigation
@@ -86,7 +89,7 @@ export function AdminShell({ name, username, isAdmin, children }: { name: string
     <>
       <Brand />
       <div className="flex-1 overflow-y-auto">
-        <Nav isAdmin={isAdmin} onNavigate={() => setOpen(false)} />
+        <Nav role={role} onNavigate={() => setOpen(false)} />
       </div>
       <div className="mt-auto flex items-center gap-2.5 border-t border-[#F4F4F5] px-2.5 py-3">
         <span aria-hidden className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#E4E4E7] text-[13px] font-bold">
@@ -95,7 +98,7 @@ export function AdminShell({ name, username, isAdmin, children }: { name: string
         <div className="min-w-0 flex-1">
           <span className="block truncate text-[13px] font-bold text-[#18181B]">{name}</span>
           <span className="block truncate text-[11px] text-[#71717A]">
-            {isAdmin ? "مدیر سیستم" : "کارشناس"} · <span dir="ltr">{username}</span>
+            {role === "admin" ? "مدیر سیستم" : roleLabels[role]} · <span dir="ltr">{username}</span>
           </span>
         </div>
         <form action={logoutAction}>
@@ -155,6 +158,7 @@ export function AdminShell({ name, username, isAdmin, children }: { name: string
           </div>
         </header>
 
+        {notice}
         <main className="mx-auto w-full max-w-[1320px] flex-1 px-4 py-5 sm:py-7 md:px-8">{children}</main>
       </div>
     </div>

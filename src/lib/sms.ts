@@ -72,3 +72,11 @@ export function sendExpertNotificationSms(mobile: string, trackingCode: string, 
     { name: p("SMSIR_EXPERT_PARAM_METHOD", "METHOD"), value: method },
   ]);
 }
+
+/** "N requests have waited over an hour" alert to on-shift staff, supervisors and admins. */
+export function sendEscalationSms(mobile: string, count: number, trackingCode: string) {
+  return sendTemplateSms(mobile, process.env.SMSIR_ESCALATION_TEMPLATE_ID, [
+    { name: p("SMSIR_ESCALATION_PARAM_COUNT", "COUNT"), value: String(count) },
+    { name: p("SMSIR_ESCALATION_PARAM_CODE", "CODE"), value: trackingCode },
+  ]);
+}

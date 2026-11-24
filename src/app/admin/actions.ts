@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDb, nowIso } from "@/lib/db";
-import { hashPassword, login, logout, requireAdmin, requireStaff } from "@/lib/auth";
+import { hashPassword, login, logout, requireAdmin, requireShiftManager, requireStaff } from "@/lib/auth";
+import { copyShiftDay, isDay, setShift, tehranDay } from "@/lib/shifts";
+import { parseRole } from "@/lib/roles";
 import { categories, countries, detectStore, extractUrl, statuses } from "@/lib/catalog";
 import { fetchLinkMeta } from "@/lib/link-meta";
 import { normalizeIranMobile } from "@/lib/phone";
@@ -215,7 +217,7 @@ export async function saveStaffAction(_: ActionState, fd: FormData): Promise<Act
   const username = str(fd, "username", 40).toLowerCase();
   const password = String(fd.get("password") ?? "");
   const phoneRaw = str(fd, "phone", 20);
-  const role = fd.get("role") === "admin" ? "admin" : "expert";
+  const role = parseRole(fd.get("role"));
   const notify = fd.get("notify_sms") === "on" ? 1 : 0;
   const active = fd.get("active") === "on" || !id ? 1 : 0;
 
@@ -242,6 +244,31 @@ export async function saveStaffAction(_: ActionState, fd: FormData): Promise<Act
   }
   revalidatePath("/admin/staff");
   return { ok: true, message: id ? "ذخیره شد." : "کاربر اضافه شد." };
+}
+
+/* ---------------------------------------------------------------- shifts */
+
+/** Past days are read-only, so the history of who was on duty stays intact. */
+const editableDay = (day: unknown): day is string => isDay(day) && day >= tehranDay();
+
+export async function toggleShiftAction(day: string, staffId: number, on: boolean): Promise<ActionState> {
+  const me = await requireShiftManager();
+  if (!editableDay(day)) return { error: "روزهای گذشته قابل تغییر نیستند." };
+  const target = getDb().prepare("SELECT id FROM staff WHERE id = ? AND active = 1").get(Number(staffId));
+  if (!target) return { error: "این کاربر پیدا نشد یا غیرفعال است." };
+  setShift(day, Number(staffId), !!on, me.id);
+  revalidatePath("/admin/shifts");
+  return { ok: true };
+}
+
+/** Repeats the previous day's plan on `day`. */
+export async function copyPreviousShiftAction(day: string): Promise<ActionState> {
+  const me = await requireShiftManager();
+  if (!editableDay(day)) return { error: "روزهای گذشته قابل تغییر نیستند." };
+  const prev = new Date(Date.parse(`${day}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+  copyShiftDay(prev, [day], me.id);
+  revalidatePath("/admin/shifts");
+  return { ok: true };
 }
 
 /* ---------------------------------------------------------------- settings */

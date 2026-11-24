@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getDb } from "./db";
+import { canManageShifts, type Role } from "./roles";
 
 const COOKIE = "sbf_session";
 const SESSION_DAYS = 14;
@@ -13,7 +14,7 @@ export type Staff = {
   name: string;
   username: string;
   phone: string | null;
-  role: "admin" | "expert";
+  role: Role;
   notify_sms: number;
   active: number;
 };
@@ -87,6 +88,13 @@ export async function requireStaff(): Promise<Staff> {
 export async function requireAdmin(): Promise<Staff> {
   const staff = await requireStaff();
   if (staff.role !== "admin") redirect("/admin");
+  return staff;
+}
+
+/** Admins and supervisors: shift planning. */
+export async function requireShiftManager(): Promise<Staff> {
+  const staff = await requireStaff();
+  if (!canManageShifts(staff.role)) redirect("/admin");
   return staff;
 }
 
