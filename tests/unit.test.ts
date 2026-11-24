@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { detectStore, extractUrl } from "@/lib/catalog";
 import { normalizeIranMobile } from "@/lib/phone";
 import { generateTrackingCode, normalizeTrackingCode } from "@/lib/tracking";
-import { parseLinkMeta } from "@/lib/link-meta";
+import { isGenericPage, parseLinkMeta } from "@/lib/link-meta";
 import { toEnDigits } from "@/lib/utils";
 
 describe("catalog", () => {
@@ -48,5 +48,17 @@ describe("link meta", () => {
     const html = `<meta property="og:title" content="Bag"><meta property="og:image" content="/img/bag.jpg"><meta property="product:price:amount" content="20">`;
     const m = parseLinkMeta(html, "https://shop.example/p/2");
     expect(m).toMatchObject({ title: "Bag", image: "https://shop.example/img/bag.jpg", price: "20" });
+  });
+});
+
+
+describe("isGenericPage", () => {
+  it("flags a store-name-only title without image or price", () => {
+    expect(isGenericPage({ title: "Amazon.ae", image: null, price: null, site: null }, "https://www.amazon.ae/dp/B0X")).toBe(true);
+    expect(isGenericPage({ title: "Amazon.ae: Online Shopping", image: null, price: null, site: null }, "https://www.amazon.ae/dp/B0X")).toBe(true);
+  });
+  it("keeps real product titles", () => {
+    expect(isGenericPage({ title: "Apple AirPods Pro (2nd generation) with MagSafe Case", image: null, price: null, site: null }, "https://www.amazon.ae/dp/B0X")).toBe(false);
+    expect(isGenericPage({ title: "Amazon.ae", image: "https://x/y.jpg", price: null, site: null }, "https://www.amazon.ae/dp/B0X")).toBe(false);
   });
 });

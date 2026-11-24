@@ -117,6 +117,30 @@ export function parseLinkMeta(html: string, baseUrl: string): LinkMeta {
   };
 }
 
+/**
+ * A soft bot page often keeps only the store's name as <title> ("Amazon.ae") with no image or
+ * price. That isn't product data, so treat it as "not found" instead of showing a fake card.
+ */
+export function isGenericPage(meta: Pick<LinkMeta, "title" | "image" | "price" | "site">, url: string): boolean {
+  if (meta.image || meta.price) return false;
+  const title = (meta.title ?? "").trim().toLowerCase();
+  if (!title) return true;
+  let host = "";
+  try {
+    host = new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    /* ignore */
+  }
+  const brand = host.split(".")[0];
+  const site = (meta.site ?? "").trim().toLowerCase();
+  const short = title.length <= 40;
+  return (
+    title === host ||
+    title === site ||
+    (short && !!brand && title.replace(/[^a-z0-9]/g, "").startsWith(brand) && title.split(/\s+/).length <= 4)
+  );
+}
+
 export async function fetchLinkMeta(url: string): Promise<LinkMeta | null> {
   try {
     const res = await safeFetch(url);
@@ -126,6 +150,7 @@ export async function fetchLinkMeta(url: string): Promise<LinkMeta | null> {
     if (meta.title && /robot check|captcha|access denied|verify you are human|slide to verify/i.test(meta.title) && !meta.price) {
       return null;
     }
+    if (isGenericPage(meta, res.url)) return null;
     return meta.title || meta.image ? meta : null;
   } catch (e) {
     console.warn(`[link-meta] ${new URL(url).hostname}: ${(e as Error).message}`);
