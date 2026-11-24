@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SepexMark } from "@/components/brand/logo";
 import { Check, Link2, PackageCheck, Phone, Plane } from "lucide-react";
 import { steps } from "@/content/landing";
 import { cn, toFaDigits } from "@/lib/utils";
@@ -110,7 +111,7 @@ export function HowItWorks() {
       <div className="pointer-events-none absolute left-[10%] top-1/2 -z-10 size-[36rem] -translate-y-1/2 bg-[radial-gradient(closest-side,rgb(255_203_5/0.14),transparent)]" aria-hidden />
       <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-[1fr_auto]">
         <div>
-          <p className="text-sm font-semibold text-brand">برای بلک‌فرایدی آماده شو</p>
+          <p className="inline-flex items-center gap-2 text-sm font-semibold text-brand"><SepexMark className="h-3" /> برای بلک‌فرایدی آماده شو</p>
           <h2 id="how-title" className="mt-2 text-3xl font-black leading-tight text-white sm:text-[2.6rem]">چطوری سفارش بدم؟</h2>
           <ol className="mt-8 space-y-2.5">
             {steps.map((s, i) => {

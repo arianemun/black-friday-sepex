@@ -11,3 +11,35 @@ export function SepexLogo({ className, title = "سپکس" }: { className?: strin
     </svg>
   );
 }
+
+/* The three parts of the SEPEX mark, separately, so they can be animated or used as a motif. */
+export const MARK_PARTS = {
+  top: "M193 23 L247 47 L300 23 L247 0 Z",
+  wing: "M124 23 L124 68 L247 121 L370 68 L493 121 L493 75 L370 23 L247 75 Z",
+  bottom: "M316 121 L370 143 L424 121 L370 97 Z",
+};
+
+/** SEPEX mark only (no wordmark). `assemble` slides the three parts into place when shown. */
+export function SepexMark({ className, assemble, title }: { className?: string; assemble?: boolean; title?: string }) {
+  return (
+    <svg viewBox="124 0 370 143" fill="currentColor" role={title ? "img" : undefined} aria-label={title} aria-hidden={title ? undefined : true} className={cn("h-4 w-auto", assemble && "mark-assemble", className)}>
+      <path d={MARK_PARTS.top} className="mark-top" />
+      <path fillRule="evenodd" d={MARK_PARTS.wing} className="mark-wing" />
+      <path d={MARK_PARTS.bottom} className="mark-bottom" />
+    </svg>
+  );
+}
+
+const LETTERS = D.slice(D.indexOf("M507 241"));
+
+/** Full logo whose mark assembles and wordmark fades in when its <Reveal> parent is shown. */
+export function SepexLogoAssemble({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 617 385" fill="currentColor" role="img" aria-label="سپکس" className={cn("mark-assemble h-auto w-full", className)}>
+      <path d={MARK_PARTS.top} className="mark-top" />
+      <path fillRule="evenodd" d={MARK_PARTS.wing} className="mark-wing" />
+      <path d={MARK_PARTS.bottom} className="mark-bottom" />
+      <path fillRule="evenodd" d={LETTERS} className="mark-letters" />
+    </svg>
+  );
+}

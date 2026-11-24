@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SepexMark } from "@/components/brand/logo";
 import { ArrowLeft, Camera, Link2, PackageSearch, Ship } from "lucide-react";
 import { faqs, paths } from "@/content/landing";
 import {
@@ -19,6 +20,7 @@ function SectionHead({
 }) {
   return (
     <div className="max-w-2xl">
+      <SepexMark className="mb-4 h-3.5 text-brand" />
       <h2
         id={id}
         className="text-3xl font-black leading-tight text-white sm:text-[2.6rem]"

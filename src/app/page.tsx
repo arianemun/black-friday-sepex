@@ -5,6 +5,9 @@ import { HowItWorks } from "@/components/landing/how-it-works";
 import { PopularStores } from "@/components/landing/popular-stores";
 import { ShuffleDeck } from "@/components/landing/shuffle-deck";
 import { RouteOrbit } from "@/components/landing/route-orbit";
+import { AboutSepex } from "@/components/landing/about-sepex";
+import { Reveal } from "@/components/landing/reveal";
+import { SepexMark } from "@/components/brand/logo";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { storeLogos } from "@/lib/store-logos";
 import { Faq, Paths } from "@/components/landing/sections";
@@ -52,12 +55,16 @@ export default function HomePage() {
     <>
       <SiteHeader />
       <main>
-        <Hero countdownTarget={countdown.target} />
-        <Paths />
+        <Hero />
+        <Reveal>
+          <Paths />
+        </Reveal>
+        <AboutSepex />
         {products.length > 0 && (
           <section id="deals" className="relative isolate scroll-mt-4 overflow-hidden bg-black py-20 text-white sm:py-24" aria-labelledby="deals-title">
             <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(45%_40%_at_50%_45%,rgb(255_203_5/0.08),transparent_70%)]" aria-hidden />
             <div className="mx-auto max-w-7xl px-4 text-center sm:px-6">
+              <SepexMark className="mx-auto mb-4 h-3.5 text-brand" />
               <h2 id="deals-title" className="text-3xl font-black leading-tight sm:text-[2.6rem]">پیشنهادهای بلک‌فرایدی</h2>
               <p className="mx-auto mt-3 max-w-2xl leading-8 text-white/55">
                 چندتا کالای منتخب از فروشگاه‌های خارجی. قیمت‌ها مال خود فروشگاهه و ممکنه عوض بشه؛ قیمت نهایی رو کارشناس بهت می‌گه.
@@ -68,12 +75,24 @@ export default function HomePage() {
             </div>
           </section>
         )}
-        <CategoryWall />
-        <HowItWorks />
-        <PopularStores logos={storeLogos()} />
-        <ShuffleDeck products={products} />
-        <RouteOrbit />
-        <Faq />
+        <Reveal>
+          <CategoryWall />
+        </Reveal>
+        <Reveal>
+          <HowItWorks />
+        </Reveal>
+        <Reveal>
+          <PopularStores logos={storeLogos()} />
+        </Reveal>
+        <Reveal>
+          <ShuffleDeck products={products} />
+        </Reveal>
+        <Reveal>
+          <RouteOrbit countdownTarget={countdown.target} />
+        </Reveal>
+        <Reveal>
+          <Faq />
+        </Reveal>
       </main>
       <LandingFooter settings={settings} />
       <StickyCta />

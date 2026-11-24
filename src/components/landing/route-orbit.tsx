@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { Countdown } from "./countdown";
 import { ArrowLeft } from "lucide-react";
-import { SepexLogo } from "@/components/brand/logo";
+import { SepexLogo, SepexMark } from "@/components/brand/logo";
 
 /** Routes from the five origins to Iran, drawn as an orbit around the SEPEX mark. */
 
@@ -18,18 +19,19 @@ const NODES = [
   return { ...n, ...at(R), label: at(LABEL_R) };
 });
 
-export function RouteOrbit() {
+export function RouteOrbit({ countdownTarget }: { countdownTarget: string }) {
   return (
     <section className="relative isolate overflow-hidden bg-black py-20 sm:py-28" aria-labelledby="orbit-title">
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-[1fr_1.1fr]">
         <div>
-          <span className="inline-block border border-brand/40 px-3 py-1 text-xs font-semibold text-brand">بلک‌فرایدی سپکس</span>
+          <span className="inline-flex items-center gap-2 text-xs font-semibold text-brand"><SepexMark className="h-3" /> بلک‌فرایدی سپکس</span>
           <h2 id="orbit-title" className="mt-5 text-3xl font-black leading-tight text-white sm:text-5xl">
             از هر جای دنیا،
             <br />
             تا ایران
           </h2>
           <p className="mt-5 max-w-md leading-8 text-white/55">بلک‌فرایدی امسال بی‌مرزه: چین، امارات، اروپا، آمریکا و ترکیه. خرید، حمل و ترخیص؛ همه‌اش توی یه مسیر و با یه کد پیگیری.</p>
+          <Countdown target={countdownTarget} className="mt-8" />
           <Link href="/order" className="chamfer-sm mt-8 inline-flex h-12 items-center gap-2 bg-white px-6 text-sm font-black text-ink hover:bg-brand">
             ثبت سفارش
             <ArrowLeft className="size-4" />

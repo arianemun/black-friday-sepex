@@ -334,3 +334,47 @@
 .label-notch {
   clip-path: polygon(22px 0, calc(50% - 28px) 0, calc(50% - 16px) 10px, calc(50% + 16px) 10px, calc(50% + 28px) 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%, 0 22px);
 }
+
+/* ---------- motion: section reveal, hero parallax, SEPEX mark ---------- */
+.parallax {
+  /* depth: how far a layer travels with the pointer (px at the edge of the stage) */
+  translate: calc(var(--mx, 0) * var(--depth, 0px)) calc(var(--my, 0) * var(--depth, 0px));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    opacity: 0;
+    translate: 0 28px;
+    transition: opacity 700ms ease-out, translate 900ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .reveal[data-shown] {
+    opacity: 1;
+    translate: 0 0;
+  }
+  .hero-in {
+    animation: hero-in 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: var(--in, 0ms);
+  }
+  .hero-line {
+    display: block;
+    animation: hero-line 1000ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: var(--in, 0ms);
+  }
+  .mark-assemble .mark-top,
+  .mark-assemble .mark-wing,
+  .mark-assemble .mark-bottom {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .reveal[data-shown] .mark-assemble .mark-top { animation: mark-top 900ms cubic-bezier(0.2, 0.8, 0.2, 1) 150ms both; }
+  .reveal[data-shown] .mark-assemble .mark-wing { animation: mark-wing 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .reveal[data-shown] .mark-assemble .mark-bottom { animation: mark-bottom 900ms cubic-bezier(0.2, 0.8, 0.2, 1) 300ms both; }
+  .reveal[data-shown] .mark-assemble .mark-letters { animation: hero-in 800ms ease-out 550ms both; }
+  .reveal:not([data-shown]) .mark-assemble path { opacity: 0; }
+  .float-slow { animation: float-slow 9s ease-in-out infinite; }
+}
+@keyframes hero-in { from { opacity: 0; translate: 0 18px; } to { opacity: 1; translate: 0 0; } }
+@keyframes hero-line { from { opacity: 0; clip-path: inset(0 0 100% 0); translate: 0 0.35em; } to { opacity: 1; clip-path: inset(0 0 0 0); translate: 0 0; } }
+@keyframes mark-top { from { opacity: 0; transform: translateY(-60%) scale(0.6); } to { opacity: 1; transform: none; } }
+@keyframes mark-wing { from { opacity: 0; transform: scaleX(0.4); } to { opacity: 1; transform: none; } }
+@keyframes mark-bottom { from { opacity: 0; transform: translateY(60%) scale(0.6); } to { opacity: 1; transform: none; } }
+@keyframes float-slow { 0%, 100% { translate: 0 0; } 50% { translate: 0 -10px; } }

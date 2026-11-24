@@ -2,8 +2,9 @@ import Link from "next/link";
 import { Camera, Ship } from "lucide-react";
 import { hero } from "@/content/landing";
 import { storeLabel, stores } from "@/lib/catalog";
-import { Countdown } from "./countdown";
+import { SepexLogo, SepexMark } from "@/components/brand/logo";
 import { LinkStarter } from "./link-starter";
+import { PointerStage } from "./reveal";
 
 /**
  * One bold idea: a midnight sale on a dark stage. A yellow spotlight turns on and price
@@ -34,7 +35,11 @@ function PriceTag({ t }: { t: Tag }) {
     sm: toLeft ? "py-3 text-[1.3rem] pr-4 pl-10" : "py-3 text-[1.3rem] pl-4 pr-10",
   }[t.size];
   return (
-    <div className={`tag-drop absolute hidden origin-center scale-75 lg:block xl:scale-100 ${t.pos}`} style={{ "--d": `${t.d}ms` } as React.CSSProperties} aria-hidden>
+    <div
+      className={`tag-drop parallax absolute hidden origin-center scale-75 lg:block xl:scale-100 ${t.pos}`}
+      style={{ "--d": `${t.d}ms`, "--depth": `${t.size === "lg" ? 34 : t.size === "md" ? 22 : 14}px` } as React.CSSProperties}
+      aria-hidden
+    >
       <div className={`tag-sway ${toLeft ? "tag-sway-l" : ""}`} style={{ "--r": `${t.r}deg`, "--s": `${t.s}s`, transform: `rotate(${t.r}deg)` } as React.CSSProperties}>
         <div
           className={`price-tag ${toLeft ? "price-tag-l" : ""} font-black leading-none shadow-2xl ${size} ${
@@ -48,32 +53,42 @@ function PriceTag({ t }: { t: Tag }) {
   );
 }
 
-export function Hero({ countdownTarget }: { countdownTarget: string }) {
+export function Hero() {
   return (
     <section className="relative isolate overflow-hidden bg-black text-white" aria-labelledby="hero-title">
-      <div className="spotlight pointer-events-none absolute inset-0 -z-10" aria-hidden />
+      <PointerStage className="relative">
+      <div className="spotlight parallax pointer-events-none absolute -inset-[6%] -z-10 [--depth:36px]" aria-hidden />
       <div className="dot-grid pointer-events-none absolute inset-0 -z-10" aria-hidden />
       <div className="floor-glow pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-1/2" aria-hidden />
+
+      {/* the SEPEX mark, huge and faint, drifting the other way */}
+      <div className="parallax pointer-events-none absolute inset-x-0 top-[9%] -z-10 flex justify-center [--depth:-26px]" aria-hidden>
+        <SepexMark className="hero-in h-auto w-[min(92vw,62rem)] text-brand/[0.06] [--in:300ms]" />
+      </div>
 
       {TAGS.map((t) => (
         <PriceTag key={t.key} t={t} />
       ))}
 
       <div className="relative mx-auto flex min-h-[100svh] max-w-4xl flex-col items-center justify-center px-4 pb-12 pt-28 text-center sm:px-6 sm:pt-32">
-        <p dir="ltr" className="hero-wordmark font-black text-brand" aria-hidden>
-          BLACK
-          <br />
-          FRIDAY
+        <div className="hero-in mb-5 flex items-center gap-3 text-white/70 [--in:100ms]">
+          <span className="h-px w-10 bg-gradient-to-l from-white/40 to-transparent" aria-hidden />
+          <SepexLogo className="h-6 sm:h-7" title="سپکس" />
+          <span className="h-px w-10 bg-gradient-to-r from-white/40 to-transparent" aria-hidden />
+        </div>
+        <p dir="ltr" className="hero-wordmark parallax font-black text-brand [--depth:-10px]" aria-hidden>
+          <span className="hero-line block [--in:200ms]">BLACK</span>
+          <span className="hero-line block [--in:380ms]">FRIDAY</span>
         </p>
-        <h1 id="hero-title" className="mt-6 whitespace-pre-line text-[1.6rem] font-black leading-[1.4] [text-wrap:balance] min-[400px]:text-3xl sm:text-5xl">
+        <h1 id="hero-title" className="hero-in mt-6 [--in:600ms] whitespace-pre-line text-[1.6rem] font-black leading-[1.4] [text-wrap:balance] min-[400px]:text-3xl sm:text-5xl">
           {hero.title}
         </h1>
-        <p className="mt-5 max-w-2xl text-base leading-8 text-white/65 sm:text-lg">{hero.lead}</p>
+        <p className="hero-in mt-5 max-w-2xl text-base leading-8 text-white/65 [--in:720ms] sm:text-lg">{hero.lead}</p>
 
-        <div className="mt-9 w-full max-w-2xl">
+        <div className="hero-in mt-9 w-full max-w-2xl [--in:840ms]">
           <LinkStarter placeholder={hero.inputPlaceholder} submit={hero.submit} />
         </div>
-        <div className="mt-4 flex flex-col items-center gap-2 text-sm sm:flex-row sm:gap-3">
+        <div className="hero-in mt-4 flex flex-col items-center gap-2 text-sm [--in:960ms] sm:flex-row sm:gap-3">
           {hero.alt.map((a, i) => {
             const Icon = i === 0 ? Camera : Ship;
             return (
@@ -89,10 +104,8 @@ export function Hero({ countdownTarget }: { countdownTarget: string }) {
           })}
         </div>
 
-        <Countdown target={countdownTarget} className="mt-12" />
-
         {/* Small screens: the tags sit in a row instead of floating around the stage. */}
-        <ul className="mt-10 flex flex-wrap justify-center gap-x-2 gap-y-3 lg:hidden" aria-label="چند فروشگاه" dir="ltr">
+        <ul className="hero-in mt-10 flex flex-wrap justify-center [--in:1080ms] gap-x-2 gap-y-3 lg:hidden" aria-label="چند فروشگاه" dir="ltr">
           {TAGS.map((t, i) => (
             <li key={t.key} style={{ transform: `rotate(${i % 2 ? 3 : -3}deg)` }}>
               <span className={`price-tag inline-block py-2 pl-3.5 pr-8 text-base font-black leading-none ${t.tone === "yellow" ? "bg-brand text-ink" : "bg-[#1b1b1b] text-brand ring-1 ring-inset ring-brand/35"}`}>
@@ -106,6 +119,7 @@ export function Hero({ countdownTarget }: { countdownTarget: string }) {
           <span className="scroll-cue h-8 w-px bg-gradient-to-b from-brand to-transparent" aria-hidden />
         </a>
       </div>
+      </PointerStage>
     </section>
   );
 }

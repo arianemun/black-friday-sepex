@@ -2,6 +2,7 @@ import Link from "next/link";
 import { SepexLogo } from "@/components/brand/logo";
 
 const nav = [
+  { href: "/#sepex", label: "سپکس" },
   { href: "/#deals", label: "پیشنهادها" },
   { href: "/#categories", label: "چی بیاریم؟" },
   { href: "/#how", label: "روش کار" },
