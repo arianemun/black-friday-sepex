@@ -14,9 +14,9 @@ export function PopularStores({ logos }: { logos: Record<string, string> }) {
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="grid gap-10 lg:grid-cols-[1fr_22rem]">
           <div>
-            <p className="text-sm font-semibold text-brand">نمی‌دانید از کجا بخرید؟</p>
+            <p className="text-sm font-semibold text-brand">نمی‌دونی از کجا بخری؟</p>
             <h2 id="stores-title" className="mt-2 text-3xl font-black leading-tight text-white sm:text-[2.6rem]">سایت‌های محبوب برای خرید</h2>
-            <p className="mt-3 max-w-xl leading-8 text-white/55">سر بزنید، کالا را پیدا کنید و لینکش را برای ما بفرستید. تمرکز ویژه‌ی ما روی فروشگاه‌های امارات است.</p>
+            <p className="mt-3 max-w-xl leading-8 text-white/55">یه سر بزن، کالات رو پیدا کن و لینکش رو برامون بفرست. این‌ها فقط چندتاشونه؛ به هیچ فروشگاهی محدود نیستی.</p>
 
             <ul className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
               {list.map((s) => (
@@ -56,7 +56,7 @@ export function PopularStores({ logos }: { logos: Record<string, string> }) {
                 <br />
                 پیدا نکردی؟
               </h3>
-              <p className="mt-3 text-sm leading-7 text-ink/70">عکس، اسکرین‌شات یا فقط اسمش را بفرستید؛ پیدا کردنش با ما.</p>
+              <p className="mt-3 text-sm leading-7 text-ink/70">عکس، اسکرین‌شات یا فقط اسمش رو بفرست؛ پیدا کردنش با ما.</p>
               <Link href="/order?method=photo" className="mt-6 inline-flex h-12 items-center gap-2 bg-ink px-6 text-sm font-black text-brand hover:bg-neutral-800">
                 بفرست، پیداش می‌کنیم
                 <ArrowLeft className="size-4" />
@@ -67,7 +67,7 @@ export function PopularStores({ logos }: { logos: Record<string, string> }) {
               <p className="mt-1 text-5xl font-black text-white">
                 +{toFaDigits(stores.length)}
               </p>
-              <p className="mt-2 text-sm leading-6 text-white/55">و هر سایت خارجی دیگری که لینکش را داشته باشید.</p>
+              <p className="mt-2 text-sm leading-6 text-white/55">و هر سایت خارجی دیگه‌ای که لینکش رو داشته باشی.</p>
             </div>
           </aside>
         </div>

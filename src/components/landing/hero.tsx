@@ -64,7 +64,7 @@ export function Hero({ countdownTarget }: { countdownTarget: string }) {
           <br />
           FRIDAY
         </p>
-        <h1 id="hero-title" className="mt-6 whitespace-pre-line text-3xl font-black leading-[1.35] sm:text-5xl">
+        <h1 id="hero-title" className="mt-6 whitespace-pre-line text-[1.6rem] font-black leading-[1.4] [text-wrap:balance] min-[400px]:text-3xl sm:text-5xl">
           {hero.title}
         </h1>
         <p className="mt-5 max-w-2xl text-base leading-8 text-white/65 sm:text-lg">{hero.lead}</p>
@@ -93,7 +93,7 @@ export function Hero({ countdownTarget }: { countdownTarget: string }) {
           ))}
         </ul>
         <a href="#deals" className="mt-12 hidden flex-col items-center gap-2 text-xs text-white/40 hover:text-white/70 sm:flex">
-          اسکرول کنید
+          بیا پایین
           <span className="scroll-cue h-8 w-px bg-gradient-to-b from-brand to-transparent" aria-hidden />
         </a>
       </div>

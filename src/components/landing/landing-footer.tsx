@@ -68,7 +68,7 @@ export function LandingFooter({ settings }: { settings: Pick<Settings, "support_
                 <ArrowLeft className="mb-3 size-8 sm:size-12" strokeWidth={2.4} aria-hidden />
                 <div className="text-left">
                   <p className="text-xs font-bold text-ink/60">مقصد</p>
-                  <p className="mt-1 text-2xl font-black leading-tight sm:text-4xl">درِ خانه‌ی شما</p>
+                  <p className="mt-1 text-2xl font-black leading-tight sm:text-4xl">درِ خونه‌ی تو</p>
                   <p className="mt-2 flex text-[11px] font-black tracking-wider" dir="ltr">
                     <span className="bg-ink px-1.5 py-0.5 text-brand">IR</span>
                   </p>

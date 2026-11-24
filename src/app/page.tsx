@@ -60,7 +60,7 @@ export default function HomePage() {
             <div className="mx-auto max-w-7xl px-4 text-center sm:px-6">
               <h2 id="deals-title" className="text-3xl font-black leading-tight sm:text-[2.6rem]">پیشنهادهای بلک‌فرایدی</h2>
               <p className="mx-auto mt-3 max-w-2xl leading-8 text-white/55">
-                چند کالای منتخب از فروشگاه‌های خارجی. قیمت‌ها قیمت خود فروشگاه‌اند و ممکن است تغییر کنند؛ قیمت نهایی را کارشناس اعلام می‌کند.
+                چندتا کالای منتخب از فروشگاه‌های خارجی. قیمت‌ها مال خود فروشگاهه و ممکنه عوض بشه؛ قیمت نهایی رو کارشناس بهت می‌گه.
               </p>
               <div className="mt-12">
                 <DealsCoverflow products={products} />

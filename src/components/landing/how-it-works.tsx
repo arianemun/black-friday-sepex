@@ -17,7 +17,7 @@ function Screen({ step }: { step: number }) {
 
       {step === 0 && (
         <div className="screen-in mt-5">
-          <p className="text-sm font-black text-white">لینک کالا را بگذارید</p>
+          <p className="text-sm font-black text-white">لینک کالا رو بذار</p>
           <div className="mt-3 flex items-center gap-2 border border-brand/60 bg-white/5 px-2.5 py-2.5">
             <Link2 className="size-3.5 text-brand" />
             <span dir="ltr" className="truncate text-[10px] text-white/70">https://www.amazon.ae/dp/…</span>
@@ -28,7 +28,7 @@ function Screen({ step }: { step: number }) {
             <div className="flex h-8 items-center justify-center bg-white/5 text-[11px] text-white">{toFaDigits(1)}</div>
           </div>
           <div className="mt-6 flex h-10 items-center justify-center bg-brand text-xs font-black text-ink">ادامه</div>
-          <p className="mt-3 text-center text-[10px] text-white/35">عکس یا اسم کالا هم کافی است</p>
+          <p className="mt-3 text-center text-[10px] text-white/35">عکس یا اسم کالا هم کافیه</p>
         </div>
       )}
 
@@ -40,8 +40,8 @@ function Screen({ step }: { step: number }) {
           <p className="mt-5 text-sm font-black text-white">کارشناس سپکس</p>
           <p className="mt-1 text-[11px] text-white/50">در حال تماس…</p>
           <div className="mt-6 w-full space-y-2 text-right">
-            <div className="bg-white/5 p-2.5 text-[10px] leading-5 text-white/70">سلام؛ درخواست BF-7K3Q9M را بررسی کردیم.</div>
-            <div className="bg-brand/15 p-2.5 text-[10px] leading-5 text-brand">قیمت نهایی و زمان رسیدن را اعلام می‌کنیم.</div>
+            <div className="bg-white/5 p-2.5 text-[10px] leading-5 text-white/70">سلام! درخواست BF-7K3Q9M رو بررسی کردیم.</div>
+            <div className="bg-brand/15 p-2.5 text-[10px] leading-5 text-brand">قیمت نهایی و زمان رسیدنش رو بهت می‌گیم.</div>
           </div>
         </div>
       )}
@@ -110,8 +110,8 @@ export function HowItWorks() {
       <div className="pointer-events-none absolute left-[10%] top-1/2 -z-10 size-[36rem] -translate-y-1/2 bg-[radial-gradient(closest-side,rgb(255_203_5/0.14),transparent)]" aria-hidden />
       <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-[1fr_auto]">
         <div>
-          <p className="text-sm font-semibold text-brand">برای بلک‌فرایدی آماده شوید</p>
-          <h2 id="how-title" className="mt-2 text-3xl font-black leading-tight text-white sm:text-[2.6rem]">چطور سفارش بدهم؟</h2>
+          <p className="text-sm font-semibold text-brand">برای بلک‌فرایدی آماده شو</p>
+          <h2 id="how-title" className="mt-2 text-3xl font-black leading-tight text-white sm:text-[2.6rem]">چطوری سفارش بدم؟</h2>
           <ol className="mt-8 space-y-2.5">
             {steps.map((s, i) => {
               const open = i === active;

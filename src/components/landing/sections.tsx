@@ -46,7 +46,7 @@ export function Paths() {
         <SectionHead
           id="paths-title"
           title="از کجا شروع کنیم؟"
-          lead="هر چیزی از کالا دارید، همان کافی است. یکی از این سه مسیر را انتخاب کنید."
+          lead="از کالات هر چی داری، همون کافیه. یکی از این سه راه رو انتخاب کن."
         />
         <div className="mt-12 grid gap-4 lg:grid-cols-3">
           {paths.map((p, i) => {
@@ -147,7 +147,7 @@ export function Faq() {
           <SectionHead
             id="faq-title"
             title="سؤالات متداول"
-            lead="جواب سؤال‌تان اینجا نبود؟ درخواست را ثبت کنید؛ کارشناس ما تماس می‌گیرد."
+            lead="جواب سؤالت اینجا نبود؟ درخواستت رو ثبت کن؛ کارشناس‌مون باهات تماس می‌گیره."
           />
           <FaqChat />
         </div>

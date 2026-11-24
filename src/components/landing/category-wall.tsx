@@ -80,7 +80,7 @@ export function CategoryWall() {
             <br />
             از هر جای دنیا
           </h2>
-          <p className="mt-4 text-sm leading-7 text-white/60 sm:text-base">از یک قاب گوشی تا سفارش عمده‌ی کارخانه؛ اگر در فروشگاهی خارجی هست، می‌توانیم برایتان بیاوریم.</p>
+          <p className="mt-4 text-sm leading-7 text-white/60 sm:text-base">از یه قاب گوشی تا سفارش عمده‌ی کارخونه؛ اگه توی یه فروشگاه خارجی هست، برات میاریمش.</p>
         </div>
       </div>
     </section>
