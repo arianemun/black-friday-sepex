@@ -62,6 +62,14 @@ describe("shifts and the 1-hour alert", () => {
     expect(tehranDay(Date.parse("2026-11-24T20:31:00Z"))).toBe("2026-11-25");
   });
 
+  it("finds the Saturday that starts the week", async () => {
+    const { weekStart } = await import("@/lib/shifts");
+    expect(weekStart("2026-11-24")).toBe("2026-11-21"); // Tuesday -> Saturday
+    expect(weekStart("2026-11-21")).toBe("2026-11-21");
+    expect(weekStart("2026-11-27")).toBe("2026-11-21"); // Friday
+    expect(weekStart("2026-11-24", 1)).toBe("2026-11-28");
+  });
+
   it("no plan means everyone; a plan narrows it", async () => {
     const { onShiftIds, setShift, tehranDay } = await import("@/lib/shifts");
     expect(onShiftIds()).toBeNull();

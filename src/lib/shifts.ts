@@ -24,6 +24,13 @@ export function dayRange(from: string, count: number): string[] {
   return Array.from({ length: count }, (_, i) => new Date(base + i * 86_400_000).toISOString().slice(0, 10));
 }
 
+/** Saturday (start of the Iranian week) of the week containing `day`, shifted by `weeks`. */
+export function weekStart(day: string, weeks = 0): string {
+  const t = Date.parse(`${day}T00:00:00Z`);
+  const sinceSaturday = (new Date(t).getUTCDay() + 1) % 7;
+  return new Date(t - sinceSaturday * 86_400_000 + weeks * 7 * 86_400_000).toISOString().slice(0, 10);
+}
+
 export const isDay = (s: unknown): s is string => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s);
 
 /** Staff ids on shift that day, or null when the day has no plan. */
@@ -45,6 +52,15 @@ export function setShift(day: string, staffId: number, on: boolean, by: number) 
   const db = getDb();
   if (on) db.prepare("INSERT OR IGNORE INTO shifts(day, staff_id, created_by) VALUES(?, ?, ?)").run(day, staffId, by);
   else db.prepare("DELETE FROM shifts WHERE day = ? AND staff_id = ?").run(day, staffId);
+}
+
+/** Copies a week's plan onto the following week, day by day; past days are left alone. */
+export function copyWeekForward(start: string, by: number, today = tehranDay()) {
+  const src = dayRange(start, 7);
+  const dst = dayRange(weekStart(start, 1), 7);
+  src.forEach((d, i) => {
+    if (dst[i] >= today) copyShiftDay(d, [dst[i]], by);
+  });
 }
 
 /** Copies one day's plan onto other days (replacing what they had). */

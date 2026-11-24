@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDb, nowIso } from "@/lib/db";
 import { hashPassword, login, logout, requireAdmin, requireShiftManager, requireStaff } from "@/lib/auth";
-import { copyShiftDay, isDay, setShift, tehranDay } from "@/lib/shifts";
+import { copyWeekForward, isDay, setShift, tehranDay } from "@/lib/shifts";
 import { parseRole } from "@/lib/roles";
 import { categories, countries, detectStore, extractUrl, statuses } from "@/lib/catalog";
 import { fetchLinkMeta } from "@/lib/link-meta";
@@ -261,12 +261,11 @@ export async function toggleShiftAction(day: string, staffId: number, on: boolea
   return { ok: true };
 }
 
-/** Repeats the previous day's plan on `day`. */
-export async function copyPreviousShiftAction(day: string): Promise<ActionState> {
+/** Repeats a whole week's plan on the next week. */
+export async function copyShiftWeekAction(start: string): Promise<ActionState> {
   const me = await requireShiftManager();
-  if (!editableDay(day)) return { error: "روزهای گذشته قابل تغییر نیستند." };
-  const prev = new Date(Date.parse(`${day}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
-  copyShiftDay(prev, [day], me.id);
+  if (!isDay(start)) return { error: "هفته معتبر نیست." };
+  copyWeekForward(start, me.id);
   revalidatePath("/admin/shifts");
   return { ok: true };
 }
