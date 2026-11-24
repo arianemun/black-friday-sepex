@@ -301,7 +301,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
           quantity: Number(toEnDigits(it.quantity)) || 1,
           originCountry: method === "shipping" ? it.originCountry : "",
           weight: method === "shipping" ? it.weight : "",
-          uploads: it.files.map((f) => f.id),
+          uploads: method === "link" ? [] : it.files.map((f) => f.id),
         })),
         firstName: contact.firstName,
         lastName: contact.lastName,
@@ -648,10 +648,11 @@ function useLinkPreview(item: Item, onChange: (p: Partial<Item>) => void): Previ
   return item.preview ? "ready" : "empty";
 }
 
-function LinkField({ item, error, state, onChange }: { item: Item; error?: string; state: PreviewState; onChange: (p: Partial<Item>) => void }) {
+function LinkField({ item, error, onChange }: { item: Item; error?: string; onChange: (p: Partial<Item>) => void }) {
   const k = item.key;
   const url = extractUrl(item.url);
   const store = url ? detectStore(url) : undefined;
+  const state = useLinkPreview(item, onChange);
   const [canPaste, setCanPaste] = useState(false);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- feature detection after mount
@@ -746,9 +747,6 @@ function ItemCard({
   onRemove: () => void;
 }) {
   const k = item.key;
-  const preview = useLinkPreview(item, onChange);
-  // When the store page couldn't be read in full, a screenshot gives the expert the price and photo.
-  const wantsShot = method === "link" && (preview === "empty" || (preview === "ready" && !!item.preview && (!item.preview.image || !item.preview.price)));
   return (
     <Frame as="fieldset">
       <legend className="sr-only">کالای {toFaDigits(index + 1)}</legend>
@@ -766,20 +764,7 @@ function ItemCard({
       <div className="grid gap-5 sm:grid-cols-[1fr_8rem]">
         {method === "link" && (
           <div className="sm:col-span-2">
-            <LinkField item={item} error={errors[`url-${k}`]} state={preview} onChange={onChange} />
-          </div>
-        )}
-
-        {method === "link" && (wantsShot || item.files.length > 0) && (
-          <div className="sm:col-span-2">
-            <FilePicker
-              label="اسکرین‌شات صفحه‌ی کالا (اختیاری)"
-              hint="اگه عکس و قیمت بالا نیومد، یه اسکرین‌شات از صفحه‌ی کالا بذار تا کارشناس سریع‌تر قیمت بده."
-              value={item.files}
-              onChange={(files) => onChange({ files })}
-              draftToken={draftToken}
-              max={3}
-            />
+            <LinkField item={item} error={errors[`url-${k}`]} onChange={onChange} />
           </div>
         )}
 
