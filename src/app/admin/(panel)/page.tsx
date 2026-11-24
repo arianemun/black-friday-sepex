@@ -52,7 +52,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       />
 
       <div className="flex flex-col gap-5">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           <KpiCard
             label="درخواست‌ها"
             value={fa(d.total)}
@@ -71,7 +71,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             label="جدید، بدون کارشناس"
             value={fa(d.unassigned)}
             hintTone={d.unassigned > 0 ? "bad" : "good"}
-            hint={d.unassigned > 0 ? <Link href="/admin/requests?view=unassigned&status=new" className="underline underline-offset-4">منتظر تماس؛ مشاهده</Link> : "همه برداشته شده‌اند"}
+            hint={d.unassigned > 0 ? <Link href="/admin/requests?view=unassigned&status=new" className="inline-flex items-center gap-1 rounded-md bg-[#FEE2E2] px-2 py-0.5 hover:bg-[#FECACA]">منتظر تماس؛ مشاهده</Link> : "همه برداشته شده‌اند"}
           />
           <KpiCard label="پیگیری‌شده" value={fa(contacted)} hint={`${pct(contacted, d.total)} از درخواست‌ها`} />
           <KpiCard label="سفارش قطعی" value={fa(ordered)} hintTone={ordered ? "good" : "muted"} hint={`نرخ تبدیل ${pct(ordered, d.total)}`} />
@@ -181,7 +181,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </Panel>
         </div>
 
-        <Panel title="آخرین درخواست‌ها" action={<Link href="/admin/requests" className="text-sm font-semibold text-[#2563EB] hover:underline">همه‌ی درخواست‌ها</Link>} className="p-0 pt-5 [&>div:first-child]:px-5">
+        <Panel title="آخرین درخواست‌ها" action={<Link href="/admin/requests" className="text-sm font-semibold text-[#2563EB] hover:text-[#1D4ED8]">همه‌ی درخواست‌ها</Link>} className="p-0 pt-5 [&>div:first-child]:px-5">
           {recent.length === 0 ? (
             <EmptyState icon={<Inbox />} title="هنوز درخواستی ثبت نشده" hint="درخواست‌های لندینگ اینجا نمایش داده می‌شوند." />
           ) : (

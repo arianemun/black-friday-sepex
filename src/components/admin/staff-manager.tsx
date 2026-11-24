@@ -45,7 +45,7 @@ export function StaffManager({ rows, meId }: { rows: StaffRow[]; meId: number })
   const [editing, setEditing] = useState<StaffRow | null>(null);
   const [formKey, setFormKey] = useState(0);
   return (
-    <div className="grid items-start gap-4 lg:grid-cols-[20rem_1fr]">
+    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[20rem_minmax(0,1fr)] [&>*]:min-w-0">
       <section className="flex flex-col gap-4 rounded-xl border border-[#E4E4E7] bg-white p-5">
         <div className="flex items-center justify-between">
           <h2 className="m-0 text-[15px] font-bold">{editing ? `ویرایش ${editing.name}` : "کارشناس جدید"}</h2>

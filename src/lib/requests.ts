@@ -6,6 +6,7 @@ import { generateTrackingCode } from "./tracking";
 import { deleteUpload, hashDraftToken } from "./uploads";
 import { pruneRateLimits } from "./rate-limit";
 import { cachedLinkMeta } from "./link-meta";
+import { logEvent } from "./events";
 import { getSettings } from "./settings";
 import { sendCustomerConfirmationSms, sendExpertNotificationSms } from "./sms";
 
@@ -148,14 +149,14 @@ export function createRequest(
 export class UploadOwnershipError extends Error {}
 
 /** Picks who gets notified (and, in round-robin mode, assigned). */
-function pickExperts(requestId: number): { id: number; phone: string }[] {
+function pickExperts(requestId: number): { id: number; phone: string; name: string }[] {
   const db = getDb();
   const experts = db
     .prepare(
-      `SELECT id, phone FROM staff WHERE active = 1 AND notify_sms = 1 AND phone IS NOT NULL AND phone != ''
+      `SELECT id, phone, name FROM staff WHERE active = 1 AND notify_sms = 1 AND phone IS NOT NULL AND phone != ''
        ORDER BY COALESCE(last_notified_at, '') ASC, id ASC`
     )
-    .all() as { id: number; phone: string }[];
+    .all() as { id: number; phone: string; name: string }[];
   if (!experts.length) return [];
   const settings = getSettings();
   const chosen = settings.notify_mode === "round_robin" ? [experts[0]] : experts;
@@ -164,9 +165,10 @@ function pickExperts(requestId: number): { id: number; phone: string }[] {
     for (const e of chosen) db.prepare("UPDATE staff SET last_notified_at = ? WHERE id = ?").run(now, e.id);
     if (settings.notify_mode === "round_robin") {
       db.prepare("UPDATE requests SET assigned_to = ? WHERE id = ? AND assigned_to IS NULL").run(chosen[0].id, requestId);
-      db.prepare("INSERT INTO request_events(request_id, staff_id, type, body) VALUES(?, ?, 'assigned', 'تخصیص خودکار')").run(
+      db.prepare("INSERT INTO request_events(request_id, staff_id, type, body, meta) VALUES(?, NULL, 'assigned', ?, ?)").run(
         requestId,
-        chosen[0].id
+        chosen[0].name,
+        JSON.stringify({ auto: true })
       );
     }
   })();
@@ -182,16 +184,25 @@ export async function afterRequestCreated(requestId: number) {
   if (!req) return;
 
   const tasks: Promise<unknown>[] = [];
-  tasks.push(sendCustomerConfirmationSms(req.phone, req.first_name, req.tracking_code));
+  tasks.push(
+    sendCustomerConfirmationSms(req.phone, req.first_name, req.tracking_code).then((r) =>
+      logEvent(requestId, "sms", { body: "customer", meta: { ok: r.ok, dryRun: "dryRun" in r } })
+    )
+  );
   try {
     for (const e of pickExperts(requestId)) {
-      tasks.push(sendExpertNotificationSms(e.phone, req.tracking_code, `${req.first_name} ${req.last_name}`, methods[req.method].short));
+      tasks.push(
+        sendExpertNotificationSms(e.phone, req.tracking_code, `${req.first_name} ${req.last_name}`, methods[req.method].short).then((r) =>
+          logEvent(requestId, "sms", { body: "expert", meta: { ok: r.ok, dryRun: "dryRun" in r, to: e.name } })
+        )
+      );
     }
   } catch (e) {
     console.error("[notify] pick experts failed:", (e as Error).message);
   }
   await Promise.allSettled(tasks);
-  await enrichRequestLinks(requestId);
+  const links = await enrichRequestLinks(requestId);
+  if (links.total) logEvent(requestId, "link_meta", { meta: links });
   await housekeeping();
 }
 
@@ -209,13 +220,15 @@ async function housekeeping() {
   }
 }
 
-export async function enrichRequestLinks(requestId: number) {
+export async function enrichRequestLinks(requestId: number): Promise<{ total: number; ok: number }> {
   const db = getDb();
   const items = db
     .prepare("SELECT id, url FROM request_items WHERE request_id = ? AND url IS NOT NULL AND meta_status IN ('pending','failed')")
     .all(requestId) as { id: number; url: string }[];
+  let ok = 0;
   for (const it of items) {
     const meta = await cachedLinkMeta(it.url);
+    if (meta && !meta.guessed) ok++;
     db.prepare(
       `UPDATE request_items SET meta_status = ?, meta_title = ?, meta_image = ?, meta_price = ?, meta_currency = ?, meta_site = ?, meta_fetched_at = ?
        WHERE id = ?`
@@ -230,4 +243,5 @@ export async function enrichRequestLinks(requestId: number) {
       it.id
     );
   }
+  return { total: items.length, ok };
 }

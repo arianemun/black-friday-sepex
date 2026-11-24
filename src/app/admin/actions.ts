@@ -13,6 +13,7 @@ import { getClientIp } from "@/lib/request-info";
 import { defaultSettings, saveSettings, type Settings } from "@/lib/settings";
 import { deleteUpload, storeRemoteImage, storeUpload } from "@/lib/uploads";
 import { enrichRequestLinks } from "@/lib/requests";
+import { logEvent } from "@/lib/events";
 import { toEnDigits } from "@/lib/utils";
 
 export type ActionState = { ok?: boolean; error?: string; message?: string; data?: Record<string, string | null> } | null;
@@ -36,17 +37,14 @@ export async function logoutAction() {
 
 /* ---------------------------------------------------------------- requests */
 
-function addEvent(requestId: number, staffId: number, type: string, body: string | null) {
-  getDb().prepare("INSERT INTO request_events(request_id, staff_id, type, body) VALUES(?, ?, ?, ?)").run(requestId, staffId, type, body);
-}
-
 export async function setStatusAction(requestId: number, status: string) {
   const me = await requireStaff();
   if (!statuses.some((s) => s.key === status)) return;
   const db = getDb();
+  const prev = db.prepare("SELECT status FROM requests WHERE id = ?").get(requestId) as { status: string } | undefined;
   const changed = db.prepare("UPDATE requests SET status = ?, updated_at = ? WHERE id = ? AND status != ?").run(status, nowIso(), requestId, status).changes;
   if (changed) {
-    addEvent(requestId, me.id, "status", status);
+    logEvent(requestId, "status", { staffId: me.id, body: status, meta: { from: prev?.status ?? null } });
     // Taking a request out of "new" claims it for whoever did it, if nobody had it.
     db.prepare("UPDATE requests SET assigned_to = ? WHERE id = ? AND assigned_to IS NULL").run(me.id, requestId);
   }
@@ -58,9 +56,10 @@ export async function assignAction(requestId: number, staffId: number | null) {
   const me = await requireStaff();
   const db = getDb();
   if (staffId !== null && !db.prepare("SELECT 1 FROM staff WHERE id = ? AND active = 1").get(staffId)) return;
+  const prev = db.prepare("SELECT s.name FROM requests r LEFT JOIN staff s ON s.id = r.assigned_to WHERE r.id = ?").get(requestId) as { name: string | null } | undefined;
   db.prepare("UPDATE requests SET assigned_to = ?, updated_at = ? WHERE id = ?").run(staffId, nowIso(), requestId);
-  const name = staffId ? (db.prepare("SELECT name FROM staff WHERE id = ?").get(staffId) as { name: string }).name : "بدون کارشناس";
-  addEvent(requestId, me.id, "assigned", staffId === me.id ? "برداشتن درخواست" : name);
+  const name = staffId ? (db.prepare("SELECT name FROM staff WHERE id = ?").get(staffId) as { name: string }).name : null;
+  logEvent(requestId, "assigned", { staffId: me.id, body: name, meta: { from: prev?.name ?? null, self: staffId === me.id } });
   revalidatePath(`/admin/requests/${requestId}`);
   revalidatePath("/admin");
 }
@@ -69,16 +68,25 @@ export async function addNoteAction(requestId: number, _: ActionState, fd: FormD
   const me = await requireStaff();
   const body = str(fd, "body", 2000);
   if (body.length < 2) return { error: "یادداشت خالی است." };
-  addEvent(requestId, me.id, "note", body);
+  logEvent(requestId, "note", { staffId: me.id, body });
   getDb().prepare("UPDATE requests SET updated_at = ? WHERE id = ?").run(nowIso(), requestId);
   revalidatePath(`/admin/requests/${requestId}`);
   return { ok: true };
 }
 
 export async function refetchLinksAction(requestId: number) {
-  await requireStaff();
+  const me = await requireStaff();
   getDb().prepare("UPDATE request_items SET meta_status = 'pending' WHERE request_id = ? AND url IS NOT NULL").run(requestId);
-  await enrichRequestLinks(requestId);
+  const r = await enrichRequestLinks(requestId);
+  logEvent(requestId, "refetch", { staffId: me.id, meta: r });
+  revalidatePath(`/admin/requests/${requestId}`);
+}
+
+/** Logged when a staff member taps call / WhatsApp / Telegram on a request. */
+export async function logContactAction(requestId: number, channel: "call" | "whatsapp" | "telegram") {
+  const me = await requireStaff();
+  if (!["call", "whatsapp", "telegram"].includes(channel)) return;
+  logEvent(requestId, "contact", { staffId: me.id, body: channel });
   revalidatePath(`/admin/requests/${requestId}`);
 }
 

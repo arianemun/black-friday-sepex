@@ -28,7 +28,7 @@ export default async function SettingsPage() {
     sharp: !!(await loadSharp()),
   };
   return (
-    <div className="grid items-start gap-4 lg:grid-cols-[1fr_20rem]">
+    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] [&>*]:min-w-0">
       <div>
       <PageHeader title="تنظیمات و سامانه" description="زمان کمپین، روش اعلان به کارشناس‌ها و راه‌های ارتباطی فوتر" />
       <SettingsForm settings={{ ...s, countdown_target: toTehranLocal(s.countdown_target), campaign_end: toTehranLocal(s.campaign_end) }} />

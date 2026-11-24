@@ -138,6 +138,9 @@ const migrations: string[] = [
     value TEXT NOT NULL
   );
   `,
+  /* 2: structured detail for the per-request activity log */ `
+  ALTER TABLE request_events ADD COLUMN meta TEXT;
+  `,
 ];
 
 function migrate(db: DB) {

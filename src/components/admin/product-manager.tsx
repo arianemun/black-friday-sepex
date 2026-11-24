@@ -74,7 +74,7 @@ export function ProductManager({ products }: { products: P[] }) {
   const set = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   return (
-    <div className="grid items-start gap-4 lg:grid-cols-[22rem_1fr]">
+    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[22rem_minmax(0,1fr)] [&>*]:min-w-0">
       <section className="flex flex-col gap-4 rounded-xl border border-[#E4E4E7] bg-white p-5 lg:sticky lg:top-24">
         <h2 className="m-0 text-[15px] font-bold">{form.id ? "ویرایش کالا" : "افزودن کالا"}</h2>
 
@@ -155,13 +155,13 @@ export function ProductManager({ products }: { products: P[] }) {
                 <AdminTh className="hidden sm:table-cell">فروشگاه</AdminTh>
                 <AdminTh className="hidden sm:table-cell" numeric>تخفیف</AdminTh>
                 <AdminTh>فعال</AdminTh>
-                <AdminTh className="w-20" />
+                <AdminTh className="w-16 sm:w-20" />
               </tr>
             </AdminTHead>
             <tbody>
               {products.map((p) => (
                 <AdminTr key={p.id}>
-                  <AdminTd>
+                  <AdminTd className="max-sm:max-w-[11rem]">
                     <div className="flex items-center gap-3">
                       <div className="size-11 shrink-0 overflow-hidden rounded-lg border border-[#E4E4E7] bg-white">
                         {p.image && (
@@ -170,7 +170,7 @@ export function ProductManager({ products }: { products: P[] }) {
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p dir="auto" className="max-w-[18rem] truncate font-semibold">{p.title}</p>
+                        <p dir="auto" className="line-clamp-2 max-w-[18rem] font-semibold sm:truncate">{p.title}</p>
                         <p className="text-xs text-[#71717A]">
                           {categoryName(p.category)}
                           {p.source === "sample" && <Badge variant="warning" className="mr-1.5">نمونه</Badge>}
@@ -192,7 +192,7 @@ export function ProductManager({ products }: { products: P[] }) {
                     />
                   </AdminTd>
                   <AdminTd>
-                    <div className="flex justify-end gap-1">
+                    <div className="flex justify-end gap-0.5 sm:gap-1">
                       <IconButton aria-label="ویرایش" tooltip="ویرایش" onClick={() => { setForm(fromRow(p)); setPreview(p.image); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
                         <Pencil />
                       </IconButton>
