@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { detectStore, extractUrl } from "@/lib/catalog";
 import { normalizeIranMobile } from "@/lib/phone";
 import { generateTrackingCode, normalizeTrackingCode } from "@/lib/tracking";
-import { isGenericPage, parseLinkMeta } from "@/lib/link-meta";
+import { isGenericPage, parseLinkMeta, titleFromUrl } from "@/lib/link-meta";
 import { toEnDigits } from "@/lib/utils";
 
 describe("catalog", () => {
@@ -72,5 +72,17 @@ describe("fetchProxies", () => {
     delete process.env.FETCH_PROXY_URLS;
     delete process.env.FETCH_PROXY_URL;
     expect(fetchProxies()).toEqual([]);
+  });
+});
+
+describe("titleFromUrl", () => {
+  it("reads product slugs", () => {
+    expect(titleFromUrl("https://www.amazon.ae/Apple-AirPods-Pro-2nd-generation/dp/B0CHWRXH8B?th=1")).toBe("Apple AirPods Pro 2nd Generation");
+    expect(titleFromUrl("https://www.trendyol.com/apple/iphone-15-128-gb-siyah-p-760258890")).toBe("Iphone 15 128 Gb Siyah");
+    expect(titleFromUrl("https://www.ebay.com/itm/Sony-WH-1000XM5-Wireless-Headphones/123456789012")).toBe("Sony WH 1000XM5 Wireless Headphones");
+  });
+  it("returns null for id-only URLs", () => {
+    expect(titleFromUrl("https://www.amazon.ae/dp/B0CHWRXH8B")).toBeNull();
+    expect(titleFromUrl("https://www.ebay.com/itm/123456789012")).toBeNull();
   });
 });

@@ -15,6 +15,8 @@ export type LinkMeta = {
   currency: string | null;
   site: string | null;
   finalUrl: string | null;
+  /** Title read from the URL slug because the page itself couldn't be fetched. */
+  guessed?: boolean;
 };
 
 const clean = (s: unknown, max = 300) => {
@@ -92,16 +94,32 @@ export function parseLinkMeta(html: string, baseUrl: string): LinkMeta {
     }
   });
 
-  title ??= meta('meta[property="og:title"]') ?? meta('meta[name="twitter:title"]') ?? clean($("title").first().text());
+  title ??=
+    meta('meta[property="og:title"]') ??
+    meta('meta[name="twitter:title"]') ??
+    clean($("#productTitle").first().text()) ??
+    clean($("h1").first().text(), 200) ??
+    clean($("title").first().text());
   image ??=
     meta('meta[property="og:image:secure_url"]') ??
     meta('meta[property="og:image"]') ??
     meta('meta[name="twitter:image"]') ??
-    clean($("#landingImage").attr("data-old-hires") || $("#landingImage").attr("src"), 1000);
+    clean($("#landingImage").attr("data-old-hires") || $("#landingImage").attr("src"), 1000) ??
+    clean($("#imgTagWrapperId img, #main-image, #imgBlkFront").first().attr("src"), 1000);
   price ??=
     meta('meta[property="product:price:amount"]') ??
     meta('meta[property="og:price:amount"]') ??
     meta('meta[itemprop="price"]');
+  if (!price) {
+    // Amazon-style visible price: "AED 749.00", "$1,299.99", "749,00 €".
+    const text = clean($("#corePrice_feature_div .a-offscreen, #corePriceDisplay_desktop_feature_div .a-offscreen, #apex_desktop .a-offscreen, .a-price .a-offscreen").first().text(), 40);
+    const m = text?.match(/^([A-Z]{3}|[$€£])?\s*([\d.,]+)\s*([A-Z]{3}|[$€£])?$/);
+    if (m) {
+      price = m[2];
+      const sym = m[1] ?? m[3];
+      currency ??= sym ? ({ $: "USD", "€": "EUR", "£": "GBP" } as Record<string, string>)[sym] ?? sym : null;
+    }
+  }
   currency ??=
     meta('meta[property="product:price:currency"]') ??
     meta('meta[property="og:price:currency"]') ??
@@ -149,7 +167,7 @@ async function readMeta(url: string, proxy: FetchProxy | null, signal: AbortSign
   if (!/html|xml/i.test(res.contentType)) throw new NoProduct("not_html");
   const meta = parseLinkMeta(res.body.toString("utf8"), res.url);
   // Bot-wall pages ("Robot Check", captcha) produce a title but no product data.
-  if (meta.title && /robot check|captcha|access denied|verify you are human|slide to verify/i.test(meta.title) && !meta.price) {
+  if (meta.title && /robot check|robot or human|are you a human|captcha|access denied|verify you are human|slide to verify|pardon our interruption|just a moment/i.test(meta.title) && !meta.price) {
     throw new NoProduct("bot_wall");
   }
   if (isGenericPage(meta, res.url)) throw new NoProduct("generic_page");
@@ -209,6 +227,41 @@ function raceProxies(url: string, host: string): Promise<{ meta: LinkMeta; via: 
   });
 }
 
+/**
+ * Last resort when every proxy is blocked: many store URLs carry the product name as a slug
+ * (amazon.ae/Apple-AirPods-Pro/dp/…, trendyol.com/apple/iphone-15-p-123). Title only.
+ */
+export function titleFromUrl(raw: string): string | null {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return null;
+  }
+  const segs = u.pathname.split("/").map((x) => {
+    try {
+      return decodeURIComponent(x);
+    } catch {
+      return x;
+    }
+  });
+  const dp = segs.findIndex((x) => x === "dp" || x === "gp");
+  const candidates = dp > 0 ? [segs[dp - 1]] : segs;
+  let best: string | null = null;
+  for (const c of candidates) {
+    const cleaned = c
+      .replace(/\.(html?|aspx?|php)$/i, "")
+      .replace(/-p-\d+.*$/i, "")
+      .replace(/(^|[-_])(\d{5,}|[A-Z0-9]{10})$/g, "")
+      .replace(/[-_+]+/g, " ")
+      .trim();
+    const words = cleaned.split(/\s+/).filter((w) => /\p{L}/u.test(w));
+    if (words.length >= 2 && cleaned.length >= 8 && (!best || cleaned.length > best.length)) best = cleaned;
+  }
+  if (!best) return null;
+  return best.replace(/\b\p{Ll}/gu, (ch) => ch.toUpperCase()).slice(0, 160);
+}
+
 export async function fetchLinkMeta(url: string): Promise<LinkMeta | null> {
   let host = "";
   try {
@@ -223,8 +276,9 @@ export async function fetchLinkMeta(url: string): Promise<LinkMeta | null> {
     console.info(`[link-meta] ${host} ok via ${via} in ${Date.now() - t0}ms`);
     return meta;
   } catch (e) {
-    console.warn(`[link-meta] ${host} failed in ${Date.now() - t0}ms: ${(e as Error).message}`);
-    return null;
+    const guess = titleFromUrl(url);
+    console.warn(`[link-meta] ${host} failed in ${Date.now() - t0}ms${guess ? " (title from URL)" : ""}: ${(e as Error).message}`);
+    return guess ? { title: guess, image: null, price: null, currency: null, site: null, finalUrl: url, guessed: true } : null;
   }
 }
 
@@ -237,7 +291,7 @@ const inflight = new Map<string, Promise<LinkMeta | null>>();
 
 export async function cachedLinkMeta(url: string): Promise<LinkMeta | null> {
   const hit = cache.get(url);
-  if (hit && Date.now() - hit.at < (hit.meta ? OK_TTL : FAIL_TTL)) return hit.meta;
+  if (hit && Date.now() - hit.at < (hit.meta && !hit.meta.guessed ? OK_TTL : FAIL_TTL)) return hit.meta;
   const running = inflight.get(url);
   if (running) return running;
   const p = fetchLinkMeta(url)

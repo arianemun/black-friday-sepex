@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   const store = detectStore(url);
   return jsonOk({
     preview: meta
-      ? { title: meta.title, image: meta.image, price: meta.price, currency: meta.currency, site: store?.brand ?? store?.latin ?? meta.site }
+      ? { title: meta.title, image: meta.image, price: meta.price, currency: meta.currency, site: store?.brand ?? store?.latin ?? meta.site, guessed: !!meta.guessed }
       : null,
   });
 }

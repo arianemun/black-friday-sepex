@@ -40,7 +40,7 @@ export const btn = {
     "chamfer-sm inline-flex h-12 items-center justify-center gap-2 bg-white/[0.08] px-5 text-sm font-bold text-white transition-colors hover:bg-white/[0.14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand disabled:opacity-50",
 };
 
-export type ProductPreview = { title: string | null; image: string | null; price: string | null; currency?: string | null; site?: string | null };
+export type ProductPreview = { title: string | null; image: string | null; price: string | null; currency?: string | null; site?: string | null; guessed?: boolean };
 
 /** Product card read from the store page: image, title, store and price. */
 export function ProductPreviewCard({ preview, quantity, note, compact }: { preview: ProductPreview; quantity?: number | string; note?: string | null; compact?: boolean }) {
@@ -71,6 +71,7 @@ export function ProductPreviewCard({ preview, quantity, note, compact }: { previ
           </p>
         )}
         {note && <p className="mt-0.5 truncate text-xs text-white/55">{note}</p>}
+        {preview.guessed && <p className="mt-0.5 text-xs text-white/45">اسم از روی لینک؛ عکس و قیمت رو کارشناس بررسی می‌کنه.</p>}
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
           {preview.site && <span className="bg-white/10 px-1.5 py-0.5 font-bold text-white/80" dir="ltr">{preview.site}</span>}
           {price && (
