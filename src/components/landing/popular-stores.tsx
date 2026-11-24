@@ -19,8 +19,8 @@ export function PopularStores({ logos }: { logos: Record<string, string> }) {
             <p className="mt-3 max-w-xl leading-8 text-white/55">یه سر بزن، کالات رو پیدا کن و لینکش رو برامون بفرست. این‌ها فقط چندتاشونه؛ به هیچ فروشگاهی محدود نیستی.</p>
 
             <ul className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-              {list.map((s) => (
-                <li key={s.key}>
+              {list.map((s, i) => (
+                <li key={s.key} className="rv" style={{ "--i": Math.min(i, 8) } as React.CSSProperties}>
                   <a
                     href={s.url}
                     target="_blank"

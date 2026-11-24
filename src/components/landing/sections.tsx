@@ -19,7 +19,7 @@ function SectionHead({
   lead?: string;
 }) {
   return (
-    <div className="max-w-2xl">
+    <div className="rv max-w-2xl">
       <SepexMark className="mb-4 h-3.5 text-brand" />
       <h2
         id={id}
@@ -58,7 +58,8 @@ export function Paths() {
               <Link
                 key={p.method}
                 href={`/order?method=${p.method}`}
-                className={`chamfer group relative flex p-px transition-all duration-300 hover:-translate-y-1 focus-visible:outline-none ${
+                style={{ "--i": i + 1 } as React.CSSProperties}
+                className={`rv chamfer group relative flex p-px transition-all duration-300 hover:-translate-y-1 focus-visible:outline-none ${
                   primary
                     ? "bg-brand shadow-[0_30px_80px_-30px_rgb(255_203_5/0.6)]"
                     : "bg-white/12 hover:bg-brand/70 focus-visible:bg-brand"
@@ -158,7 +159,7 @@ export function Faq() {
             <AccordionItem
               key={f.q}
               value={`q${i}`}
-              className="border-white/10 last:border-b-0"
+              style={{ "--i": i } as React.CSSProperties} className="rv border-white/10 last:border-b-0"
             >
               <AccordionTrigger className="text-white">{f.q}</AccordionTrigger>
               <AccordionContent className="text-white/60">

@@ -52,7 +52,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fa" dir="rtl" className={peyda.variable} suppressHydrationWarning>
-      <body className="min-h-dvh font-sans">
+      <body className="min-h-dvh bg-black font-sans">
         {children}
         <Toaster />
         <GoogleTagManager />

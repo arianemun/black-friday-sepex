@@ -23,7 +23,7 @@ export function RouteOrbit({ countdownTarget }: { countdownTarget: string }) {
   return (
     <section className="relative isolate overflow-hidden bg-black py-20 sm:py-28" aria-labelledby="orbit-title">
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-[1fr_1.1fr]">
-        <div>
+        <div className="rv">
           <span className="inline-flex items-center gap-2 text-xs font-semibold text-brand"><SepexMark className="h-3" /> بلک‌فرایدی سپکس</span>
           <h2 id="orbit-title" className="mt-5 text-3xl font-black leading-tight text-white sm:text-5xl">
             از هر جای دنیا،
@@ -38,7 +38,7 @@ export function RouteOrbit({ countdownTarget }: { countdownTarget: string }) {
           </Link>
         </div>
 
-        <div className="relative mx-auto aspect-square w-full max-w-[34rem]" aria-hidden>
+        <div className="rv relative mx-auto aspect-square w-full max-w-[34rem] [--i:2]" aria-hidden>
           {/* radar sweep */}
           <div className="orbit-sweep absolute inset-[9%] rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,transparent_300deg,rgb(255_203_5/0.09)_355deg,transparent_360deg)]" />
           <div className="absolute inset-0 bg-[radial-gradient(closest-side,rgb(255_203_5/0.16),transparent_50%)]" />

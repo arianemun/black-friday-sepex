@@ -332,6 +332,11 @@
   background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2284%22%20height%3D%2256%22%20viewBox%3D%220%200%2084%2056%22%3E%3Cg%20transform%3D%22translate%2814%2017%29%20scale%280.152%29%20translate%28-124%200%29%22%3E%3Cpath%20fill%3D%22%23FFCB05%22%20fill-rule%3D%22evenodd%22%20d%3D%22M316%20121%20L370%20143%20L424%20121%20L370%2097%20Z%20M124%2023%20L124%2068%20L247%20121%20L370%2068%20L493%20121%20L493%2075%20L370%2023%20L247%2075%20Z%20M193%2023%20L247%2047%20L300%2023%20L247%200%20Z%22/%3E%3C/g%3E%3C/svg%3E");
   background-size: 84px 56px;
 }
+/* The pattern drifting upward forever (one tile height per cycle, so the loop is seamless). */
+@media (prefers-reduced-motion: no-preference) {
+  .pattern-rise { animation: pattern-rise 6s linear infinite; }
+}
+@keyframes pattern-rise { from { background-position: 0 0; } to { background-position: 0 -56px; } }
 
 /* ---------- Orbit + footer ---------- */
 @media (prefers-reduced-motion: no-preference) {
@@ -349,14 +354,16 @@
 
 /* ---------- motion: section reveal, hero entrance, SEPEX mark ---------- */
 @media (prefers-reduced-motion: no-preference) {
-  .reveal {
+  /* Sections stay put; only marked pieces inside (.rv) ease in, staggered by --i. */
+  .reveal .rv {
     opacity: 0;
-    translate: 0 28px;
-    transition: opacity 700ms ease-out, translate 900ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    transform: translateY(14px);
+    transition: opacity 600ms ease-out, transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1), translate 300ms ease, background-color 300ms ease;
+    transition-delay: calc(var(--i, 0) * 70ms), calc(var(--i, 0) * 70ms), 0ms, 0ms;
   }
-  .reveal[data-shown] {
+  .reveal[data-shown] .rv {
     opacity: 1;
-    translate: 0 0;
+    transform: none;
   }
   .hero-in {
     animation: hero-in 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;

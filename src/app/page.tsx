@@ -47,7 +47,11 @@ export default function HomePage() {
     {
       "@context": "https://schema.org",
       "@type": "FAQPage",
-      mainEntity: faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+      mainEntity: faqs.map((f) => ({
+        "@type": "Question",
+        name: f.q,
+        acceptedAnswer: { "@type": "Answer", text: f.a },
+      })),
     },
   ];
 
@@ -61,19 +65,36 @@ export default function HomePage() {
         </Reveal>
         <AboutSepex />
         {products.length > 0 && (
-          <section id="deals" className="relative isolate scroll-mt-4 overflow-hidden bg-black py-20 text-white sm:py-24" aria-labelledby="deals-title">
-            <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(45%_40%_at_50%_45%,rgb(255_203_5/0.08),transparent_70%)]" aria-hidden />
-            <div className="mx-auto max-w-7xl px-4 text-center sm:px-6">
-              <SepexMark className="mx-auto mb-4 h-3.5 text-brand" />
-              <h2 id="deals-title" className="text-3xl font-black leading-tight sm:text-[2.6rem]">پیشنهادهای بلک‌فرایدی</h2>
-              <p className="mx-auto mt-3 max-w-2xl leading-8 text-white/55">
-                چندتا کالای منتخب از فروشگاه‌های خارجی. قیمت‌ها مال خود فروشگاهه و ممکنه عوض بشه؛ قیمت نهایی رو کارشناس بهت می‌گه.
-              </p>
-              <div className="mt-12">
-                <DealsCoverflow products={products} />
+          <Reveal>
+            <section
+              id="deals"
+              className="relative isolate scroll-mt-4 overflow-hidden bg-black py-20 text-white sm:py-24"
+              aria-labelledby="deals-title"
+            >
+              <div
+                className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(45%_40%_at_50%_45%,rgb(255_203_5/0.08),transparent_70%)]"
+                aria-hidden
+              />
+              <div className="mx-auto max-w-7xl px-4 text-center sm:px-6">
+                <div className="rv">
+                  <SepexMark className="mx-auto mb-4 h-3.5 text-brand" />
+                  <h2
+                    id="deals-title"
+                    className="text-3xl font-black leading-tight sm:text-[2.6rem]"
+                  >
+                    پیشنهادهای بلک‌فرایدی
+                  </h2>
+                  <p className="mx-auto mt-3 max-w-2xl leading-8 text-white/55">
+                    چندتا کالای منتخب از فروشگاه‌های خارجی. قیمت‌ها مال خود
+                    فروشگاهه و ممکنه عوض بشه؛ قیمت نهایی رو کارشناس بهت می‌گه.
+                  </p>
+                </div>
+                <div className="rv mt-12 [--i:2]">
+                  <DealsCoverflow products={products} />
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          </Reveal>
         )}
         <Reveal>
           <CategoryWall />
@@ -96,7 +117,12 @@ export default function HomePage() {
       </main>
       <LandingFooter settings={settings} />
       <StickyCta />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
     </>
   );
 }

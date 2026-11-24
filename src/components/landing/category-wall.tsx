@@ -74,7 +74,7 @@ export function CategoryWall() {
       <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-black sm:w-48" aria-hidden />
       <div className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black sm:w-48" aria-hidden />
       <div className="absolute inset-0 flex items-center justify-center px-6">
-        <div className="max-w-md text-center">
+        <div className="rv max-w-md text-center">
           <h2 id="cat-title" className="text-3xl font-black leading-snug text-white sm:text-5xl">
             هر چی بخوای،
             <br />
