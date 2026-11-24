@@ -30,7 +30,7 @@ export function RouteOrbit() {
             تا ایران
           </h2>
           <p className="mt-5 max-w-md leading-8 text-white/55">بلک‌فرایدی امسال بی‌مرزه: چین، امارات، اروپا، آمریکا و ترکیه. خرید، حمل و ترخیص؛ همه‌اش توی یه مسیر و با یه کد پیگیری.</p>
-          <Link href="/order" className="mt-8 inline-flex h-12 items-center gap-2 bg-white px-6 text-sm font-black text-ink hover:bg-brand">
+          <Link href="/order" className="chamfer-sm mt-8 inline-flex h-12 items-center gap-2 bg-white px-6 text-sm font-black text-ink hover:bg-brand">
             ثبت سفارش
             <ArrowLeft className="size-4" />
           </Link>

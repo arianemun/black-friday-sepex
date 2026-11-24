@@ -27,7 +27,7 @@ function Screen({ step }: { step: number }) {
             <div className="h-8 bg-white/5" />
             <div className="flex h-8 items-center justify-center bg-white/5 text-[11px] text-white">{toFaDigits(1)}</div>
           </div>
-          <div className="mt-6 flex h-10 items-center justify-center bg-brand text-xs font-black text-ink">ادامه</div>
+          <div className="chamfer-sm mt-6 flex h-10 items-center justify-center bg-brand text-xs font-black text-ink">ادامه</div>
           <p className="mt-3 text-center text-[10px] text-white/35">عکس یا اسم کالا هم کافیه</p>
         </div>
       )}

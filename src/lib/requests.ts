@@ -5,7 +5,7 @@ import { detectStore, extractUrl, methods, type Method } from "./catalog";
 import { generateTrackingCode } from "./tracking";
 import { deleteUpload, hashDraftToken } from "./uploads";
 import { pruneRateLimits } from "./rate-limit";
-import { fetchLinkMeta } from "./link-meta";
+import { cachedLinkMeta } from "./link-meta";
 import { getSettings } from "./settings";
 import { sendCustomerConfirmationSms, sendExpertNotificationSms } from "./sms";
 
@@ -215,7 +215,7 @@ export async function enrichRequestLinks(requestId: number) {
     .prepare("SELECT id, url FROM request_items WHERE request_id = ? AND url IS NOT NULL AND meta_status IN ('pending','failed')")
     .all(requestId) as { id: number; url: string }[];
   for (const it of items) {
-    const meta = await fetchLinkMeta(it.url);
+    const meta = await cachedLinkMeta(it.url);
     db.prepare(
       `UPDATE request_items SET meta_status = ?, meta_title = ?, meta_image = ?, meta_price = ?, meta_currency = ?, meta_site = ?, meta_fetched_at = ?
        WHERE id = ?`

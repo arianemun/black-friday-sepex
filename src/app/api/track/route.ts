@@ -4,7 +4,15 @@ import { normalizeIranMobile } from "@/lib/phone";
 import { rateLimit } from "@/lib/rate-limit";
 import { getClientIp, isSameOrigin } from "@/lib/request-info";
 import { normalizeTrackingCode } from "@/lib/tracking";
-import { methods, statusInfo, type Method } from "@/lib/catalog";
+import { detectStore, methods, statusInfo, storeLabel, type Method } from "@/lib/catalog";
+
+const hostOf = (u: string) => {
+  try {
+    return new URL(u).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+};
 
 /** Tracking needs both the code and the mobile number, so a guessed code alone reveals nothing. */
 export async function POST(req: Request) {
@@ -31,8 +39,16 @@ export async function POST(req: Request) {
   if (!r) return jsonError("درخواستی با این کد و شماره پیدا نشد.", 404);
 
   const items = db
-    .prepare("SELECT title, meta_title, url, quantity FROM request_items WHERE request_id = ? ORDER BY position")
-    .all(r.id) as { title: string | null; meta_title: string | null; url: string | null; quantity: number }[];
+    .prepare("SELECT title, meta_title, meta_image, meta_price, meta_currency, url, quantity FROM request_items WHERE request_id = ? ORDER BY position")
+    .all(r.id) as {
+    title: string | null;
+    meta_title: string | null;
+    meta_image: string | null;
+    meta_price: string | null;
+    meta_currency: string | null;
+    url: string | null;
+    quantity: number;
+  }[];
   const history = db
     .prepare("SELECT type, body, created_at FROM request_events WHERE request_id = ? AND type IN ('created','status') ORDER BY id")
     .all(r.id) as { type: string; body: string | null; created_at: string }[];
@@ -45,7 +61,18 @@ export async function POST(req: Request) {
       status: statusInfo(r.status),
       createdAt: r.created_at,
       updatedAt: r.updated_at,
-      items: items.map((i) => ({ title: i.title || i.meta_title || (i.url ? new URL(i.url).hostname : "کالا"), quantity: i.quantity })),
+      items: items.map((i) => {
+        const store = i.url ? detectStore(i.url) : undefined;
+        const host = i.url ? hostOf(i.url) : null;
+        return {
+          title: i.meta_title || i.title || host || "کالا",
+          note: i.meta_title && i.title ? i.title : null,
+          store: store ? storeLabel(store) : host,
+          image: i.meta_image && /^https:\/\//.test(i.meta_image) ? i.meta_image : null,
+          price: i.meta_price ? [i.meta_price, i.meta_currency].filter(Boolean).join(" ") : null,
+          quantity: i.quantity,
+        };
+      }),
       history: history.map((h) => ({ label: h.type === "created" ? "ثبت درخواست" : statusInfo(h.body ?? "").name, at: h.created_at })),
     },
   });

@@ -21,7 +21,7 @@ export function StickyCta() {
         <Link href="/order" tabIndex={show ? 0 : -1} className="flex h-12 flex-1 items-center justify-center bg-brand font-bold text-ink">
           ثبت سفارش
         </Link>
-        <Link href="/track" tabIndex={show ? 0 : -1} className="flex h-12 items-center justify-center border border-white/20 px-4 text-sm font-semibold text-white">
+        <Link href="/track" tabIndex={show ? 0 : -1} className="chamfer-sm flex h-12 items-center justify-center bg-white/[0.1] px-4 text-sm font-bold text-white">
           پیگیری
         </Link>
       </div>

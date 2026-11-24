@@ -132,3 +132,26 @@ export async function fetchLinkMeta(url: string): Promise<LinkMeta | null> {
     return null;
   }
 }
+
+/* In-process cache so the live preview and the post-submit enrichment share one fetch. */
+const CACHE_MAX = 500;
+const OK_TTL = 30 * 60_000;
+const FAIL_TTL = 5 * 60_000;
+const cache = new Map<string, { at: number; meta: LinkMeta | null }>();
+const inflight = new Map<string, Promise<LinkMeta | null>>();
+
+export async function cachedLinkMeta(url: string): Promise<LinkMeta | null> {
+  const hit = cache.get(url);
+  if (hit && Date.now() - hit.at < (hit.meta ? OK_TTL : FAIL_TTL)) return hit.meta;
+  const running = inflight.get(url);
+  if (running) return running;
+  const p = fetchLinkMeta(url)
+    .then((meta) => {
+      if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value as string);
+      cache.set(url, { at: Date.now(), meta });
+      return meta;
+    })
+    .finally(() => inflight.delete(url));
+  inflight.set(url, p);
+  return p;
+}

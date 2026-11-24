@@ -57,7 +57,7 @@ export function PopularStores({ logos }: { logos: Record<string, string> }) {
                 پیدا نکردی؟
               </h3>
               <p className="mt-3 text-sm leading-7 text-ink/70">عکس، اسکرین‌شات یا فقط اسمش رو بفرست؛ پیدا کردنش با ما.</p>
-              <Link href="/order?method=photo" className="mt-6 inline-flex h-12 items-center gap-2 bg-ink px-6 text-sm font-black text-brand hover:bg-neutral-800">
+              <Link href="/order?method=photo" className="chamfer-sm mt-6 inline-flex h-12 items-center gap-2 bg-ink px-6 text-sm font-black text-brand hover:bg-neutral-800">
                 بفرست، پیداش می‌کنیم
                 <ArrowLeft className="size-4" />
               </Link>

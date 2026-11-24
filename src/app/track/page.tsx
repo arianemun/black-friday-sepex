@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site/site-header";
+import { PackageSearch } from "lucide-react";
 import { TrackForm } from "@/components/order/track-form";
 
 export const metadata: Metadata = {
@@ -16,8 +17,15 @@ export default async function TrackPage({ searchParams }: { searchParams: Promis
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[28rem] bg-[radial-gradient(50%_100%_at_50%_0%,rgb(255_203_5/0.14),transparent)]" aria-hidden />
       <SiteHeader variant="solid" />
       <main className="mx-auto max-w-xl px-4 pb-16 pt-10 sm:px-6 sm:pt-14">
-        <h1 className="text-2xl font-black sm:text-3xl">پیگیری درخواست</h1>
-        <p className="mt-2 text-white/65">کد پیگیری و شماره‌ی موبایلی را که با آن ثبت کرده‌اید وارد کنید.</p>
+        <div className="flex items-start gap-3">
+          <span className="chamfer-sm mt-0.5 flex size-11 shrink-0 items-center justify-center bg-brand text-ink sm:size-12" aria-hidden>
+            <PackageSearch className="size-5 sm:size-6" strokeWidth={2} />
+          </span>
+          <div>
+            <h1 className="text-2xl font-black sm:text-3xl">پیگیری درخواست</h1>
+            <p className="mt-2 text-white/65">کد پیگیری و شماره موبایلی که باهاش ثبت کردی رو وارد کن.</p>
+          </div>
+        </div>
         <TrackForm initialCode={code} />
       </main>
     </div>
