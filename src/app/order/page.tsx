@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { OrderWizard } from "@/components/order/order-wizard";
 import { SiteHeader } from "@/components/site/site-header";
-import { extractUrl, methods, type Method } from "@/lib/catalog";
+import { extractUrl, orderMethods } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "ثبت سفارش خرید از خارج",
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default async function OrderPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
-  const m = typeof sp.method === "string" && sp.method in methods ? (sp.method as Method) : null;
+  const m = orderMethods.find((x) => x === sp.method) ?? null;
   const link = typeof sp.link === "string" ? extractUrl(sp.link.slice(0, 4000)) : null;
   return (
     <div className="dark relative isolate min-h-dvh overflow-hidden bg-black text-white">

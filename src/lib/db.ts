@@ -14,7 +14,9 @@ const globalForDb = globalThis as unknown as { __sepexDb?: DB };
  * Versioned, additive, idempotent migrations (PRAGMA user_version).
  * Never edit a released migration: append a new one.
  */
-const migrations: string[] = [
+type Migration = string | { sql: string; rebuild: true };
+
+const migrations: Migration[] = [
   /* 1 */ `
   CREATE TABLE IF NOT EXISTS staff (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -141,15 +143,75 @@ const migrations: string[] = [
   /* 2: structured detail for the per-request activity log */ `
   ALTER TABLE request_events ADD COLUMN meta TEXT;
   `,
+  /*
+   * 3: leads from the sepex.net Gravity Forms (via the WordPress CRM plugin).
+   * SQLite can't alter a CHECK constraint, so `requests` is rebuilt the documented way
+   * (new table, copy every row, swap names) with foreign keys off; child rows keep their ids.
+   * - method may also be 'form'
+   * - gender may be NULL (site forms don't ask for it)
+   * - source / source_label / external_ref record where a lead came from; external_ref is
+   *   unique so a retried webhook can't create a duplicate request.
+   */
+  {
+    rebuild: true,
+    sql: `
+  CREATE TABLE requests_v3 (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tracking_code TEXT NOT NULL UNIQUE,
+    method TEXT NOT NULL CHECK (method IN ('link','photo','shipping','form')),
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    gender TEXT CHECK (gender IS NULL OR gender IN ('male','female')),
+    phone TEXT NOT NULL,
+    note TEXT,
+    status TEXT NOT NULL DEFAULT 'new',
+    assigned_to INTEGER REFERENCES staff(id) ON DELETE SET NULL,
+    utm_source TEXT, utm_medium TEXT, utm_campaign TEXT, referrer TEXT,
+    ip TEXT, user_agent TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    source TEXT NOT NULL DEFAULT 'web',
+    source_label TEXT,
+    external_ref TEXT
+  );
+  INSERT INTO requests_v3(id, tracking_code, method, first_name, last_name, gender, phone, note, status, assigned_to,
+    utm_source, utm_medium, utm_campaign, referrer, ip, user_agent, created_at, updated_at)
+  SELECT id, tracking_code, method, first_name, last_name, gender, phone, note, status, assigned_to,
+    utm_source, utm_medium, utm_campaign, referrer, ip, user_agent, created_at, updated_at
+  FROM requests;
+  DROP TABLE requests;
+  ALTER TABLE requests_v3 RENAME TO requests;
+  CREATE INDEX IF NOT EXISTS idx_requests_status ON requests(status, created_at);
+  CREATE INDEX IF NOT EXISTS idx_requests_phone ON requests(phone);
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_requests_external_ref ON requests(external_ref) WHERE external_ref IS NOT NULL;
+  `,
+  },
 ];
 
-function migrate(db: DB) {
+/** Exported for tests; `upTo` lets a test build an older schema version. */
+export function migrate(db: DB, upTo = migrations.length) {
   const current = db.pragma("user_version", { simple: true }) as number;
-  for (let v = current; v < migrations.length; v++) {
-    db.transaction(() => {
-      db.exec(migrations[v]);
-      db.pragma(`user_version = ${v + 1}`);
-    })();
+  for (let v = current; v < Math.min(upTo, migrations.length); v++) {
+    const m = migrations[v];
+    const rebuild = typeof m !== "string";
+    const sql = typeof m === "string" ? m : m.sql;
+    // A table rebuild needs foreign keys off, and that pragma is ignored inside a transaction.
+    if (rebuild) db.pragma("foreign_keys = OFF");
+    try {
+      db.transaction(() => {
+        const before = rebuild ? (db.prepare("SELECT COUNT(*) AS n FROM requests").get() as { n: number }).n : 0;
+        db.exec(sql);
+        if (rebuild) {
+          const after = (db.prepare("SELECT COUNT(*) AS n FROM requests").get() as { n: number }).n;
+          if (after !== before) throw new Error(`migration ${v + 1}: row count changed ${before} -> ${after}`);
+          const broken = db.pragma("foreign_key_check") as unknown[];
+          if (broken.length) throw new Error(`migration ${v + 1}: ${broken.length} foreign key problems`);
+        }
+        db.pragma(`user_version = ${v + 1}`);
+      })();
+    } finally {
+      if (rebuild) db.pragma("foreign_keys = ON");
+    }
   }
 }
 

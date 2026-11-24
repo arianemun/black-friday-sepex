@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Camera, Check, ClipboardPaste, Copy, Link2, Loader2, Package, Pencil, Plus, RotateCw, ShieldCheck, Ship, Trash2, UserRound, X } from "lucide-react";
 import { toast } from "sonner";
-import { countries, countryName, detectStore, extractUrl, methods, type Method } from "@/lib/catalog";
+import { countries, countryName, detectStore, extractUrl, methods, orderMethods, type OrderMethod as Method } from "@/lib/catalog";
 import { cn, toEnDigits, toFaDigits } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -371,7 +371,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
           <h1 id="s0" className="text-2xl font-black sm:text-3xl">از کالات چی داری؟</h1>
           <p className="mt-2 text-white/65">هر کدوم رو داری انتخاب کن. قیمت نهایی رو بعد از بررسی، کارشناس بهت می‌گه.</p>
           <div className="mt-6 grid gap-3">
-            {(Object.keys(methods) as Method[]).map((m) => {
+            {orderMethods.map((m) => {
               const Icon = methodIcons[m];
               const active = method === m;
               return (

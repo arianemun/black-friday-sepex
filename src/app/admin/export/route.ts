@@ -28,7 +28,7 @@ export async function GET() {
   for (const r of rows) {
     lines.push(
       [
-        r.tracking_code, tehran(String(r.created_at)), methods[r.method as Method]?.title, r.first_name, r.last_name, r.gender === "female" ? "خانم" : "آقا",
+        r.tracking_code, tehran(String(r.created_at)), methods[r.method as Method]?.title, r.first_name, r.last_name, r.gender === "female" ? "خانم" : r.gender === "male" ? "آقا" : "",
         r.phone, statusInfo(String(r.status)).name, r.assignee, r.note, r.utm_source, r.utm_medium, r.utm_campaign,
         r.position === null ? "" : Number(r.position) + 1, r.url, r.title, r.description, r.quantity, r.origin_country ? countryName(String(r.origin_country)) : "",
         storeByKey(r.store_key as string | null)?.name ?? "", r.weight, r.meta_title, r.meta_price ? `${r.meta_price} ${r.meta_currency ?? ""}` : "",

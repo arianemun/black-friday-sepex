@@ -26,7 +26,7 @@ const hostOf = (u: string) => {
 };
 
 type Req = {
-  id: number; tracking_code: string; method: Method; first_name: string; last_name: string; gender: "male" | "female"; phone: string;
+  id: number; tracking_code: string; method: Method; first_name: string; last_name: string; gender: "male" | "female" | null; phone: string; source: string; source_label: string | null;
   note: string | null; status: string; assigned_to: number | null; utm_source: string | null; utm_medium: string | null; utm_campaign: string | null;
   referrer: string | null; created_at: string; updated_at: string;
 };
@@ -53,7 +53,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const assignee = r.assigned_to ? (db.prepare("SELECT name FROM staff WHERE id = ?").get(r.assigned_to) as { name: string } | undefined)?.name : null;
   const staff = listActiveStaff();
   const intl = toIntlMobile(r.phone);
-  const honorific = r.gender === "female" ? "خانم" : "آقای";
+  const honorific = r.gender === "female" ? "خانم" : r.gender === "male" ? "آقای" : "";
 
   return (
     <>
@@ -112,7 +112,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
                 <dt className="text-[#71717A]">منبع</dt>
                 <dd className="inline-flex items-center gap-1 truncate">
                   <Globe className="size-3.5 text-[#A1A1AA]" aria-hidden />
-                  {[r.utm_source, r.utm_medium, r.utm_campaign].filter(Boolean).join(" / ") || (r.referrer ? hostOf(r.referrer) : "مستقیم")}
+                  {r.source === "sepex.net" || r.method === "form" ? `سایت سپکس${r.source_label ? `، ${r.source_label}` : ""}` : [r.utm_source, r.utm_medium, r.utm_campaign].filter(Boolean).join(" / ") || (r.referrer ? hostOf(r.referrer) : "مستقیم")}
                 </dd>
               </div>
             </dl>

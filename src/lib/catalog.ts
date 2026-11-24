@@ -106,8 +106,12 @@ export const methods = {
   link: { title: "خرید با لینک کالا", short: "لینک کالا" },
   photo: { title: "خرید با عکس یا نام کالا", short: "عکس یا نام کالا" },
   shipping: { title: "فقط حمل و ترخیص", short: "حمل و ترخیص" },
+  form: { title: "فرم سایت سپکس", short: "فرم سایت" },
 } as const;
 export type Method = keyof typeof methods;
+/** Methods a customer can pick on /order ("form" only arrives from sepex.net). */
+export const orderMethods = ["link", "photo", "shipping"] as const;
+export type OrderMethod = (typeof orderMethods)[number];
 
 export const statuses: { key: string; name: string; tone: "brand" | "info" | "warning" | "success" | "destructive" | "secondary" }[] = [
   { key: "new", name: "ثبت شده", tone: "brand" },
