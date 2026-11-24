@@ -43,3 +43,15 @@ export function SepexLogoAssemble({ className }: { className?: string }) {
     </svg>
   );
 }
+
+/** Logo drawn as an outline, then filled, when its <Reveal> parent comes into view. */
+export function SepexLogoDraw({ className }: { className?: string }) {
+  return (
+    <svg viewBox="-4 -4 625 393" role="img" aria-label="سپکس" className={cn("logo-draw h-auto w-full", className)} fill="currentColor" stroke="currentColor" strokeWidth={2.5} strokeLinejoin="round">
+      <path d={MARK_PARTS.top} pathLength={1} />
+      <path fillRule="evenodd" d={MARK_PARTS.wing} pathLength={1} />
+      <path d={MARK_PARTS.bottom} pathLength={1} />
+      <path fillRule="evenodd" d={LETTERS} pathLength={1} />
+    </svg>
+  );
+}

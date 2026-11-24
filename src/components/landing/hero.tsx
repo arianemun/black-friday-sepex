@@ -2,9 +2,9 @@ import Link from "next/link";
 import { Camera, Ship } from "lucide-react";
 import { hero } from "@/content/landing";
 import { storeLabel, stores } from "@/lib/catalog";
-import { SepexLogo, SepexMark } from "@/components/brand/logo";
+import { SepexLogo } from "@/components/brand/logo";
+import { HeroWordmark } from "./hero-wordmark";
 import { LinkStarter } from "./link-starter";
-import { PointerStage } from "./reveal";
 
 /**
  * One bold idea: a midnight sale on a dark stage. A yellow spotlight turns on and price
@@ -36,8 +36,8 @@ function PriceTag({ t }: { t: Tag }) {
   }[t.size];
   return (
     <div
-      className={`tag-drop parallax absolute hidden origin-center scale-75 lg:block xl:scale-100 ${t.pos}`}
-      style={{ "--d": `${t.d}ms`, "--depth": `${t.size === "lg" ? 34 : t.size === "md" ? 22 : 14}px` } as React.CSSProperties}
+      className={`tag-drop absolute hidden origin-center scale-75 lg:block xl:scale-100 ${t.pos}`}
+      style={{ "--d": `${t.d}ms` } as React.CSSProperties}
       aria-hidden
     >
       <div className={`tag-sway ${toLeft ? "tag-sway-l" : ""}`} style={{ "--r": `${t.r}deg`, "--s": `${t.s}s`, transform: `rotate(${t.r}deg)` } as React.CSSProperties}>
@@ -56,15 +56,9 @@ function PriceTag({ t }: { t: Tag }) {
 export function Hero() {
   return (
     <section className="relative isolate overflow-hidden bg-black text-white" aria-labelledby="hero-title">
-      <PointerStage className="relative">
-      <div className="spotlight parallax pointer-events-none absolute -inset-[6%] -z-10 [--depth:36px]" aria-hidden />
+      <div className="spotlight pointer-events-none absolute inset-0 -z-10" aria-hidden />
       <div className="dot-grid pointer-events-none absolute inset-0 -z-10" aria-hidden />
       <div className="floor-glow pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-1/2" aria-hidden />
-
-      {/* the SEPEX mark, huge and faint, drifting the other way */}
-      <div className="parallax pointer-events-none absolute inset-x-0 top-[9%] -z-10 flex justify-center [--depth:-26px]" aria-hidden>
-        <SepexMark className="hero-in h-auto w-[min(92vw,62rem)] text-brand/[0.06] [--in:300ms]" />
-      </div>
 
       {TAGS.map((t) => (
         <PriceTag key={t.key} t={t} />
@@ -76,10 +70,7 @@ export function Hero() {
           <SepexLogo className="h-6 sm:h-7" title="سپکس" />
           <span className="h-px w-10 bg-gradient-to-r from-white/40 to-transparent" aria-hidden />
         </div>
-        <p dir="ltr" className="hero-wordmark parallax font-black text-brand [--depth:-10px]" aria-hidden>
-          <span className="hero-line block [--in:200ms]">BLACK</span>
-          <span className="hero-line block [--in:380ms]">FRIDAY</span>
-        </p>
+        <HeroWordmark />
         <h1 id="hero-title" className="hero-in mt-6 [--in:600ms] whitespace-pre-line text-[1.6rem] font-black leading-[1.4] [text-wrap:balance] min-[400px]:text-3xl sm:text-5xl">
           {hero.title}
         </h1>
@@ -119,7 +110,6 @@ export function Hero() {
           <span className="scroll-cue h-8 w-px bg-gradient-to-b from-brand to-transparent" aria-hidden />
         </a>
       </div>
-      </PointerStage>
     </section>
   );
 }

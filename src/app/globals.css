@@ -186,11 +186,23 @@
 }
 
 /* ---------- Landing: midnight-sale stage (the page's single load moment) ---------- */
+@property --lx { syntax: "<percentage>"; inherits: true; initial-value: 50%; }
+@property --ly { syntax: "<percentage>"; inherits: true; initial-value: -160%; }
 .hero-wordmark {
   font-size: clamp(3.2rem, 12vw, 9rem);
   letter-spacing: -0.03em;
   line-height: 0.86;
-  text-shadow: 0 0 40px rgb(255 203 5 / 0.35), 0 0 120px rgb(255 203 5 / 0.25);
+  color: #ffcb05;
+}
+/* Letters filled by a soft light (--lx/--ly) on the brand yellow; glow via drop-shadow so it
+   works with background-clip: text. */
+.wordmark-lit {
+  background: radial-gradient(circle 7.5rem at var(--lx) var(--ly), #fff4bf 0%, #ffdd4d 40%, #ffcb05 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 28px rgb(255 203 5 / 0.35)) drop-shadow(0 0 80px rgb(255 203 5 / 0.18));
+  transition: --lx 500ms cubic-bezier(0.2, 0.7, 0.2, 1), --ly 500ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 .spotlight {
   background:
@@ -335,11 +347,7 @@
   clip-path: polygon(22px 0, calc(50% - 28px) 0, calc(50% - 16px) 10px, calc(50% + 16px) 10px, calc(50% + 28px) 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%, 0 22px);
 }
 
-/* ---------- motion: section reveal, hero parallax, SEPEX mark ---------- */
-.parallax {
-  /* depth: how far a layer travels with the pointer (px at the edge of the stage) */
-  translate: calc(var(--mx, 0) * var(--depth, 0px)) calc(var(--my, 0) * var(--depth, 0px));
-}
+/* ---------- motion: section reveal, hero entrance, SEPEX mark ---------- */
 @media (prefers-reduced-motion: no-preference) {
   .reveal {
     opacity: 0;
@@ -354,10 +362,10 @@
     animation: hero-in 900ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
     animation-delay: var(--in, 0ms);
   }
-  .hero-line {
-    display: block;
-    animation: hero-line 1000ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-    animation-delay: var(--in, 0ms);
+  .wordmark-lit {
+    animation:
+      hero-in 900ms cubic-bezier(0.2, 0.8, 0.2, 1) 200ms backwards,
+      lamp-sweep 2400ms cubic-bezier(0.45, 0, 0.2, 1) 700ms backwards;
   }
   .mark-assemble .mark-top,
   .mark-assemble .mark-wing,
@@ -370,11 +378,16 @@
   .reveal[data-shown] .mark-assemble .mark-bottom { animation: mark-bottom 900ms cubic-bezier(0.2, 0.8, 0.2, 1) 300ms both; }
   .reveal[data-shown] .mark-assemble .mark-letters { animation: hero-in 800ms ease-out 550ms both; }
   .reveal:not([data-shown]) .mark-assemble path { opacity: 0; }
-  .float-slow { animation: float-slow 9s ease-in-out infinite; }
+  .logo-draw path { fill-opacity: 0; stroke-dasharray: 1; stroke-dashoffset: 1; }
+  .reveal[data-shown] .logo-draw path {
+    animation: logo-draw 1600ms cubic-bezier(0.6, 0, 0.2, 1) forwards, logo-fill 900ms ease-out 1300ms forwards;
+  }
 }
 @keyframes hero-in { from { opacity: 0; translate: 0 18px; } to { opacity: 1; translate: 0 0; } }
-@keyframes hero-line { from { opacity: 0; clip-path: inset(0 0 100% 0); translate: 0 0.35em; } to { opacity: 1; clip-path: inset(0 0 0 0); translate: 0 0; } }
+@keyframes lamp-sweep { from { --lx: -25%; --ly: 25%; } to { --lx: 125%; --ly: 75%; } }
 @keyframes mark-top { from { opacity: 0; transform: translateY(-60%) scale(0.6); } to { opacity: 1; transform: none; } }
 @keyframes mark-wing { from { opacity: 0; transform: scaleX(0.4); } to { opacity: 1; transform: none; } }
 @keyframes mark-bottom { from { opacity: 0; transform: translateY(60%) scale(0.6); } to { opacity: 1; transform: none; } }
 @keyframes float-slow { 0%, 100% { translate: 0 0; } 50% { translate: 0 -10px; } }
+@keyframes logo-draw { to { stroke-dashoffset: 0; } }
+@keyframes logo-fill { to { fill-opacity: 1; } }

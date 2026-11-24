@@ -1,9 +1,9 @@
 import { ArrowUpLeft, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { SepexLogoAssemble, SepexMark } from "@/components/brand/logo";
+import { SepexLogoDraw, SepexMark } from "@/components/brand/logo";
 import { about } from "@/content/landing";
 import { siteConfig } from "@/lib/site";
-import { PointerStage, Reveal } from "./reveal";
+import { Reveal } from "./reveal";
 
 const POINTS = [
   { title: "خرید از فروشگاه", body: "کالایی که می‌خوای رو از فروشگاه خارجی برات می‌خریم." },
@@ -17,16 +17,13 @@ export function AboutSepex() {
     <section id="sepex" className="relative isolate scroll-mt-4 overflow-hidden bg-black py-20 sm:py-28" aria-labelledby="sepex-title">
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-[1fr_1fr] lg:gap-16">
         <Reveal>
-          <PointerStage className="relative">
-            <div className="chamfer relative aspect-[5/4] overflow-hidden bg-[#0b0b0b]">
-              <div className="sepex-pattern pointer-events-none absolute inset-0 opacity-[0.06]" aria-hidden />
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_55%_at_50%_45%,rgb(255_203_5/0.16),transparent_70%)]" aria-hidden />
-              <div className="parallax absolute inset-0 flex items-center justify-center p-[14%] [--depth:14px]">
-                <SepexLogoAssemble className="text-brand drop-shadow-[0_0_40px_rgb(255_203_5/0.35)]" />
-              </div>
+          <div className="chamfer bg-white/[0.08] p-px">
+            <div className="chamfer relative flex aspect-[16/11] flex-col items-center justify-center gap-8 bg-black px-[16%]">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(50%_45%_at_50%_45%,rgb(255_203_5/0.07),transparent_70%)]" aria-hidden />
+              <SepexLogoDraw className="relative max-w-[13rem] text-brand" />
+              <p className="relative text-center text-sm text-white/45">خرید، حمل و ترخیص بین‌المللی</p>
             </div>
-            <span className="absolute -bottom-3 left-6 bg-brand px-3 py-1 text-xs font-black text-ink">بلک‌فرایدی ۱۴۰۵</span>
-          </PointerStage>
+          </div>
         </Reveal>
 
         <Reveal>
@@ -42,7 +39,7 @@ export function AboutSepex() {
           <ul className="mt-8 grid gap-4">
             {POINTS.map((p) => (
               <li key={p.title} className="flex gap-3">
-                <SepexMark className="mt-1.5 h-3 shrink-0 text-brand" />
+                <span className="mt-2.5 size-1.5 shrink-0 rotate-45 bg-brand" aria-hidden />
                 <span>
                   <span className="block font-black text-white">{p.title}</span>
                   <span className="mt-0.5 block text-sm leading-7 text-white/55">{p.body}</span>
