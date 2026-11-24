@@ -62,3 +62,15 @@ describe("isGenericPage", () => {
     expect(isGenericPage({ title: "Amazon.ae", image: "https://x/y.jpg", price: null, site: null }, "https://www.amazon.ae/dp/B0X")).toBe(false);
   });
 });
+
+describe("fetchProxies", () => {
+  it("parses labelled and plain proxy lists", async () => {
+    const { fetchProxies } = await import("@/lib/safe-fetch");
+    process.env.FETCH_PROXY_URLS = "US=http://u:p@1.2.3.4:35273, NL=http://u:p@1.2.3.4:35274,http://u:p@1.2.3.4:35275";
+    process.env.FETCH_PROXY_URL = "http://u:p@1.2.3.4:35273";
+    expect(fetchProxies().map((p) => p.label)).toEqual(["US", "NL", "35275"]);
+    delete process.env.FETCH_PROXY_URLS;
+    delete process.env.FETCH_PROXY_URL;
+    expect(fetchProxies()).toEqual([]);
+  });
+});

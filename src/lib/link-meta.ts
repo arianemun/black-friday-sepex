@@ -1,6 +1,6 @@
 import "server-only";
 import * as cheerio from "cheerio";
-import { safeFetch } from "./safe-fetch";
+import { fetchProxies, safeFetch, type FetchProxy } from "./safe-fetch";
 
 /**
  * Best-effort product metadata from a store page: JSON-LD Product first, then Open Graph /
@@ -141,19 +141,89 @@ export function isGenericPage(meta: Pick<LinkMeta, "title" | "image" | "price" |
   );
 }
 
+class NoProduct extends Error {}
+
+async function readMeta(url: string, proxy: FetchProxy | null, signal: AbortSignal): Promise<LinkMeta> {
+  const res = await safeFetch(url, { proxy, signal, timeoutMs: 10_000 });
+  if (res.status >= 400) throw new NoProduct(`http_${res.status}`);
+  if (!/html|xml/i.test(res.contentType)) throw new NoProduct("not_html");
+  const meta = parseLinkMeta(res.body.toString("utf8"), res.url);
+  // Bot-wall pages ("Robot Check", captcha) produce a title but no product data.
+  if (meta.title && /robot check|captcha|access denied|verify you are human|slide to verify/i.test(meta.title) && !meta.price) {
+    throw new NoProduct("bot_wall");
+  }
+  if (isGenericPage(meta, res.url)) throw new NoProduct("generic_page");
+  if (!meta.title && !meta.image) throw new NoProduct("empty");
+  return meta;
+}
+
+/** Which proxy last worked for each store host, so the next request tries it first. */
+const preferred = new Map<string, string>();
+const HEDGE_MS = 1_200;
+
+/**
+ * Hedged race over the configured proxies: the proxy that last worked for this host starts
+ * first, the rest join after HEDGE_MS (or at once if it fails or nothing is known yet).
+ * The first proxy that returns real product data wins; the others are aborted.
+ */
+function raceProxies(url: string, host: string): Promise<{ meta: LinkMeta; via: string }> {
+  const all = fetchProxies();
+  const pool: (FetchProxy | null)[] = all.length ? all : [null];
+  const pref = preferred.get(host);
+  const order = pref ? [...pool].sort((x, y) => Number(y?.label === pref) - Number(x?.label === pref)) : pool;
+  const ctrl = new AbortController();
+  return new Promise((resolve, reject) => {
+    const started = new Set<number>();
+    let failed = 0;
+    let done = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const errors: string[] = [];
+    const start = (i: number) => {
+      if (done || started.has(i)) return;
+      started.add(i);
+      const p = order[i];
+      readMeta(url, p, ctrl.signal).then(
+        (meta) => {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          ctrl.abort();
+          resolve({ meta, via: p?.label ?? "direct" });
+        },
+        (e: Error) => {
+          errors.push(`${p?.label ?? "direct"}:${e.message}`);
+          failed++;
+          if (done) return;
+          if (failed === order.length) {
+            done = true;
+            clearTimeout(timer);
+            reject(new Error(errors.join(" ")));
+          } else if (i === 0) startAll();
+        }
+      );
+    };
+    const startAll = () => order.forEach((_, i) => start(i));
+    start(0);
+    if (pref && order.length > 1) timer = setTimeout(startAll, HEDGE_MS);
+    else startAll();
+  });
+}
+
 export async function fetchLinkMeta(url: string): Promise<LinkMeta | null> {
+  let host = "";
   try {
-    const res = await safeFetch(url);
-    if (res.status >= 400 || !/html|xml/i.test(res.contentType)) return null;
-    const meta = parseLinkMeta(res.body.toString("utf8"), res.url);
-    // Bot-wall pages ("Robot Check", captcha) produce a title but no product data.
-    if (meta.title && /robot check|captcha|access denied|verify you are human|slide to verify/i.test(meta.title) && !meta.price) {
-      return null;
-    }
-    if (isGenericPage(meta, res.url)) return null;
-    return meta.title || meta.image ? meta : null;
+    host = new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+  const t0 = Date.now();
+  try {
+    const { meta, via } = await raceProxies(url, host);
+    preferred.set(host, via);
+    console.info(`[link-meta] ${host} ok via ${via} in ${Date.now() - t0}ms`);
+    return meta;
   } catch (e) {
-    console.warn(`[link-meta] ${new URL(url).hostname}: ${(e as Error).message}`);
+    console.warn(`[link-meta] ${host} failed in ${Date.now() - t0}ms: ${(e as Error).message}`);
     return null;
   }
 }
@@ -161,7 +231,7 @@ export async function fetchLinkMeta(url: string): Promise<LinkMeta | null> {
 /* In-process cache so the live preview and the post-submit enrichment share one fetch. */
 const CACHE_MAX = 500;
 const OK_TTL = 30 * 60_000;
-const FAIL_TTL = 5 * 60_000;
+const FAIL_TTL = 60_000;
 const cache = new Map<string, { at: number; meta: LinkMeta | null }>();
 const inflight = new Map<string, Promise<LinkMeta | null>>();
 

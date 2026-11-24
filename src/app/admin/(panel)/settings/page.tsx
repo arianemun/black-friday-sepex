@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/auth";
+import { fetchProxies } from "@/lib/safe-fetch";
 import { getSettings } from "@/lib/settings";
 import { smsDryRun } from "@/lib/sms";
 import { loadSharp } from "@/lib/image";
@@ -23,7 +24,7 @@ export default async function SettingsPage() {
     otpTemplate: !!process.env.SMSIR_OTP_TEMPLATE_ID,
     customerTemplate: !!process.env.SMSIR_CUSTOMER_TEMPLATE_ID,
     expertTemplate: !!process.env.SMSIR_EXPERT_TEMPLATE_ID,
-    fetchProxy: !!process.env.FETCH_PROXY_URL,
+    proxies: fetchProxies().map((p) => p.label),
     sharp: !!(await loadSharp()),
   };
   return (
@@ -41,7 +42,7 @@ export default async function SettingsPage() {
             ["قالب پیامک کد تأیید", env.otpTemplate, "تنظیم شده", "تنظیم نشده"],
             ["قالب پیامک ثبت درخواست (مشتری)", env.customerTemplate, "تنظیم شده", "تنظیم نشده"],
             ["قالب پیامک درخواست جدید (کارشناس)", env.expertTemplate, "تنظیم شده", "تنظیم نشده"],
-            ["پراکسی خارج برای خواندن لینک‌ها", env.fetchProxy, "تنظیم شده", "تنظیم نشده؛ بیشتر فروشگاه‌ها از ایران خوانده نمی‌شوند"],
+            ["پراکسی خارج برای خواندن لینک‌ها", env.proxies.length > 0, `${env.proxies.length} پراکسی: ${env.proxies.join("، ")}`, "تنظیم نشده؛ بیشتر فروشگاه‌ها از ایران خوانده نمی‌شوند"],
             ["پردازش تصویر (sharp)", env.sharp, "فعال", "غیرفعال؛ عکس‌ها بدون فشرده‌سازی ذخیره می‌شوند"],
           ].map(([label, ok, yes, no]) => (
             <li key={label as string} className="flex flex-col gap-1 py-2.5 first:pt-0 last:pb-0">

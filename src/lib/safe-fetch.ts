@@ -7,18 +7,48 @@ import { ProxyAgent, fetch as undiciFetch, type Dispatcher } from "undici";
  * Fetches user-supplied URLs without letting them reach our own network (SSRF guard):
  * only http(s), only public IPs, manual redirects (each hop re-checked), size and time limits.
  *
- * FETCH_PROXY_URL (optional, http:// or https:// proxy) routes these requests through a server
- * outside Iran, because most foreign stores are unreachable or blocked from Iranian IPs.
+ * Foreign stores are unreachable or blocked from Iranian IPs, so requests go through proxies
+ * outside Iran. FETCH_PROXY_URLS is a comma-separated list, each entry optionally labelled:
+ *   FETCH_PROXY_URLS=US=http://user:pass@1.2.3.4:35273,NL=http://user:pass@1.2.3.4:35274
+ * FETCH_PROXY_URL (single proxy) is still read as a fallback. Only http(s) proxies.
  */
 
 const MAX_REDIRECTS = 4;
 
-let proxyAgent: Dispatcher | undefined;
-function dispatcher(): Dispatcher | undefined {
-  const url = process.env.FETCH_PROXY_URL;
-  if (!url) return undefined;
-  proxyAgent ??= new ProxyAgent(url);
-  return proxyAgent;
+export type FetchProxy = { label: string; url: string };
+
+let parsed: { raw: string; list: FetchProxy[] } | undefined;
+export function fetchProxies(): FetchProxy[] {
+  const raw = [process.env.FETCH_PROXY_URLS, process.env.FETCH_PROXY_URL].filter(Boolean).join(",");
+  if (parsed?.raw === raw) return parsed.list;
+  const list: FetchProxy[] = [];
+  for (const part of raw.split(",").map((x) => x.trim()).filter(Boolean)) {
+    const m = part.match(/^([A-Za-z0-9_-]{1,12})=(https?:\/\/.+)$/);
+    const url = m ? m[2] : part;
+    if (!/^https?:\/\//.test(url) || list.some((p) => p.url === url)) continue;
+    let label = m?.[1];
+    if (!label) {
+      try {
+        label = `${new URL(url).port || "proxy"}`;
+      } catch {
+        continue;
+      }
+    }
+    list.push({ label, url });
+  }
+  parsed = { raw, list };
+  return list;
+}
+
+const agents = new Map<string, Dispatcher>();
+function agentFor(proxy: FetchProxy | null): Dispatcher | undefined {
+  if (!proxy) return undefined;
+  let a = agents.get(proxy.url);
+  if (!a) {
+    a = new ProxyAgent(proxy.url);
+    agents.set(proxy.url, a);
+  }
+  return a;
 }
 
 function isPrivateIp(ip: string): boolean {
@@ -54,7 +84,7 @@ export async function assertPublicUrl(raw: string): Promise<URL> {
   }
   // Through the foreign proxy, the proxy resolves names. Local DNS is skipped on purpose:
   // Iran's resolvers answer filtered domains with 10.10.34.x, which would look "private".
-  if (process.env.FETCH_PROXY_URL) return url;
+  if (fetchProxies().length) return url;
   const ips = (await dns.lookup(host, { all: true })).map((r) => r.address);
   if (!ips.length || ips.some(isPrivateIp)) throw new Error("private_host");
   return url;
@@ -71,10 +101,22 @@ export type SafeResponse = { url: string; status: number; contentType: string; b
 
 export async function safeFetch(
   raw: string,
-  opts: { maxBytes?: number; timeoutMs?: number; accept?: string } = {}
+  opts: {
+    maxBytes?: number;
+    timeoutMs?: number;
+    accept?: string;
+    /** A specific proxy, `null` for a direct request; default: the first configured proxy. */
+    proxy?: FetchProxy | null;
+    signal?: AbortSignal;
+  } = {}
 ): Promise<SafeResponse> {
   const maxBytes = opts.maxBytes ?? 2_500_000;
   const controller = new AbortController();
+  if (opts.signal) {
+    if (opts.signal.aborted) controller.abort();
+    else opts.signal.addEventListener("abort", () => controller.abort(), { once: true });
+  }
+  const proxy = opts.proxy === undefined ? (fetchProxies()[0] ?? null) : opts.proxy;
   const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? 12_000);
   try {
     let current = raw;
@@ -83,7 +125,7 @@ export async function safeFetch(
       const res = await undiciFetch(url, {
         redirect: "manual",
         signal: controller.signal,
-        dispatcher: dispatcher(),
+        dispatcher: agentFor(proxy),
         headers: opts.accept ? { ...BROWSER_HEADERS, Accept: opts.accept } : BROWSER_HEADERS,
       });
       if (res.status >= 300 && res.status < 400) {
