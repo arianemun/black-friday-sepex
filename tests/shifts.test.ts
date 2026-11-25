@@ -24,7 +24,7 @@ describe("migrations 4 and 5 on an existing v3 database", () => {
     const before = db.prepare("SELECT * FROM staff ORDER BY id").all();
 
     migrate(db);
-    expect(db.pragma("user_version", { simple: true })).toBe(5);
+    expect(db.pragma("user_version", { simple: true })).toBe(6);
     expect(db.prepare("SELECT * FROM staff ORDER BY id").all()).toEqual(before);
     expect(db.pragma("foreign_key_check")).toEqual([]);
     expect(db.prepare("SELECT staff_id FROM sessions").get()).toEqual({ staff_id: 2 });
@@ -114,5 +114,37 @@ describe("shifts and the 1-hour alert", () => {
     const ev = db.prepare("SELECT body, meta FROM request_events WHERE request_id = ? AND type = 'sms'").get(wait.id) as { body: string; meta: string };
     expect(ev.body).toBe("escalation");
     expect(JSON.parse(ev.meta).to).toHaveLength(3);
+  });
+});
+
+describe("training watch log", () => {
+  it("counts plays, keeps the furthest point, marks completion at 90%", async () => {
+    const { getDb } = await import("@/lib/db");
+    const { recordWatch, watchLog } = await import("@/lib/training");
+    const db = getDb();
+    const id = (db.prepare("SELECT id FROM staff WHERE username = 'ali'").get() as { id: number }).id;
+    recordWatch(id, "panel", 0, 200, true);
+    recordWatch(id, "panel", 120, 200, false);
+    recordWatch(id, "panel", 30, 200, true); // rewatching from the start doesn't lower progress
+    let row = watchLog().find((r) => r.staff_id === id && r.slug === "panel")!;
+    expect(row).toMatchObject({ plays: 2, max_position: 120, duration: 200, completed_at: null });
+    recordWatch(id, "panel", 185, 200, false);
+    row = watchLog().find((r) => r.staff_id === id && r.slug === "panel")!;
+    expect(row.completed_at).not.toBeNull();
+  });
+});
+
+describe("database backup", () => {
+  it("writes an integrity-checked copy and lists it", async () => {
+    const { runBackup, listBackups } = await import("@/lib/backup");
+    const r = await runBackup();
+    expect(r.ok).toBe(true);
+    const list = listBackups();
+    expect(list[0].file).toBe(r.file);
+    expect(fs.readdirSync(path.join(dir, "backups")).filter((f) => !f.endsWith(".db"))).toEqual([]);
+    const Database = (await import("better-sqlite3")).default;
+    const copy = new Database(path.join(dir, "backups", r.file!), { readonly: true });
+    expect((copy.prepare("SELECT COUNT(*) AS n FROM staff").get() as { n: number }).n).toBeGreaterThan(0);
+    copy.close();
   });
 });

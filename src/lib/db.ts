@@ -229,6 +229,19 @@ const migrations: Migration[] = [
   ALTER TABLE requests ADD COLUMN escalated_at TEXT;
   UPDATE requests SET escalated_at = created_at;
   `,
+  /* 6: who watched which training video, and how far. */ `
+  CREATE TABLE IF NOT EXISTS training_views (
+    staff_id INTEGER NOT NULL REFERENCES staff(id) ON DELETE CASCADE,
+    slug TEXT NOT NULL,
+    plays INTEGER NOT NULL DEFAULT 0,
+    max_position INTEGER NOT NULL DEFAULT 0,
+    duration INTEGER NOT NULL DEFAULT 0,
+    completed_at TEXT,
+    first_at TEXT NOT NULL,
+    last_at TEXT NOT NULL,
+    PRIMARY KEY (staff_id, slug)
+  );
+  `,
 ];
 
 /** Exported for tests; `upTo` lets a test build an older schema version. */

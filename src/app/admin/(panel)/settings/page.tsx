@@ -3,6 +3,7 @@ import { fetchProxies } from "@/lib/safe-fetch";
 import { getSettings } from "@/lib/settings";
 import { smsDryRun } from "@/lib/sms";
 import { loadSharp } from "@/lib/image";
+import { backupIntervalHours, listBackups } from "@/lib/backup";
 import { SettingsForm } from "@/components/admin/settings-form";
 import { PageHeader } from "@/components/admin/page-header";
 import { Badge } from "@/components/admin-ui";
@@ -16,6 +17,11 @@ function toTehranLocal(iso: string) {
   return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 16);
 }
 
+/** A backup is overdue once two intervals (plus an hour of slack) have passed. */
+function isFresh(at: Date | undefined) {
+  return !!at && Date.now() - at.getTime() < (backupIntervalHours() * 2 + 1) * 3_600_000;
+}
+
 export default async function SettingsPage() {
   await requireAdmin();
   const s = getSettings();
@@ -26,7 +32,13 @@ export default async function SettingsPage() {
     expertTemplate: !!process.env.SMSIR_EXPERT_TEMPLATE_ID,
     proxies: fetchProxies().map((p) => p.label),
     sharp: !!(await loadSharp()),
+    escalationTemplate: !!process.env.SMSIR_ESCALATION_TEMPLATE_ID,
   };
+  const backups = listBackups();
+  const lastBackup = backups[0];
+  const backupFresh = isFresh(lastBackup?.at);
+  const fa = (d: Date) =>
+    new Intl.DateTimeFormat("fa-IR-u-ca-persian", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tehran" }).format(d);
   return (
     <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] [&>*]:min-w-0">
       <div>
@@ -42,6 +54,13 @@ export default async function SettingsPage() {
             ["قالب پیامک کد تأیید", env.otpTemplate, "تنظیم شده", "تنظیم نشده"],
             ["قالب پیامک ثبت درخواست (مشتری)", env.customerTemplate, "تنظیم شده", "تنظیم نشده"],
             ["قالب پیامک درخواست جدید (کارشناس)", env.expertTemplate, "تنظیم شده", "تنظیم نشده"],
+            ["قالب پیامک هشدار یک‌ساعته", env.escalationTemplate, "تنظیم شده", "تنظیم نشده"],
+            [
+              `پشتیبان خودکار دیتابیس (هر ${new Intl.NumberFormat("fa-IR").format(backupIntervalHours())} ساعت)`,
+              backupFresh,
+              lastBackup ? `آخرین: ${fa(lastBackup.at)} · ${new Intl.NumberFormat("fa-IR").format(backups.length)} نسخه` : "",
+              lastBackup ? `آخرین نسخه قدیمی است: ${fa(lastBackup.at)}` : "هنوز نسخه‌ای گرفته نشده",
+            ],
             ["پراکسی خارج برای خواندن لینک‌ها", env.proxies.length > 0, `${env.proxies.length} پراکسی: ${env.proxies.join("، ")}`, "تنظیم نشده؛ بیشتر فروشگاه‌ها از ایران خوانده نمی‌شوند"],
             ["پردازش تصویر (sharp)", env.sharp, "فعال", "غیرفعال؛ عکس‌ها بدون فشرده‌سازی ذخیره می‌شوند"],
           ].map(([label, ok, yes, no]) => (

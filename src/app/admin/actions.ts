@@ -7,6 +7,7 @@ import { getDb, nowIso } from "@/lib/db";
 import { hashPassword, login, logout, requireAdmin, requireShiftManager, requireStaff } from "@/lib/auth";
 import { copyWeekForward, isDay, setShift, tehranDay } from "@/lib/shifts";
 import { parseRole } from "@/lib/roles";
+import { listTrainingVideos, recordWatch } from "@/lib/training";
 import { categories, countries, detectStore, extractUrl, statuses } from "@/lib/catalog";
 import { fetchLinkMeta } from "@/lib/link-meta";
 import { normalizeIranMobile } from "@/lib/phone";
@@ -268,6 +269,19 @@ export async function copyShiftWeekAction(start: string): Promise<ActionState> {
   copyWeekForward(start, me.id);
   revalidatePath("/admin/shifts");
   return { ok: true };
+}
+
+/* ---------------------------------------------------------------- training */
+
+/** Progress beacon from the training player. */
+export async function trainingProgressAction(slug: string, position: number, duration: number, started: boolean): Promise<void> {
+  const me = await requireStaff();
+  if (typeof slug !== "string" || !/^[a-z0-9][a-z0-9_-]{0,60}$/.test(slug)) return;
+  if (!listTrainingVideos().some((v) => v.slug === slug)) return;
+  const pos = Number(position);
+  const dur = Number(duration);
+  if (!Number.isFinite(pos) || !Number.isFinite(dur) || pos < 0 || dur < 0 || dur > 6 * 3600) return;
+  recordWatch(me.id, slug, Math.min(pos, dur || pos), dur, !!started);
 }
 
 /* ---------------------------------------------------------------- settings */
