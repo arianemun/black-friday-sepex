@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarClock, GraduationCap, Download, ExternalLink, Inbox, LayoutDashboard, LogOut, Menu, Search, Settings2, Tag, Users, X, type LucideIcon } from "lucide-react";
+import { Activity, CalendarClock, GraduationCap, Download, ExternalLink, Inbox, LayoutDashboard, LogOut, Menu, Search, Settings2, Tag, Users, X, type LucideIcon } from "lucide-react";
 import { logoutAction } from "@/app/admin/actions";
 import { IconButton, adminButtonVariants } from "@/components/admin-ui";
 import { cn } from "@/lib/utils";
-import { canManageShifts, roleLabels, type Role } from "@/lib/roles";
+import { canManageShifts, canViewInsights, roleLabels, type Role } from "@/lib/roles";
 
 /** Admin shell ported from Spinex: white 248px sidebar, sticky top bar, neutral zinc + blue. */
 
@@ -17,6 +17,7 @@ const NAV: NavItem[] = [
   { href: "/admin", label: "داشبورد", icon: LayoutDashboard, group: "work" },
   { href: "/admin/requests", label: "درخواست‌ها", icon: Inbox, group: "work" },
   { href: "/admin/products", label: "پیشنهادهای لندینگ", icon: Tag, group: "work" },
+  { href: "/admin/insights", label: "رفتار بازدیدکننده‌ها", icon: Activity, group: "work", only: canViewInsights },
   { href: "/admin/training", label: "آموزش‌ها", icon: GraduationCap, group: "work" },
   { href: "/admin/shifts", label: "شیفت‌بندی", icon: CalendarClock, group: "work", only: canManageShifts },
   { href: "/admin/staff", label: "کارشناس‌ها", icon: Users, group: "system", only: (r) => r === "admin" },

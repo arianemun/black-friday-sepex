@@ -1,4 +1,4 @@
-/** Background jobs for the Node server: the unattended-request alert and database backups. */
+/** Background jobs for the Node server: the unattended-request alert, database backups, old recordings. */
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
@@ -14,5 +14,19 @@ export async function register() {
     const tick = () => void backupIfDue();
     setTimeout(tick, 2 * 60_000).unref();
     setInterval(tick, 15 * 60_000).unref();
+  }
+
+  if (process.env.REC_DISABLED !== "1") {
+    const { pruneRecordings } = await import("./lib/rec/store");
+    const tick = () => {
+      try {
+        const n = pruneRecordings();
+        if (n) console.log(`[rec] removed ${n} old session(s)`);
+      } catch (e) {
+        console.error("[rec] prune failed:", (e as Error).message);
+      }
+    };
+    setTimeout(tick, 5 * 60_000).unref();
+    setInterval(tick, 6 * 3_600_000).unref();
   }
 }

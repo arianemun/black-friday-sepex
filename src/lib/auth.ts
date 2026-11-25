@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getDb } from "./db";
-import { canManageShifts, type Role } from "./roles";
+import { canManageShifts, canViewInsights, type Role } from "./roles";
 
 const COOKIE = "sbf_session";
 const SESSION_DAYS = 14;
@@ -95,6 +95,13 @@ export async function requireAdmin(): Promise<Staff> {
 export async function requireShiftManager(): Promise<Staff> {
   const staff = await requireStaff();
   if (!canManageShifts(staff.role)) redirect("/admin");
+  return staff;
+}
+
+/** Admins and supervisors: visitor behaviour dashboards. */
+export async function requireInsights(): Promise<Staff> {
+  const staff = await requireStaff();
+  if (!canViewInsights(staff.role)) redirect("/admin");
   return staff;
 }
 

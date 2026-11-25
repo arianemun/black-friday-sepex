@@ -242,6 +242,79 @@ const migrations: Migration[] = [
     PRIMARY KEY (staff_id, slug)
   );
   `,
+  /*
+   * 7: self-hosted session recording and behaviour analytics.
+   * Recording chunks live as files in DATA_DIR/recordings/<session>/; these tables hold what the
+   * dashboards query: sessions, page views (with scroll depth) and clicks (heatmaps, rage/dead clicks).
+   */ `
+  CREATE TABLE IF NOT EXISTS rec_sessions (
+    id TEXT PRIMARY KEY,
+    started_at TEXT NOT NULL,
+    last_at TEXT NOT NULL,
+    duration_ms INTEGER NOT NULL DEFAULT 0,
+    first_ts INTEGER,
+    last_ts INTEGER,
+    pages INTEGER NOT NULL DEFAULT 0,
+    entry_path TEXT,
+    exit_path TEXT,
+    referrer TEXT,
+    utm_source TEXT,
+    utm_medium TEXT,
+    utm_campaign TEXT,
+    device TEXT NOT NULL DEFAULT 'desktop',
+    os TEXT,
+    browser TEXT,
+    vw INTEGER,
+    vh INTEGER,
+    clicks INTEGER NOT NULL DEFAULT 0,
+    rage_clicks INTEGER NOT NULL DEFAULT 0,
+    dead_clicks INTEGER NOT NULL DEFAULT 0,
+    errors INTEGER NOT NULL DEFAULT 0,
+    max_scroll INTEGER NOT NULL DEFAULT 0,
+    reached_order INTEGER NOT NULL DEFAULT 0,
+    request_id INTEGER REFERENCES requests(id) ON DELETE SET NULL,
+    tracking_code TEXT,
+    chunks INTEGER NOT NULL DEFAULT 0,
+    bytes INTEGER NOT NULL DEFAULT 0,
+    ip_hash TEXT,
+    visitor_id TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_rec_sessions_visitor ON rec_sessions(visitor_id);
+  CREATE INDEX IF NOT EXISTS idx_rec_sessions_started ON rec_sessions(started_at);
+  CREATE INDEX IF NOT EXISTS idx_rec_sessions_request ON rec_sessions(request_id);
+  CREATE TABLE IF NOT EXISTS rec_pages (
+    session_id TEXT NOT NULL REFERENCES rec_sessions(id) ON DELETE CASCADE,
+    view INTEGER NOT NULL,
+    path TEXT NOT NULL,
+    ts INTEGER NOT NULL,
+    duration_ms INTEGER NOT NULL DEFAULT 0,
+    max_scroll INTEGER NOT NULL DEFAULT 0,
+    doc_h INTEGER,
+    PRIMARY KEY (session_id, view)
+  );
+  CREATE INDEX IF NOT EXISTS idx_rec_pages_path ON rec_pages(path, ts);
+  CREATE TABLE IF NOT EXISTS rec_clicks (
+    session_id TEXT NOT NULL REFERENCES rec_sessions(id) ON DELETE CASCADE,
+    path TEXT NOT NULL,
+    device TEXT NOT NULL,
+    ts INTEGER NOT NULL,
+    x INTEGER NOT NULL,
+    y INTEGER NOT NULL,
+    doc_w INTEGER NOT NULL,
+    doc_h INTEGER NOT NULL,
+    rage INTEGER NOT NULL DEFAULT 0,
+    dead INTEGER NOT NULL DEFAULT 0,
+    selector TEXT,
+    label TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_rec_clicks_path ON rec_clicks(path, device, ts);
+  CREATE TABLE IF NOT EXISTS rec_errors (
+    session_id TEXT NOT NULL REFERENCES rec_sessions(id) ON DELETE CASCADE,
+    path TEXT NOT NULL,
+    ts INTEGER NOT NULL,
+    message TEXT NOT NULL
+  );
+  `,
 ];
 
 /** Exported for tests; `upTo` lets a test build an older schema version. */

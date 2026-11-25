@@ -18,3 +18,6 @@ export function parseRole(v: unknown): Role {
 }
 
 export const canManageShifts = (role: Role) => role === "admin" || role === "supervisor";
+
+/** Admins and supervisors: visitor behaviour (recordings, heatmaps). */
+export const canViewInsights = (role: Role) => role === "admin" || role === "supervisor";

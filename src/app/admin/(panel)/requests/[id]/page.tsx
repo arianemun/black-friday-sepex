@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, CalendarClock, ExternalLink, FileText, Globe, Package, UserRound } from "lucide-react";
 import { requireStaff } from "@/lib/auth";
+import { canViewInsights } from "@/lib/roles";
 import { getDb } from "@/lib/db";
 import { listActiveStaff } from "@/lib/admin-queries";
 import { countryName, methods, storeByKey, type Method } from "@/lib/catalog";
@@ -43,6 +44,10 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const r = db.prepare("SELECT * FROM requests WHERE id = ?").get(id) as Req | undefined;
   if (!r) notFound();
   const items = db.prepare("SELECT * FROM request_items WHERE request_id = ? ORDER BY position").all(id) as Item[];
+  // The customer's recorded visit (self-hosted recordings), for admins and supervisors.
+  const recording = canViewInsights(me.role)
+    ? (db.prepare("SELECT id FROM rec_sessions WHERE request_id = ? OR tracking_code = ? ORDER BY started_at DESC LIMIT 1").get(id, r.tracking_code) as { id: string } | undefined)
+    : undefined;
   const files = db
     .prepare("SELECT u.id, u.mime, u.request_item_id FROM uploads u JOIN request_items i ON i.id = u.request_item_id WHERE i.request_id = ? ORDER BY u.created_at")
     .all(id) as { id: string; mime: string; request_item_id: number }[];
@@ -115,6 +120,16 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
                   {r.source === "sepex.net" || r.method === "form" ? `سایت سپکس${r.source_label ? `، ${r.source_label}` : ""}` : [r.utm_source, r.utm_medium, r.utm_campaign].filter(Boolean).join(" / ") || (r.referrer ? hostOf(r.referrer) : "مستقیم")}
                 </dd>
               </div>
+              {recording && (
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-[#71717A]">رفتار در سایت</dt>
+                  <dd>
+                    <Link href={`/admin/insights/sessions/${recording.id}`} className="font-semibold text-[#2563EB] hover:underline">
+                      دیدن ضبط جلسه
+                    </Link>
+                  </dd>
+                </div>
+              )}
             </dl>
           </Panel>
         </aside>

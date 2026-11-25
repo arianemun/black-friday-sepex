@@ -328,6 +328,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
       }
       clearDraft();
       setDone(data.trackingCode);
+      window.dispatchEvent(new CustomEvent("bf:order", { detail: { trackingCode: data.trackingCode } }));
       requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
     } catch {
       toast.error("ارتباط برقرار نشد. اینترنتت رو چک کن.");

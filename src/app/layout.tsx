@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { GoogleTagManagerHead, GoogleTagManagerNoScript } from "@/components/site/google-tag-manager";
 import { ClarityHead } from "@/components/site/clarity";
+import { SessionRecorder } from "@/components/site/session-recorder";
 import { Toaster } from "@/components/ui/sonner";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
@@ -61,6 +62,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <GoogleTagManagerNoScript />
         {children}
         <Toaster />
+        <SessionRecorder enabled={process.env.REC_DISABLED !== "1"} />
       </body>
     </html>
   );
