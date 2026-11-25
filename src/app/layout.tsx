@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { GoogleTagManagerHead, GoogleTagManagerNoScript } from "@/components/site/google-tag-manager";
+import { ClarityHead } from "@/components/site/clarity";
 import { Toaster } from "@/components/ui/sonner";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
@@ -54,6 +55,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="fa" dir="rtl" className={peyda.variable} suppressHydrationWarning>
       <head>
         <GoogleTagManagerHead />
+        <ClarityHead />
       </head>
       <body className="min-h-dvh bg-black font-sans">
         <GoogleTagManagerNoScript />
