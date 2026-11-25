@@ -315,6 +315,106 @@ const migrations: Migration[] = [
     message TEXT NOT NULL
   );
   `,
+  /*
+   * 8: analytics on top of recordings — engagement time, staff/bot flags, vitals, custom events,
+   * API calls, form fields, attention and mouse-move data, and notes for the team. Additive only.
+   */ `
+  ALTER TABLE rec_sessions ADD COLUMN active_ms INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE rec_sessions ADD COLUMN interactions INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE rec_sessions ADD COLUMN engaged INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE rec_sessions ADD COLUMN is_staff INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE rec_sessions ADD COLUMN return_visit INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE rec_sessions ADD COLUMN current_path TEXT;
+  ALTER TABLE rec_sessions ADD COLUMN utm_term TEXT;
+  ALTER TABLE rec_sessions ADD COLUMN lang TEXT;
+  ALTER TABLE rec_sessions ADD COLUMN tz TEXT;
+  ALTER TABLE rec_sessions ADD COLUMN conn TEXT;
+  ALTER TABLE rec_sessions ADD COLUMN sw INTEGER;
+  ALTER TABLE rec_sessions ADD COLUMN sh INTEGER;
+  ALTER TABLE rec_sessions ADD COLUMN dpr REAL;
+  ALTER TABLE rec_sessions ADD COLUMN events INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE rec_sessions ADD COLUMN net_errors INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE rec_sessions ADD COLUMN quick_backs INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE rec_sessions ADD COLUMN lcp INTEGER;
+  ALTER TABLE rec_sessions ADD COLUMN inp INTEGER;
+  ALTER TABLE rec_sessions ADD COLUMN cls REAL;
+  ALTER TABLE rec_sessions ADD COLUMN fcp INTEGER;
+  ALTER TABLE rec_sessions ADD COLUMN ttfb INTEGER;
+  ALTER TABLE rec_sessions ADD COLUMN watched_by INTEGER REFERENCES staff(id) ON DELETE SET NULL;
+  ALTER TABLE rec_sessions ADD COLUMN watched_at TEXT;
+  ALTER TABLE rec_sessions ADD COLUMN note TEXT;
+  ALTER TABLE rec_sessions ADD COLUMN starred INTEGER NOT NULL DEFAULT 0;
+  CREATE INDEX IF NOT EXISTS idx_rec_sessions_last ON rec_sessions(last_at);
+
+  ALTER TABLE rec_pages ADD COLUMN active_ms INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE rec_pages ADD COLUMN scroll_dist INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE rec_pages ADD COLUMN interactions INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE rec_pages ADD COLUMN attention TEXT;
+  ALTER TABLE rec_pages ADD COLUMN title TEXT;
+  ALTER TABLE rec_pages ADD COLUMN quick_back INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE rec_pages ADD COLUMN lcp INTEGER;
+  ALTER TABLE rec_pages ADD COLUMN inp INTEGER;
+  ALTER TABLE rec_pages ADD COLUMN cls REAL;
+  ALTER TABLE rec_pages ADD COLUMN fcp INTEGER;
+  ALTER TABLE rec_pages ADD COLUMN ttfb INTEGER;
+
+  ALTER TABLE rec_clicks ADD COLUMN interactive INTEGER NOT NULL DEFAULT 1;
+  ALTER TABLE rec_clicks ADD COLUMN el TEXT;
+  ALTER TABLE rec_clicks ADD COLUMN ox INTEGER;
+  ALTER TABLE rec_clicks ADD COLUMN oy INTEGER;
+
+  ALTER TABLE rec_errors ADD COLUMN source TEXT NOT NULL DEFAULT 'own';
+  ALTER TABLE rec_errors ADD COLUMN stack TEXT;
+  -- Recorded before this version: opaque third-party errors and WebView noise.
+  UPDATE rec_errors SET source = 'ext' WHERE message LIKE 'Script error.%' OR message LIKE '%Java object is gone%';
+
+  CREATE TABLE IF NOT EXISTS rec_events (
+    session_id TEXT NOT NULL REFERENCES rec_sessions(id) ON DELETE CASCADE,
+    ts INTEGER NOT NULL,
+    path TEXT NOT NULL,
+    name TEXT NOT NULL,
+    props TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_rec_events_name ON rec_events(name, ts);
+  CREATE INDEX IF NOT EXISTS idx_rec_events_session ON rec_events(session_id);
+  CREATE INDEX IF NOT EXISTS idx_rec_events_ts ON rec_events(ts);
+
+  CREATE TABLE IF NOT EXISTS rec_net (
+    session_id TEXT NOT NULL REFERENCES rec_sessions(id) ON DELETE CASCADE,
+    ts INTEGER NOT NULL,
+    path TEXT NOT NULL,
+    url TEXT NOT NULL,
+    method TEXT NOT NULL,
+    status INTEGER NOT NULL,
+    ms INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_rec_net_url ON rec_net(url, ts);
+
+  CREATE TABLE IF NOT EXISTS rec_fields (
+    session_id TEXT NOT NULL REFERENCES rec_sessions(id) ON DELETE CASCADE,
+    ts INTEGER NOT NULL,
+    path TEXT NOT NULL,
+    form TEXT NOT NULL,
+    field TEXT NOT NULL,
+    ms INTEGER NOT NULL,
+    filled INTEGER NOT NULL,
+    changed INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_rec_fields_field ON rec_fields(path, field);
+
+  CREATE TABLE IF NOT EXISTS rec_moves (
+    session_id TEXT NOT NULL REFERENCES rec_sessions(id) ON DELETE CASCADE,
+    path TEXT NOT NULL,
+    doc_w INTEGER NOT NULL,
+    doc_h INTEGER NOT NULL,
+    pts TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_rec_moves_path ON rec_moves(path);
+
+  -- Earlier sessions: estimate engagement the GA4 way from what was recorded.
+  UPDATE rec_sessions SET active_ms = MIN(duration_ms, 60000 * pages), interactions = clicks,
+    engaged = CASE WHEN duration_ms >= 10000 OR pages >= 2 OR tracking_code IS NOT NULL THEN 1 ELSE 0 END;
+  `,
 ];
 
 /** Exported for tests; `upTo` lets a test build an older schema version. */

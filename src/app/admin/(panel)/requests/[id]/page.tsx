@@ -15,6 +15,8 @@ import { StatusBadge } from "@/components/admin/status-badge";
 import { ActivityLog, type LogEvent } from "@/components/admin/activity-log";
 import { ContactButtons, CopyCode, ItemImage } from "@/components/admin/request-contact";
 import { logView } from "@/lib/events";
+import { sessionsForRequest } from "@/lib/rec/insights";
+import { fmtDuration } from "@/components/admin/insights/insights-nav";
 
 export const metadata = { title: "جزئیات درخواست" };
 
@@ -45,9 +47,8 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   if (!r) notFound();
   const items = db.prepare("SELECT * FROM request_items WHERE request_id = ? ORDER BY position").all(id) as Item[];
   // The customer's recorded visit (self-hosted recordings), for admins and supervisors.
-  const recording = canViewInsights(me.role)
-    ? (db.prepare("SELECT id FROM rec_sessions WHERE request_id = ? OR tracking_code = ? ORDER BY started_at DESC LIMIT 1").get(id, r.tracking_code) as { id: string } | undefined)
-    : undefined;
+  // All visits of the browser that placed the order, newest first (the one with the order is marked).
+  const visits = canViewInsights(me.role) ? sessionsForRequest(id, r.tracking_code) : [];
   const files = db
     .prepare("SELECT u.id, u.mime, u.request_item_id FROM uploads u JOIN request_items i ON i.id = u.request_item_id WHERE i.request_id = ? ORDER BY u.created_at")
     .all(id) as { id: string; mime: string; request_item_id: number }[];
@@ -120,13 +121,20 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
                   {r.source === "sepex.net" || r.method === "form" ? `سایت سپکس${r.source_label ? `، ${r.source_label}` : ""}` : [r.utm_source, r.utm_medium, r.utm_campaign].filter(Boolean).join(" / ") || (r.referrer ? hostOf(r.referrer) : "مستقیم")}
                 </dd>
               </div>
-              {recording && (
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-[#71717A]">رفتار در سایت</dt>
-                  <dd>
-                    <Link href={`/admin/insights/sessions/${recording.id}`} className="font-semibold text-[#2563EB] hover:underline">
-                      دیدن ضبط جلسه
-                    </Link>
+              {visits.length > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  <dt className="text-[#71717A]">رفتار در سایت{visits.length > 1 ? ` (${toFaDigits(visits.length)} بازدید)` : ""}</dt>
+                  <dd className="flex flex-col gap-1">
+                    {visits.map((v) => (
+                      <Link
+                        key={v.id}
+                        href={`/admin/insights/sessions/${v.id}`}
+                        className="flex items-center justify-between gap-2 rounded-md text-[12px] text-[#2563EB] hover:underline"
+                      >
+                        <span className="font-semibold">{v.tracking_code === r.tracking_code ? "جلسه‌ی ثبت سفارش" : formatFaDateTime(v.started_at)}</span>
+                        <span className="shrink-0 text-[#71717A]">{fmtDuration(v.active_ms)}</span>
+                      </Link>
+                    ))}
                   </dd>
                 </div>
               )}

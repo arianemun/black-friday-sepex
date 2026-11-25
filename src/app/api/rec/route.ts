@@ -1,7 +1,8 @@
 import { headers } from "next/headers";
+import { getCurrentStaff } from "@/lib/auth";
 import { getClientIp } from "@/lib/request-info";
 import { MAX_BODY, SID_RE } from "@/lib/rec/protocol";
-import { decodeBatch, ingest, isBot } from "@/lib/rec/store";
+import { decodeBatch, ingest, isBot, sessionExists } from "@/lib/rec/store";
 
 /**
  * Receives recorder batches from the public site. Always answers 204 for well-formed requests
@@ -30,7 +31,9 @@ export async function POST(req: Request) {
 
   const h = await headers();
   const ua = h.get("user-agent") ?? "";
-  if (isBot(ua)) return new Response(null, { status: 204 });
+  // Bot-or-not is decided when the session starts: some browsers send uploads made while the
+  // page unloads with a different (default) user agent.
+  if (isBot(ua) && !sessionExists(sid)) return new Response(null, { status: 204 });
   const ip = await getClientIp();
   if (!allowed(ip)) return new Response(null, { status: 429 });
 
@@ -41,8 +44,10 @@ export async function POST(req: Request) {
 
   const batch = decodeBatch(body);
   if (!batch) return new Response(null, { status: 400 });
+  // Staff browsing the site while signed in are recorded but kept out of the statistics.
+  const staff = seq === 0 || batch.meta ? await getCurrentStaff().catch(() => null) : null;
   try {
-    ingest(sid, seq, body, batch, ua, ip);
+    ingest(sid, seq, body, batch, ua, ip, !!staff);
   } catch (e) {
     console.error("[rec] ingest failed:", (e as Error).message);
   }

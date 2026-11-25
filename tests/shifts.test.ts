@@ -24,7 +24,7 @@ describe("migrations 4 and 5 on an existing v3 database", () => {
     const before = db.prepare("SELECT * FROM staff ORDER BY id").all();
 
     migrate(db);
-    expect(db.pragma("user_version", { simple: true })).toBe(7);
+    expect(db.pragma("user_version", { simple: true })).toBe(8);
     expect(db.prepare("SELECT * FROM staff ORDER BY id").all()).toEqual(before);
     expect(db.pragma("foreign_key_check")).toEqual([]);
     expect(db.prepare("SELECT staff_id FROM sessions").get()).toEqual({ staff_id: 2 });

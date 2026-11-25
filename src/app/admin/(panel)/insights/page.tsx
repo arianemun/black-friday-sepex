@@ -1,254 +1,152 @@
 import Link from "next/link";
 import { requireInsights } from "@/lib/auth";
-import { byDevice, byPage, bySource, overview, parseRange, problemElements, sinceIso, timeline, topErrors } from "@/lib/rec/insights";
+import {
+  byChannel,
+  byLanding,
+  excessiveScroll,
+  orderFunnel,
+  pagesReport,
+  parseScope,
+  problemElements,
+  scopeQuery,
+  series,
+  sourceOptions,
+  techBreakdown,
+  totals,
+} from "@/lib/rec/analytics";
 import { KpiCard, PageHeader, Panel } from "@/components/admin/page-header";
-import { InsightsNav, deviceLabel, fmtDuration, pageLabel } from "@/components/admin/insights/insights-nav";
-import { AdminTable, AdminTd, AdminTh, AdminTHead, AdminTr } from "@/components/admin-ui";
+import { Delta, InsightsNav, ShareList, deviceLabel, fa, fmtDuration, pageLabel, pct } from "@/components/admin/insights/insights-nav";
+import { BarSeries } from "@/components/admin/insights/bar-series";
+import { ProblemList } from "@/components/admin/insights/problem-list";
 import { toFaDigits } from "@/lib/utils";
 
 export const metadata = { title: "رفتار بازدیدکننده‌ها" };
 export const dynamic = "force-dynamic";
 
-const fa = (n: number) => toFaDigits(Math.round(n));
-const pct = (part: number, whole: number) => (whole ? `${toFaDigits(Math.round((part / whole) * 100))}٪` : "—");
-
-function bucketLabel(b: string, hourly: boolean) {
-  if (hourly) return toFaDigits(Number(b.slice(11, 13)));
-  const d = new Date(`${b}T12:00:00Z`);
-  return new Intl.DateTimeFormat("fa-IR", { month: "2-digit", day: "2-digit", timeZone: "UTC" }).format(d);
-}
-
-export default async function InsightsPage({ searchParams }: { searchParams: Promise<{ d?: string }> }) {
+export default async function InsightsOverview({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   await requireInsights();
-  const range = parseRange((await searchParams).d);
-  const since = sinceIso(range);
-  const o = overview(since);
-  const series = timeline(range, since);
-  const max = Math.max(1, ...series.map((s) => s.sessions));
-  const devices = byDevice(since);
-  const sources = bySource(since);
-  const pages = byPage(since);
-  const rage = problemElements(since, "rage");
-  const dead = problemElements(since, "dead");
-  const errors = topErrors(since);
-  const q = `d=${range}`;
+  const scope = parseScope(await searchParams);
+  const q = scopeQuery(scope);
+  const t = totals(scope);
+  const p = totals(scope, true);
+  const s = series(scope);
+  const funnel = orderFunnel(scope);
+  const channels = byChannel(scope);
+  const landing = byLanding(scope).slice(0, 6);
+  const devices = techBreakdown(scope, "device");
+  const pages = pagesReport(scope).slice(0, 6);
+  const rage = problemElements(scope, "rage").slice(0, 5);
+  const dead = problemElements(scope, "dead").slice(0, 5);
+  const excessive = excessiveScroll(scope);
+  const engagedRate = t.sessions ? t.engaged / t.sessions : 0;
+  const prevEngagedRate = p.sessions ? p.engaged / p.sessions : 0;
 
   return (
     <>
-      <PageHeader title="رفتار بازدیدکننده‌ها" description="بازدیدکننده‌ها در سایت چه می‌کنند، کجا گیر می‌کنند و چند نفرشان به ثبت سفارش می‌رسند." />
-      <InsightsNav active="overview" range={range} />
+      <PageHeader title="رفتار بازدیدکننده‌ها" description="چه کسانی از کجا می‌آیند، در سایت چه می‌کنند، کجا گیر می‌کنند و چند نفرشان سفارش ثبت می‌کنند." />
+      <InsightsNav active="overview" scope={scope} sources={sourceOptions(scope)} />
 
-      {o.sessions === 0 ? (
+      {t.sessions === 0 ? (
         <Panel>
-          <p className="py-16 text-center text-sm text-[#71717A]">در این بازه هنوز جلسه‌ای ضبط نشده است.</p>
+          <p className="py-16 text-center text-sm text-[#71717A]">در این بازه جلسه‌ای ثبت نشده است.</p>
         </Panel>
       ) : (
         <div className="flex flex-col gap-5">
           <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-            <KpiCard label="جلسه‌ها" value={fa(o.sessions)} hint={`${fa(o.visitors)} بازدیدکننده`} />
-            <KpiCard label="میانگین ماندن" value={fmtDuration(o.avgMs)} hint={`${toFaDigits(o.pages.toFixed(1))} صفحه در هر جلسه`} />
-            <KpiCard
-              label="ثبت سفارش"
-              value={fa(o.orders)}
-              hintTone={o.orders ? "good" : "muted"}
-              hint={`نرخ تبدیل ${pct(o.orders, o.sessions)}`}
-            />
-            <KpiCard
-              label="خروج سریع"
-              value={pct(o.bounces, o.sessions)}
-              hintTone={o.bounces / Math.max(1, o.sessions) > 0.5 ? "bad" : "muted"}
-              hint="یک صفحه و کمتر از ۱۰ ثانیه"
-            />
+            <KpiCard label="کاربران" value={fa(t.users)} hint={<Delta now={t.users} prev={p.users} />} />
+            <KpiCard label="کاربران جدید" value={fa(t.newUsers)} hint={`${pct(t.newUsers, t.users)} از کاربران، ${fa(t.sessions)} جلسه`} />
+            <KpiCard label="نرخ تعامل" value={pct(t.engaged, t.sessions)} hint={<Delta now={engagedRate} prev={prevEngagedRate} />} />
+            <KpiCard label="میانگین زمان فعال" value={fmtDuration(t.activeMs)} hint={<Delta now={t.activeMs} prev={p.activeMs} />} />
+            <KpiCard label="سفارش ثبت‌شده" value={fa(t.orders)} hint={<Delta now={t.orders} prev={p.orders} />} />
+            <KpiCard label="نرخ تبدیل" value={pct(t.orders, t.sessions)} hint={`از ${fa(t.sessions)} جلسه`} hintTone={t.orders ? "good" : "muted"} />
+            <KpiCard label="رسیدن به فرم سفارش" value={pct(t.reached, t.sessions)} hint={`${fa(t.reached)} جلسه`} />
+            <KpiCard label="صفحه در هر جلسه" value={fa(t.pages, 1)} hint={`اسکرول میانگین ${fa(t.scroll)}٪`} />
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <Panel title={range === 1 ? "جلسه‌ها در ۲۴ ساعت اخیر" : `جلسه‌ها در ${toFaDigits(range)} روز اخیر`} className="lg:col-span-2">
-              <div className="flex h-[200px] items-end gap-[3px] border-b border-[#E4E4E7] px-1" role="img" aria-label="نمودار تعداد جلسه‌ها">
-                {series.map((s) => (
-                  <div key={s.bucket} className="group relative flex h-full min-w-0 flex-1 items-end">
-                    <div
-                      className="w-full rounded-t-[4px] bg-[#2563EB] transition-colors group-hover:bg-[#1D4ED8]"
-                      style={{ height: `${s.sessions ? Math.max(2, Math.round((s.sessions / max) * 100)) : 0}%` }}
-                    />
-                    <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-[#18181B] px-2 py-1 text-[11px] text-white group-hover:block">
-                      {fa(s.sessions)} جلسه، {fa(s.orders)} سفارش
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex gap-[3px] px-1 text-[10px] text-[#71717A]">
-                {series.map((s, i) => (
-                  <span key={s.bucket} className="min-w-0 flex-1 truncate text-center">
-                    {range === 30 && i % 3 !== 0 ? "" : bucketLabel(s.bucket, range === 1)}
-                  </span>
-                ))}
-              </div>
-            </Panel>
-
-            <Panel title="قیف تبدیل">
-              <Funnel
-                steps={[
-                  { label: "ورود به سایت", value: o.sessions },
-                  { label: "رسیدن به فرم سفارش", value: o.reached },
-                  { label: "ثبت سفارش", value: o.orders },
-                ]}
+            <Panel title={s.hourly ? "جلسه‌ها، ساعت به ساعت" : "جلسه‌ها، روز به روز"} className="lg:col-span-2">
+              <BarSeries
+                hourly={s.hourly}
+                legend={["جلسه", "سفارش"]}
+                rows={s.rows.map((r) => ({ b: r.b, value: r.sessions, sub: r.orders, tip: `${toFaDigits(r.sessions)} جلسه، ${toFaDigits(r.users)} کاربر، ${toFaDigits(r.orders)} سفارش` }))}
               />
-              <Link href={`/admin/insights/sessions?${q}&outcome=reached`} className="mt-auto text-xs font-semibold text-[#2563EB] hover:underline">
-                ضبط کسانی که به فرم رسیدند ولی سفارش ندادند
+            </Panel>
+            <Panel title="قیف سفارش">
+              <ol className="flex flex-col gap-3">
+                {funnel.map((f, i) => (
+                  <li key={f.key} className="flex flex-col gap-1.5">
+                    <div className="flex justify-between gap-2 text-[13px]">
+                      <span className="truncate">{f.label}</span>
+                      <span className="shrink-0">
+                        <span className="font-bold">{fa(f.value)}</span>
+                        {i > 0 && <span className="text-[11px] text-[#71717A]"> {pct(f.value, funnel[i - 1].value)}</span>}
+                      </span>
+                    </div>
+                    <div className="h-2 rounded-full bg-[#F4F4F5]">
+                      <div className="h-full rounded-full bg-[#2563EB]" style={{ width: `${funnel[0].value ? (f.value / funnel[0].value) * 100 : 0}%` }} />
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              <Link href={`/admin/insights/funnel?${q}`} className="mt-auto text-xs font-semibold text-[#2563EB] hover:underline">
+                جزئیات قیف و فیلدهای فرم
               </Link>
             </Panel>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-            <SignalCard label="کلیک‌های عصبی" value={o.rage} total={o.sessions} href={`/admin/insights/sessions?${q}&issue=rage`} hint="چند کلیک پشت‌سرهم روی یک نقطه" />
-            <SignalCard label="کلیک بی‌اثر" value={o.dead} total={o.sessions} href={`/admin/insights/sessions?${q}&issue=dead`} hint="کلیک روی چیزی که کاری نکرد" />
-            <SignalCard label="خطای صفحه" value={o.errors} total={o.sessions} href={`/admin/insights/sessions?${q}&issue=error`} hint="خطای جاوااسکریپت در مرورگر" />
-            <KpiCard label="میانگین اسکرول" value={`${fa(o.scroll)}٪`} hint="از ارتفاع صفحه دیده شده" />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Panel title="منبع ورود">
-              <AdminTable>
-                <AdminTHead>
-                  <tr>
-                  <AdminTh>منبع</AdminTh>
-                  <AdminTh className="text-left">جلسه</AdminTh>
-                  <AdminTh className="text-left">به فرم رسید</AdminTh>
-                  <AdminTh className="text-left">سفارش</AdminTh>
-                  </tr>
-                </AdminTHead>
-                <tbody>
-                  {sources.map((s) => (
-                    <AdminTr key={`${s.source}|${s.detail}`}>
-                      <AdminTd>
-                        <div className="font-semibold">{s.source}</div>
-                        {s.detail && <div className="text-[11px] text-[#71717A]">{s.detail}</div>}
-                      </AdminTd>
-                      <AdminTd className="text-left">{fa(s.sessions)}</AdminTd>
-                      <AdminTd className="text-left">{pct(s.reached, s.sessions)}</AdminTd>
-                      <AdminTd className="text-left font-bold">{fa(s.orders)}</AdminTd>
-                    </AdminTr>
-                  ))}
-                </tbody>
-              </AdminTable>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <Panel title="کانال ورود">
+              <ShareList total={t.sessions} rows={channels.slice(0, 7).map((c) => ({ key: c.key, label: c.key, value: c.sessions, hint: `، ${fa(c.orders)} سفارش` }))} />
+              <Link href={`/admin/insights/acquisition?${q}`} className="mt-auto text-xs font-semibold text-[#2563EB] hover:underline">
+                منبع، کمپین و صفحه‌ی ورود
+              </Link>
             </Panel>
-
             <Panel title="دستگاه">
-              <div className="flex flex-col gap-3.5">
-                {devices.map((d) => (
-                  <Link key={d.device} href={`/admin/insights/sessions?${q}&device=${d.device}`} className="group flex flex-col gap-1.5">
-                    <div className="flex justify-between text-[13px]">
-                      <span className="group-hover:text-[#2563EB]">{deviceLabel[d.device] ?? d.device}</span>
-                      <span>
-                        <span className="font-bold">{fa(d.sessions)}</span>
-                        <span className="text-[#71717A]">
-                          {" "}
-                          جلسه، {fa(d.orders)} سفارش، میانگین {fmtDuration(d.avg_ms ?? 0)}
-                        </span>
-                      </span>
-                    </div>
-                    <div className="h-2 rounded-full bg-[#F4F4F5]">
-                      <div className="h-full rounded-full bg-[#18181B]" style={{ width: `${(d.sessions / o.sessions) * 100}%` }} />
-                    </div>
-                  </Link>
-                ))}
-              </div>
+              <ShareList
+                total={t.sessions}
+                rows={devices.map((d) => ({ key: d.value, label: deviceLabel[d.value] ?? d.value, value: d.sessions, hint: `، تعامل ${pct(d.engaged, d.sessions)}` }))}
+                href={(k) => `/admin/insights?${scopeQuery({ ...scope, device: k })}`}
+              />
+            </Panel>
+            <Panel title="صفحه‌ی ورود">
+              <ShareList total={t.sessions} rows={landing.map((l) => ({ key: l.key, label: pageLabel(l.key), value: l.sessions, hint: `، ${fa(l.orders)} سفارش` }))} />
             </Panel>
           </div>
 
-          <Panel title="صفحه‌ها">
-            <AdminTable>
-              <AdminTHead>
-                <tr>
-                <AdminTh>صفحه</AdminTh>
-                <AdminTh className="text-left">بازدید</AdminTh>
-                <AdminTh className="text-left">میانگین ماندن</AdminTh>
-                <AdminTh className="text-left">میانگین اسکرول</AdminTh>
-                <AdminTh className="text-left">خروج از سایت</AdminTh>
-                <AdminTh className="text-left">کلیک عصبی</AdminTh>
-                <AdminTh className="text-left">کلیک بی‌اثر</AdminTh>
-                <AdminTh />
-                </tr>
-              </AdminTHead>
-              <tbody>
-                {pages.map((p) => (
-                  <AdminTr key={p.path}>
-                    <AdminTd>
-                      <div className="font-semibold">{pageLabel(p.path)}</div>
-                      <div className="text-[11px] text-[#71717A]" dir="ltr">
-                        {p.path}
-                      </div>
-                    </AdminTd>
-                    <AdminTd className="text-left">{fa(p.views)}</AdminTd>
-                    <AdminTd className="text-left">{fmtDuration(p.avg_ms)}</AdminTd>
-                    <AdminTd className="text-left">{fa(p.scroll)}٪</AdminTd>
-                    <AdminTd className="text-left">{pct(p.exits, p.views)}</AdminTd>
-                    <AdminTd className="text-left">{fa(p.rage)}</AdminTd>
-                    <AdminTd className="text-left">{fa(p.dead)}</AdminTd>
-                    <AdminTd className="text-left">
-                      <Link href={`/admin/insights/heatmaps?${q}&path=${encodeURIComponent(p.path)}`} className="text-xs font-semibold text-[#2563EB] hover:underline">
-                        هیت‌مپ
-                      </Link>
-                    </AdminTd>
-                  </AdminTr>
-                ))}
-              </tbody>
-            </AdminTable>
-          </Panel>
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <ProblemList title="جاهایی که کلیک عصبی خورده‌اند" empty="کلیک عصبی ثبت نشده است." rows={rage} q={q} />
-            <ProblemList title="کلیک‌های بی‌اثر" empty="کلیک بی‌اثری ثبت نشده است." rows={dead} q={q} />
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5">
+            <Signal label="کلیک عصبی" value={t.rage} total={t.sessions} href={`/admin/insights/sessions?${q}&issue=rage`} hint="چند کلیک پشت‌سرهم روی یک نقطه" />
+            <Signal label="کلیک بی‌اثر" value={t.dead} total={t.sessions} href={`/admin/insights/sessions?${q}&issue=dead`} hint="روی چیزی شبیه دکمه که کاری نکرد" />
+            <Signal label="برگشت سریع" value={t.quickBacks} total={t.sessions} href={`/admin/insights/sessions?${q}&issue=quickback`} hint="کمتر از ۵ ثانیه و برگشت" />
+            <Signal label="اسکرول بی‌هدف" value={excessive} total={t.sessions} href={`/admin/insights/sessions?${q}&issue=scroll`} hint="بالا و پایین زیاد، بدون کلیک" />
+            <Signal label="خطای سایت یا شبکه" value={Math.max(t.errors, t.netErrors)} total={t.sessions} href={`/admin/insights/errors?${q}`} hint="خطا یا درخواست ناموفق" />
           </div>
 
-          {errors.length > 0 && (
-            <Panel title="خطاهای مرورگر">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <Panel title="صفحه‌ها">
               <ul className="flex flex-col divide-y divide-[#F4F4F5]">
-                {errors.map((e) => (
-                  <li key={e.message} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
-                    <code className="min-w-0 flex-1 truncate text-xs text-[#B91C1C]" dir="ltr">
-                      {e.message}
-                    </code>
-                    <span className="text-xs text-[#71717A]">
-                      {fa(e.sessions)} جلسه، {pageLabel(e.path)}
+                {pages.map((pg) => (
+                  <li key={pg.path} className="flex items-center justify-between gap-2 py-2 text-[13px]">
+                    <span className="truncate">{pageLabel(pg.path)}</span>
+                    <span className="shrink-0 text-[12px] text-[#71717A]">
+                      <span className="font-bold text-[#18181B]">{fa(pg.views)}</span> بازدید، {fmtDuration(pg.active_ms)}
                     </span>
-                    <Link href={`/admin/insights/sessions/${e.sample}`} className="text-xs font-semibold text-[#2563EB] hover:underline">
-                      دیدن یک نمونه
-                    </Link>
                   </li>
                 ))}
               </ul>
+              <Link href={`/admin/insights/engagement?${q}`} className="mt-auto text-xs font-semibold text-[#2563EB] hover:underline">
+                همه‌ی صفحه‌ها و رویدادها
+              </Link>
             </Panel>
-          )}
+            <ProblemList title="کلیک عصبی روی…" rows={rage} q={q} />
+            <ProblemList title="کلیک بی‌اثر روی…" rows={dead} q={q} />
+          </div>
         </div>
       )}
     </>
   );
 }
 
-function Funnel({ steps }: { steps: { label: string; value: number }[] }) {
-  const top = Math.max(1, steps[0].value);
-  return (
-    <ol className="flex flex-col gap-3">
-      {steps.map((s, i) => (
-        <li key={s.label} className="flex flex-col gap-1.5">
-          <div className="flex justify-between text-[13px]">
-            <span>{s.label}</span>
-            <span>
-              <span className="font-bold">{fa(s.value)}</span>
-              {i > 0 && <span className="text-[#71717A]"> ({pct(s.value, steps[i - 1].value)} از مرحله‌ی قبل)</span>}
-            </span>
-          </div>
-          <div className="h-2.5 rounded-full bg-[#F4F4F5]">
-            <div className="h-full rounded-full bg-[#2563EB]" style={{ width: `${(s.value / top) * 100}%` }} />
-          </div>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-function SignalCard({ label, value, total, href, hint }: { label: string; value: number; total: number; href: string; hint: string }) {
+function Signal({ label, value, total, href, hint }: { label: string; value: number; total: number; href: string; hint: string }) {
   return (
     <Link href={href} className="group rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-[#DBEAFE]">
       <KpiCard
@@ -257,49 +155,10 @@ function SignalCard({ label, value, total, href, hint }: { label: string; value:
         hintTone={value ? "bad" : "good"}
         hint={
           <>
-            {fa(value)} جلسه · <span className="font-normal text-[#71717A] group-hover:text-[#2563EB]">{hint}</span>
+            {fa(value)} جلسه، <span className="font-normal text-[#71717A] group-hover:text-[#2563EB]">{hint}</span>
           </>
         }
       />
     </Link>
-  );
-}
-
-function ProblemList({
-  title,
-  empty,
-  rows,
-  q,
-}: {
-  title: string;
-  empty: string;
-  rows: { path: string; label: string; clicks: number; sessions: number; sample: string }[];
-  q: string;
-}) {
-  return (
-    <Panel title={title}>
-      {rows.length === 0 ? (
-        <p className="py-6 text-center text-sm text-[#71717A]">{empty}</p>
-      ) : (
-        <ul className="flex flex-col divide-y divide-[#F4F4F5]">
-          {rows.map((r) => (
-            <li key={`${r.path}|${r.label}`} className="flex items-center gap-3 py-2.5">
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[13px] font-semibold text-[#18181B]">«{r.label}»</div>
-                <div className="text-[11px] text-[#71717A]">
-                  {pageLabel(r.path)} · {fa(r.sessions)} جلسه، {fa(r.clicks)} بار
-                </div>
-              </div>
-              <Link href={`/admin/insights/heatmaps?${q}&path=${encodeURIComponent(r.path)}`} className="text-xs font-semibold text-[#71717A] hover:text-[#2563EB]">
-                هیت‌مپ
-              </Link>
-              <Link href={`/admin/insights/sessions/${r.sample}`} className="text-xs font-semibold text-[#2563EB] hover:underline">
-                نمونه
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Panel>
   );
 }

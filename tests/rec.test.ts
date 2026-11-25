@@ -66,7 +66,9 @@ describe("session recording storage", () => {
       visitor_id: "visitorvisitorvisitor01",
     });
     expect(s.request_id).toBe((db.prepare("SELECT id FROM requests WHERE tracking_code = 'BF-REC001'").get() as { id: number }).id);
-    expect(loadEvents(SID)).toHaveLength(3);
+    expect(loadEvents(SID).events).toHaveLength(3);
+    expect(loadEvents(SID, 0)).toMatchObject({ lastSeq: 1 });
+    expect(loadEvents(SID, 0).events).toHaveLength(1);
   });
 
   it("rejects garbage and ignores bots", async () => {
@@ -78,13 +80,123 @@ describe("session recording storage", () => {
     expect(isBot(UA)).toBe(false);
   });
 
+  it("stores events, vitals, network calls, fields, quick backs and moves; computes engagement", async () => {
+    const { getDb } = await import("@/lib/db");
+    const { decodeBatch, ingest } = await import("@/lib/rec/store");
+    const db = getDb();
+    const t0 = 1_700_000_100_000;
+    const b2 = {
+      v: 1,
+      events: [{ type: 3, data: {}, timestamp: t0 }],
+      a: [
+        { k: "page", view: 3, path: "/order", ts: t0, title: "ثبت سفارش" },
+        { k: "ev", path: "/order", ts: t0 + 100, name: "form_step", props: { step: "contact", method: "link" } },
+        { k: "ev", path: "/order", ts: t0 + 200, name: "form_error", props: { step: "contact", fields: "phone" } },
+        { k: "vital", view: 3, name: "LCP", value: 3100 },
+        { k: "vital", view: 3, name: "CLS", value: 0.02 },
+        { k: "net", path: "/order", ts: t0 + 300, url: "/api/otp/send", method: "POST", status: 500, ms: 820 },
+        { k: "net", path: "/order", ts: t0 + 400, url: "/api/otp/send", method: "POST", status: 200, ms: 410 },
+        { k: "field", path: "/order", ts: t0 + 500, form: "order", field: "phone", ms: 4200, filled: 1, changed: 1 },
+        { k: "qb", view: 2 },
+        { k: "move", path: "/order", w: 1280, h: 3000, pts: [16, 32, 4, 48, 64, 1] },
+        {
+          k: "scroll",
+          view: 3,
+          max: 80,
+          docH: 3000,
+          dur: 20000,
+          act: 15000,
+          dist: 1200,
+          ia: 5,
+          bands: Array.from({ length: 20 }, (_, i) => (i < 4 ? 3000 : 0)),
+        },
+        { k: "hb", path: "/order" },
+      ],
+    };
+    const body2 = pack(b2);
+    expect(ingest(SID, 2, body2, decodeBatch(body2)!, UA, "1.2.3.4")).toBe(true);
+
+    expect(db.prepare("SELECT name FROM rec_events WHERE session_id = ? ORDER BY ts").all(SID)).toEqual([{ name: "form_step" }, { name: "form_error" }]);
+    expect(db.prepare("SELECT lcp, cls, title, active_ms, interactions FROM rec_pages WHERE session_id = ? AND view = 3").get(SID)).toEqual({
+      lcp: 3100,
+      cls: 0.02,
+      title: "ثبت سفارش",
+      active_ms: 15000,
+      interactions: 5,
+    });
+    const page3 = db.prepare("SELECT attention FROM rec_pages WHERE session_id = ? AND view = 3").get(SID) as { attention: string };
+    expect(JSON.parse(page3.attention)).toHaveLength(20);
+    expect(db.prepare("SELECT quick_back FROM rec_pages WHERE session_id = ? AND view = 2").get(SID)).toEqual({ quick_back: 1 });
+    expect(db.prepare("SELECT COUNT(*) n FROM rec_net WHERE session_id = ?").get(SID)).toEqual({ n: 2 });
+    expect(db.prepare("SELECT field, ms, filled FROM rec_fields WHERE session_id = ?").get(SID)).toEqual({ field: "phone", ms: 4200, filled: 1 });
+    // Mouse movement only means something with a mouse: phones' moves are dropped.
+    expect(db.prepare("SELECT COUNT(*) n FROM rec_moves WHERE session_id = ?").get(SID)).toEqual({ n: 0 });
+    expect(db.prepare("SELECT events, net_errors, quick_backs, engaged, current_path, is_staff FROM rec_sessions WHERE id = ?").get(SID)).toEqual({
+      events: 2,
+      net_errors: 1,
+      quick_backs: 1,
+      engaged: 1,
+      current_path: "/order",
+      is_staff: 0,
+    });
+  });
+
+  it("marks staff sessions and keeps them out of every report", async () => {
+    const { decodeBatch, ingest } = await import("@/lib/rec/store");
+    const { listSessions } = await import("@/lib/rec/insights");
+    const { parseScope, totals } = await import("@/lib/rec/analytics");
+    const STAFF_SID = "staffstaffstaffstaffstaff1";
+    const b = {
+      v: 1,
+      meta: { path: "/", ref: "", vw: 1280, vh: 800 },
+      events: [{ type: 4, data: { width: 1280, height: 800 }, timestamp: 1 }],
+      a: [{ k: "page", view: 1, path: "/", ts: 1 }],
+    };
+    const body = pack(b);
+    ingest(STAFF_SID, 0, body, decodeBatch(body)!, UA, "5.6.7.8", true);
+    const scope = parseScope({ d: "1" });
+    expect(totals(scope).sessions).toBe(1);
+    expect(listSessions(scope, {}).rows.map((r) => r.id)).toEqual([SID]);
+    expect(listSessions(scope, { staff: true }).rows.map((r) => r.id)).toEqual([STAFF_SID]);
+  });
+
   it("feeds the dashboards", async () => {
-    const { overview, listSessions, heatClicks, sinceIso } = await import("@/lib/rec/insights");
-    const since = sinceIso(1);
-    expect(overview(since)).toMatchObject({ sessions: 1, orders: 1, reached: 1, rage: 1 });
-    expect(listSessions({ since, issue: "error" }).total).toBe(1);
-    expect(listSessions({ since, outcome: "none" }).total).toBe(0);
-    expect(heatClicks("/", "mobile", since)).toHaveLength(2);
+    const { listSessions, heatClicks, heatScroll, heatMoves, getSession, setSessionNote, markWatched } = await import("@/lib/rec/insights");
+    const { eventsReport, orderFunnel, parseScope, realtime, totals, apiReport } = await import("@/lib/rec/analytics");
+    const scope = parseScope({ d: "1" });
+    expect(totals(scope)).toMatchObject({ sessions: 1, orders: 1, reached: 1, rage: 1, engaged: 1, netErrors: 1, quickBacks: 1 });
+    expect(listSessions(scope, { issue: "error" }).total).toBe(1);
+    expect(listSessions(scope, { issue: "net" }).total).toBe(1);
+    expect(listSessions(scope, { issue: "quickback" }).total).toBe(1);
+    expect(listSessions(scope, { event: "form_error" }).total).toBe(1);
+    expect(listSessions(scope, { event: "outbound" }).total).toBe(0);
+    expect(listSessions(scope, { outcome: "none" }).total).toBe(0);
+    expect(listSessions(scope, { unwatched: true }).total).toBe(1);
+    expect(heatClicks(scope, "/", "mobile")).toHaveLength(2);
+    expect(heatScroll(scope, "/order", "mobile").some((v) => v.attention)).toBe(true);
+    expect(heatMoves(scope, "/order")).toHaveLength(0);
+    expect(eventsReport(scope).map((e) => e.name).sort()).toEqual(["form_error", "form_step"]);
+    expect(orderFunnel(scope)).toBeTruthy();
+    expect(apiReport(scope).length).toBeGreaterThan(0);
+    expect(realtime().active.map((a) => a.id)).toContain(SID);
+
+    const { getDb } = await import("@/lib/db");
+    const staffId = Number(getDb().prepare("INSERT INTO staff(name, username, password_hash, role) VALUES('ناظر','sup','x','supervisor')").run().lastInsertRowid);
+    markWatched(SID, staffId);
+    setSessionNote(SID, "  گیر کرد روی کد تأیید  ", true);
+    const d = getSession(SID)!;
+    expect(d.session).toMatchObject({ note: "گیر کرد روی کد تأیید", starred: 1, watched_name: "ناظر" });
+    expect(d.events).toHaveLength(2);
+    expect(listSessions(scope, { unwatched: true }).total).toBe(0);
+    expect(listSessions(scope, { starred: true }).total).toBe(1);
+  });
+
+  it("keeps starred sessions past the retention period", async () => {
+    const { getDb } = await import("@/lib/db");
+    const { pruneRecordings } = await import("@/lib/rec/store");
+    getDb().prepare("UPDATE rec_sessions SET last_at = '2020-01-01T00:00:00.000Z'").run();
+    expect(pruneRecordings()).toBe(1); // only the (unstarred) staff session goes
+    getDb().prepare("UPDATE rec_sessions SET starred = 0").run();
   });
 
   it("deletes sessions older than the retention period, files included", async () => {

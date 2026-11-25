@@ -19,7 +19,7 @@ export function KpiCard({ label, value, hint, hintTone = "muted" }: { label: str
   return (
     <div className="flex min-w-0 flex-col gap-2 rounded-xl border border-[#E4E4E7] bg-white px-4 py-4 sm:gap-2.5 sm:px-5 sm:py-[18px]">
       <span className="text-[13px] font-medium text-[#52525B]">{label}</span>
-      <span className="text-[26px] font-extrabold leading-none tracking-tight text-[#18181B] sm:text-[30px]">{value}</span>
+      <span className="text-[26px] font-extrabold leading-none tracking-tight text-[#18181B] [word-spacing:0.15em] sm:text-[30px]">{value}</span>
       {hint != null && (
         <span className={cn("text-xs font-semibold", hintTone === "good" && "text-[#15803D]", hintTone === "bad" && "text-[#B91C1C]", hintTone === "muted" && "text-[#71717A]")}>
           {hint}

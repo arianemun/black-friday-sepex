@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect } from "@/components/ui/native-select";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { fieldKey, track } from "@/lib/rec/track";
 import { FilePicker, type PickedFile } from "./file-picker";
 import { btn, Frame, ProductPreviewCard, type ProductPreview } from "./ui";
 
@@ -195,6 +196,16 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
     if (ready && !done) saveDraft({ method, items, contact, draftToken, utm });
   }, [ready, done, method, items, contact, draftToken, utm]);
 
+  // Funnel analytics: one event each time the visitor reaches a different step.
+  const lastStep = useRef("");
+  useEffect(() => {
+    if (!ready) return;
+    const name = done ? "done" : otpSentTo ? "otp" : (["method", "items", "contact"][step] ?? "method");
+    if (name === lastStep.current) return;
+    lastStep.current = name;
+    track("form_step", { step: name, method: method ?? "" });
+  }, [ready, step, otpSentTo, done, method]);
+
   useEffect(() => {
     if (!otpSentTo) return;
     const t = setInterval(() => setNow(Date.now()), 500);
@@ -257,6 +268,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
     const e = { ...validateItems(), ...validateContact() };
     setErrors(e);
     if (Object.keys(e).length) {
+      track("form_error", { step: "contact", fields: [...new Set(Object.keys(e).map(fieldKey))].join(",") });
       focusFirstError(e);
       return;
     }
@@ -266,9 +278,11 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
       const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; length?: number; resendIn?: number; retryAfter?: number; devCode?: string } | null;
       if (!res.ok || !data?.ok) {
         if (data?.retryAfter && otpSentTo === phoneNorm) setResendAt(Date.now() + data.retryAfter * 1000);
+        track("otp_request", { ok: false, status: res.status, resend: !!otpSentTo });
         toast.error(data?.error || "کد ارسال نشد. دوباره امتحان کن.");
         return;
       }
+      track("otp_request", { ok: true, resend: !!otpSentTo });
       setOtpSentTo(phoneNorm);
       requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
       setOtp("");
@@ -278,6 +292,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
       if (data.devCode) toast.info(`کد آزمایشی (فقط در محیط توسعه): ${data.devCode}`);
       else toast.success("کد تأیید برات پیامک شد.");
     } catch {
+      track("otp_request", { ok: false, status: 0, resend: !!otpSentTo });
       toast.error("ارتباط برقرار نشد. اینترنتت رو چک کن.");
     } finally {
       setSending(false);
@@ -316,6 +331,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
       const res = await fetch("/api/requests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; trackingCode?: string; otp?: string } | null;
       if (!res.ok || !data?.ok || !data.trackingCode) {
+        track("order_submit", { ok: false, status: res.status, reason: data?.otp ? `otp_${data.otp}` : "error" });
         if (data?.otp) {
           setOtp("");
           setErrors({ otp: data.error || "کد تأیید درست نیست." });
@@ -327,10 +343,12 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
         return;
       }
       clearDraft();
+      track("order_submit", { ok: true, method });
       setDone(data.trackingCode);
       window.dispatchEvent(new CustomEvent("bf:order", { detail: { trackingCode: data.trackingCode } }));
       requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
     } catch {
+      track("order_submit", { ok: false, status: 0, reason: "network" });
       toast.error("ارتباط برقرار نشد. اینترنتت رو چک کن.");
     } finally {
       setSubmitting(false);
@@ -383,6 +401,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
                     // A different method starts a fresh list; the old items don't fit its fields.
                     if (method !== m) setItems([newItem()]);
                     setMethod(m);
+                    track("method_select", { method: m });
                     goto(1);
                   }}
                   className={cn("chamfer group p-px text-start transition-colors", active ? "bg-brand" : "bg-white/12 hover:bg-white/40 focus-visible:bg-brand focus-visible:outline-none")}
@@ -460,8 +479,10 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
             onNext={() => {
               const e = validateItems();
               setErrors(e);
-              if (Object.keys(e).length) focusFirstError(e);
-              else goto(2);
+              if (Object.keys(e).length) {
+                track("form_error", { step: "items", fields: [...new Set(Object.keys(e).map(fieldKey))].join(",") });
+                focusFirstError(e);
+              } else goto(2);
             }}
             nextLabel="ادامه"
           />

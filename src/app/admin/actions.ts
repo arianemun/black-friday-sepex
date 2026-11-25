@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getDb, nowIso } from "@/lib/db";
-import { hashPassword, login, logout, requireAdmin, requireShiftManager, requireStaff } from "@/lib/auth";
+import { hashPassword, login, logout, requireAdmin, requireInsights, requireShiftManager, requireStaff } from "@/lib/auth";
+import { SID_RE } from "@/lib/rec/protocol";
+import { setSessionNote } from "@/lib/rec/insights";
 import { copyWeekForward, isDay, setShift, tehranDay } from "@/lib/shifts";
 import { parseRole } from "@/lib/roles";
 import { listTrainingVideos, recordWatch } from "@/lib/training";
@@ -316,4 +318,14 @@ export async function saveSettingsAction(_: ActionState, fd: FormData): Promise<
   saveSettings(patch);
   revalidatePath("/", "layout");
   return { ok: true, message: "تنظیمات ذخیره شد." };
+}
+
+/* ---------------------------------------------------------------- visitor sessions */
+
+export async function sessionNoteAction(sid: string, _: ActionState, fd: FormData): Promise<ActionState> {
+  await requireInsights();
+  if (!SID_RE.test(sid)) return { error: "جلسه پیدا نشد." };
+  setSessionNote(sid, str(fd, "note", 1000), fd.get("starred") === "1");
+  revalidatePath(`/admin/insights/sessions/${sid}`);
+  return { ok: true, message: "ذخیره شد." };
 }

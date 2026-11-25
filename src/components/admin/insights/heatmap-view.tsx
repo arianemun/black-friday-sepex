@@ -5,7 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toFaDigits } from "@/lib/utils";
 
-type Click = { x: number; y: number; doc_w: number; doc_h: number; rage: number; dead: number };
+type Click = { x: number; y: number; doc_w: number; doc_h: number; rage: number; dead: number; el?: string | null; ox?: number | null; oy?: number | null };
+type View = { max_scroll: number; attention: string | null };
+type Moves = { doc_w: number; doc_h: number; pts: string };
+export type HeatMode = "clicks" | "scroll" | "attention" | "moves";
+type Pt = { x: number; y: number; w: number };
 
 type ReplayerLike = {
   pause: (t?: number) => void;
@@ -46,31 +50,54 @@ function colorize(ctx: CanvasRenderingContext2D, w: number, h: number) {
   ctx.putImageData(img, 0, 0);
 }
 
-function drawClicks(ctx: CanvasRenderingContext2D, w: number, h: number, clicks: Click[], top: number, th: number) {
-  const r = w < 600 ? 22 : 28;
-  const pos = (p: Click) => ({ x: (p.x / p.doc_w) * w, y: p.doc_h ? (p.y / p.doc_h) * h : p.y });
-  for (const p of clicks) {
-    const { x, y } = pos(p);
-    if (y < top - r || y > top + th + r) continue;
-    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, "rgba(0,0,0,0.35)");
+/** Click/move density: soft black blobs, then recoloured on the ramp; rage and dead clicks ringed on top. */
+function drawDensity(ctx: CanvasRenderingContext2D, w: number, pts: Pt[], top: number, th: number, r: number, rings: { x: number; y: number; rage: boolean }[] = []) {
+  const max = Math.max(1, ...pts.map((p) => p.w));
+  for (const p of pts) {
+    if (p.y < top - r || p.y > top + th + r) continue;
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+    g.addColorStop(0, `rgba(0,0,0,${0.35 * Math.min(1, 0.35 + p.w / max)})`);
     g.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = g;
-    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2);
   }
   colorize(ctx, w, th);
-  for (const p of clicks) {
-    if (p.rage !== 1 && !p.dead) continue;
-    const { x, y } = pos(p);
+  for (const p of rings) {
+    if (p.y < top - 12 || p.y > top + th + 12) continue;
     ctx.beginPath();
-    ctx.arc(x, y, 9, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
     ctx.lineWidth = 3;
     ctx.strokeStyle = "#fff";
     ctx.stroke();
     ctx.lineWidth = 2;
-    ctx.strokeStyle = p.rage === 1 ? "#DC2626" : "#2563EB";
+    ctx.strokeStyle = p.rage ? "#DC2626" : "#2563EB";
     ctx.stroke();
   }
+}
+
+/** Average seconds each 5% band of the page was on screen; the label sits at the band. */
+function drawAttention(ctx: CanvasRenderingContext2D, w: number, h: number, avg: number[]) {
+  const max = Math.max(1, ...avg);
+  const fs = w < 600 ? 12 : 14;
+  ctx.font = `bold ${fs}px Peyda, Tahoma, sans-serif`;
+  ctx.direction = "rtl";
+  ctx.textAlign = "right";
+  avg.forEach((ms, i) => {
+    const y0 = Math.floor((i / avg.length) * h);
+    const y1 = Math.ceil(((i + 1) / avg.length) * h);
+    const t = ms / max;
+    // Cold bands are dimmed; hot ones get a warm wash.
+    ctx.fillStyle = `rgba(9,9,11,${(1 - t) * 0.55})`;
+    ctx.fillRect(0, y0, w, y1 - y0);
+    ctx.fillStyle = `rgba(249,115,22,${t * 0.35})`;
+    ctx.fillRect(0, y0, w, y1 - y0);
+    const label = ms >= 1000 ? `${toFaDigits((ms / 1000).toFixed(1))} ثانیه` : `${toFaDigits(Math.round(ms / 100) / 10)} ثانیه`;
+    const tw = ctx.measureText(label).width + 16;
+    ctx.fillStyle = t > 0.66 ? "#9A3412" : "#27272A";
+    ctx.fillRect(w - tw - 8, y0 + 6, tw, fs + 10);
+    ctx.fillStyle = "#fff";
+    ctx.fillText(label, w - 16, y0 + fs + 10);
+  });
 }
 
 function drawScroll(ctx: CanvasRenderingContext2D, w: number, h: number, scroll: number[]) {
@@ -112,12 +139,16 @@ export function HeatmapView({
   backdrop,
   mode,
   clicks,
-  scroll,
+  views,
+  moves,
+  onAligned,
 }: {
   backdrop: { sid: string; ts: number } | null;
-  mode: "clicks" | "scroll";
+  mode: HeatMode;
   clicks: Click[];
-  scroll: number[];
+  views: View[];
+  moves: Moves[];
+  onAligned?: (share: number) => void;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
@@ -133,7 +164,7 @@ export function HeatmapView({
     let rep: ReplayerLike | null = null;
     (async () => {
       try {
-        const [{ Replayer }, res] = await Promise.all([import("@rrweb/replay"), fetch(`/admin/insights/events/${backdrop.sid}`)]);
+        const [{ Replayer }, res] = await Promise.all([import("@rrweb/replay"), fetch(`/admin/insights/events/${backdrop.sid}`, { cache: "no-store" })]);
         if (!res.ok) throw new Error(String(res.status));
         const events = await res.json();
         if (cancelled || !stage.current) return;
@@ -193,6 +224,63 @@ export function HeatmapView({
     layer.setAttribute("style", `position:absolute;left:0;top:0;width:${w}px;height:${h}px;pointer-events:none;z-index:2147483647`);
     // The replayed page has scripting disabled, and such documents don't paint <canvas>;
     // so each tile is drawn here and placed in the page as an image.
+    const pts: Pt[] = [];
+    const rings: { x: number; y: number; rage: boolean }[] = [];
+    if (mode === "clicks") {
+      // Pin each click to the element it hit (same element on this page version), at the same
+      // relative spot inside it; fall back to the page-relative position.
+      const rects = new Map<string, DOMRect | null>();
+      const sx = doc.documentElement.scrollLeft;
+      const sy = doc.documentElement.scrollTop;
+      let aligned = 0;
+      for (const c of clicks) {
+        let x = (c.x / c.doc_w) * w;
+        let y = c.doc_h ? (c.y / c.doc_h) * h : c.y;
+        if (c.el && c.ox != null && c.oy != null) {
+          if (!rects.has(c.el)) {
+            let el: Element | null = null;
+            try {
+              el = doc.body.querySelector(`:scope>${c.el}`);
+            } catch {}
+            const r = el?.getBoundingClientRect();
+            rects.set(c.el, r && r.width > 0 && r.height > 0 ? r : null);
+          }
+          const r = rects.get(c.el);
+          if (r) {
+            x = r.left + sx + (c.ox / 1000) * r.width;
+            y = r.top + sy + (c.oy / 1000) * r.height;
+            aligned++;
+          }
+        }
+        pts.push({ x, y, w: 1 });
+        if (c.rage === 1 || c.dead) rings.push({ x, y, rage: c.rage === 1 });
+      }
+      onAligned?.(clicks.length ? aligned / clicks.length : 1);
+    } else if (mode === "moves") {
+      for (const m of moves) {
+        let a: number[] = [];
+        try {
+          a = JSON.parse(m.pts);
+        } catch {}
+        for (let i = 0; i + 2 < a.length; i += 3) pts.push({ x: (a[i] / m.doc_w) * w, y: (a[i + 1] / m.doc_h) * h, w: a[i + 2] });
+      }
+    }
+    const avg: number[] = new Array(20).fill(0);
+    if (mode === "attention") {
+      let n = 0;
+      for (const v of views) {
+        try {
+          const a = JSON.parse(v.attention ?? "null") as number[] | null;
+          if (!Array.isArray(a) || a.length !== 20) continue;
+          a.forEach((ms, i) => (avg[i] += Number(ms) || 0));
+          n++;
+        } catch {}
+      }
+      if (n) for (let i = 0; i < 20; i++) avg[i] /= n;
+    }
+    const scroll = views.map((v) => v.max_scroll);
+    // The replayed page has scripting disabled, and such documents don't paint <canvas>;
+    // so each tile is drawn here and placed in the page as an image.
     const TILE = 1024;
     for (let top = 0; top < h; top += TILE) {
       const th = Math.min(TILE, h - top);
@@ -202,7 +290,9 @@ export function HeatmapView({
       const ctx = c.getContext("2d");
       if (!ctx) continue;
       ctx.translate(0, -top);
-      if (mode === "clicks") drawClicks(ctx, w, h, clicks, top, th);
+      if (mode === "clicks") drawDensity(ctx, w, pts, top, th, w < 600 ? 22 : 28, rings);
+      else if (mode === "moves") drawDensity(ctx, w, pts, top, th, 20);
+      else if (mode === "attention") drawAttention(ctx, w, h, avg);
       else drawScroll(ctx, w, h, scroll);
       const img = doc.createElement("img");
       img.src = c.toDataURL("image/png");
@@ -212,7 +302,8 @@ export function HeatmapView({
     }
     doc.body.appendChild(layer);
     return () => layer.remove();
-  }, [state, mode, clicks, scroll]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, mode, clicks, views, moves]);
 
   if (state === "none") {
     return <p className="rounded-xl border border-[#E4E4E7] bg-white py-16 text-center text-sm text-[#71717A]">برای این صفحه و دستگاه هنوز ضبطی نیست.</p>;
