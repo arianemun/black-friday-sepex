@@ -15,9 +15,9 @@ type Tag = { key: string; pos: string; r: number; d: number; s: number; tone: "y
 const TAGS: Tag[] = [
   { key: "namshi", pos: "right-[3%] top-[17%]", r: -9, d: 350, s: 0, tone: "yellow", size: "lg" },
   { key: "amazon-ae", pos: "left-[4%] top-[20%]", r: 7, d: 480, s: 1.2, tone: "yellow", size: "lg" },
-  { key: "ebay", pos: "right-[11%] top-[44%]", r: 5, d: 600, s: 0.6, tone: "dark", size: "md" },
+  { key: "nike-ae", pos: "right-[11%] top-[44%]", r: 5, d: 600, s: 0.6, tone: "dark", size: "md" },
   { key: "noon", pos: "left-[12%] top-[46%]", r: -6, d: 720, s: 1.8, tone: "dark", size: "md" },
-  { key: "zalando", pos: "right-[4%] top-[68%]", r: -4, d: 840, s: 2.4, tone: "dark", size: "sm" },
+  { key: "adidas-ae", pos: "right-[4%] top-[68%]", r: -4, d: 840, s: 2.4, tone: "dark", size: "sm" },
   { key: "trendyol", pos: "left-[5%] top-[70%]", r: 8, d: 960, s: 3, tone: "yellow", size: "sm" },
 ];
 
@@ -86,7 +86,11 @@ export function Hero() {
               <Link
                 key={a.href}
                 href={a.href}
-                className="chamfer-sm inline-flex h-10 items-center gap-2 bg-white/[0.07] px-4 font-semibold text-white/80 transition-colors hover:bg-brand hover:text-ink"
+                className={
+                  i === 0
+                    ? "chamfer-sm inline-flex h-11 items-center gap-2 bg-white/[0.07] px-4 font-bold text-brand ring-1 ring-inset ring-brand/50 transition-colors hover:bg-brand hover:text-ink"
+                    : "chamfer-sm inline-flex h-10 items-center gap-2 bg-white/[0.07] px-4 font-semibold text-white/80 transition-colors hover:bg-brand hover:text-ink"
+                }
               >
                 <Icon className="size-4" aria-hidden />
                 {a.label}

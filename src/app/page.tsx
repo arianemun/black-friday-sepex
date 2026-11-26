@@ -65,6 +65,9 @@ export default function HomePage() {
         <Reveal>
           <Paths />
         </Reveal>
+        <Reveal>
+          <PopularStores icons={cachedStoreIcons()} popularity={storePopularity()} today={tehranDay()} />
+        </Reveal>
         <AboutSepex />
         {products.length > 0 && (
           <Reveal>
@@ -103,9 +106,6 @@ export default function HomePage() {
         </Reveal>
         <Reveal>
           <HowItWorks />
-        </Reveal>
-        <Reveal>
-          <PopularStores icons={cachedStoreIcons()} popularity={storePopularity()} today={tehranDay()} />
         </Reveal>
         <Reveal>
           <ShuffleDeck products={products} />

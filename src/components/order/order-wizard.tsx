@@ -139,7 +139,15 @@ function Stepper({ step, onJump }: { step: number; onJump: (n: number) => void }
 
 /* ------------------------------------------------------------------ wizard */
 
-export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Method | null; initialLink: string | null }) {
+export function OrderWizard({
+  initialMethod,
+  initialLink,
+  initialName = null,
+}: {
+  initialMethod: Method | null;
+  initialLink: string | null;
+  initialName?: string | null;
+}) {
   const [ready, setReady] = useState(false);
   const [step, setStep] = useState(0);
   const [method, setMethod] = useState<Method | null>(null);
@@ -171,7 +179,7 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
     if (document.referrer && !document.referrer.startsWith(window.location.origin)) campaign.referrer = document.referrer.slice(0, 300);
 
     /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration from sessionStorage/URL */
-    if (d && !initialLink) {
+    if (d && !initialLink && !initialName) {
       setMethod(initialMethod ?? d.method);
       setItems(d.items.length ? d.items : [newItem()]);
       setContact(d.contact);
@@ -184,13 +192,13 @@ export function OrderWizard({ initialMethod, initialLink }: { initialMethod: Met
       if (d) setContact(d.contact);
       if (initialMethod) {
         setMethod(initialMethod);
-        setItems([newItem(initialLink ?? "")]);
+        setItems([initialName ? { ...newItem(), title: initialName } : newItem(initialLink ?? "")]);
         setStep(1);
       }
     }
     setReady(true);
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [initialMethod, initialLink]);
+  }, [initialMethod, initialLink, initialName]);
 
   useEffect(() => {
     if (ready && !done) saveDraft({ method, items, contact, draftToken, utm });

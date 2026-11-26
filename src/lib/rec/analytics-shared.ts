@@ -38,6 +38,7 @@ export const EVENT_LABELS: Record<string, string> = {
   social_instagram: "رفتن به اینستاگرام",
   outbound: "لینک بیرونی (فروشگاه‌ها و…)",
   store_filter: "فیلتر فروشگاه‌ها (دسته یا کشور)",
+  hero_name: "نوشتن اسم کالا به جای لینک (بالای صفحه)",
   expand: "باز کردن بخش‌های جمع‌شده (سؤال‌ها…)",
   form_step: "رسیدن به مرحله‌ی فرم سفارش",
   form_error: "خطای اعتبارسنجی فرم",

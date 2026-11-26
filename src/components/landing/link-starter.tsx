@@ -2,11 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Link2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Camera, Link2 } from "lucide-react";
+import { track } from "@/lib/rec/track";
 import { detectStore, extractUrl, countryName } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
 
-/** The hero input: paste a link (or a whole share message) and continue to the order flow. */
+/**
+ * The hero input: paste a link (or a whole share message) and continue to the order flow.
+ * Typed text without a link is taken as the product's name and opens the photo/name flow with it.
+ */
 export function LinkStarter({
   placeholder,
   submit,
@@ -19,18 +24,23 @@ export function LinkStarter({
   const [error, setError] = useState<string | null>(null);
   const url = extractUrl(value);
   const store = url ? detectStore(url) : undefined;
+  const text = value.replace(/\s+/g, " ").trim();
+  // A half-pasted link ("amazon.ae/dp/…") is still a link, not a name.
+  const looksLikeLink = /^(https?:|www\.)|\.(com|ae|tr|de|net|cn|co)\b\/?/i.test(text);
+  const name = !url && text.length >= 2 && !looksLikeLink ? text : null;
 
   function go(e: React.FormEvent) {
     e.preventDefault();
-    if (!url) {
-      setError(
-        value.trim()
-          ? "این لینک معتبر نیست. لینک کامل صفحه‌ی کالا رو بذار."
-          : "لینک صفحه‌ی کالا رو اینجا بذار.",
-      );
+    if (url) {
+      router.push(`/order?method=link&link=${encodeURIComponent(url)}`);
       return;
     }
-    router.push(`/order?method=link&link=${encodeURIComponent(url)}`);
+    if (name) {
+      track("hero_name", { len: name.length });
+      router.push(`/order?method=photo&name=${encodeURIComponent(name.slice(0, 120))}`);
+      return;
+    }
+    setError(text ? "این لینک کامل نیست. لینک کامل صفحه‌ی کالا رو بذار یا اسم کالا رو بنویس." : "لینک یا اسم کالا رو اینجا بنویس.");
   }
 
   return (
@@ -59,8 +69,16 @@ export function LinkStarter({
                 placeholder={placeholder}
                 aria-invalid={!!error}
                 aria-describedby="hero-link-hint"
-                className="h-13 w-full bg-transparent pl-3 pr-11 text-base text-white outline-none placeholder:text-white/40"
+                className="h-13 w-full bg-transparent pl-12 pr-11 text-base text-white outline-none placeholder:text-white/40"
               />
+              <Link
+                href="/order?method=photo"
+                aria-label="عکس یا اسکرین‌شات کالا رو بفرست"
+                title="عکس یا اسکرین‌شات کالا رو بفرست"
+                className="absolute left-1.5 top-1/2 grid size-10 -translate-y-1/2 place-items-center text-white/55 transition-colors hover:bg-white/10 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              >
+                <Camera className="size-5" aria-hidden />
+              </Link>
             </div>
             <button
               type="submit"
@@ -84,7 +102,9 @@ export function LinkStarter({
             ? `فروشگاه: ${store.name} (${countryName(store.country)})`
             : url
               ? "لینک رسید. فروشگاهش رو کارشناس بررسی می‌کنه."
-              : "متن اشتراک‌گذاری اپ فروشگاه رو هم می‌تونی کامل بچسبونی.")}
+              : name
+                ? "لینک نیست؟ اشکال نداره؛ با همین اسم ثبتش می‌کنیم و کارشناس پیداش می‌کنه."
+                : "متن اشتراک‌گذاری اپ فروشگاه رو هم می‌تونی کامل بچسبونی.")}
       </p>
     </form>
   );
