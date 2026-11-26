@@ -16,7 +16,7 @@ export type StoreTile = {
   countryName: string;
   cats: StoreCat[];
   official: boolean;
-  logo?: string;
+  icon?: string;
   deal?: StoreDeal;
   hot: boolean;
 };
@@ -29,7 +29,9 @@ const COUNTRIES: { code: CountryCode | "any"; name: string }[] = [
   { code: "CN", name: "چین" },
   { code: "EU", name: "اروپا" },
 ];
-const FIRST = 12;
+/** Collapsed: 15 tiles on wide screens (3 rows of 5), 12 below (full rows at 2, 3 and 4 columns). */
+const FIRST = 15;
+const FIRST_NARROW = 12;
 
 const dealText = (d: StoreDeal) => (d.min ? `${toFaDigits(d.min)} تا ${toFaDigits(d.max)}٪ تخفیف` : `تا ${toFaDigits(d.max)}٪ تخفیف`);
 
@@ -110,56 +112,45 @@ export function StoreBrowser({ tiles }: { tiles: StoreTile[] }) {
           </button>
         </p>
       ) : (
-        <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-          {visible.map((s) => (
-            <li key={s.key}>
+        <ul className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5 lg:grid-cols-4 xl:grid-cols-5">
+          {visible.map((s, i) => (
+            <li key={s.key} className={cn(!filtered && !all && i >= FIRST_NARROW && "hidden xl:block")}>
               <a
                 href={s.url}
                 target="_blank"
                 rel="noopener nofollow noreferrer"
-                className="group relative flex h-full flex-col bg-[#111] p-4 ring-1 ring-inset ring-white/8 transition-all hover:-translate-y-0.5 hover:ring-brand/50 sm:p-5"
+                title={`${s.label}، ${s.name}: ${s.hint}`}
+                className="group relative flex h-full items-center gap-2.5 bg-[#111] p-2.5 ring-1 ring-inset ring-white/8 transition-colors hover:bg-[#161616] hover:ring-brand/50 sm:gap-3 sm:p-3"
               >
                 {s.deal && (
-                  <span className="chamfer-sm absolute -top-2 left-3 bg-brand px-2 py-1 text-[11px] font-black leading-none text-ink">{dealText(s.deal)}</span>
+                  <span className="absolute -top-2 left-2 bg-brand px-1.5 py-0.5 text-[10px] font-black leading-none text-ink sm:text-[11px]">{dealText(s.deal)}</span>
                 )}
-                <span className="flex h-14 items-center justify-start">
-                  {s.logo ? (
-                    <span className="flex h-12 items-center bg-white px-3">
-                      {/* eslint-disable-next-line @next/next/no-img-element -- small static logo files */}
-                      <img src={s.logo} alt={s.label} className="max-h-8 max-w-[7rem] object-contain" loading="lazy" />
-                    </span>
-                  ) : (
-                    <span dir="ltr" className="text-[1.35rem] font-black leading-none text-white transition-colors group-hover:text-brand sm:text-2xl">
+                <StoreIcon src={s.icon} label={s.label} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1">
+                    <span dir="ltr" className="truncate text-[14px] font-black leading-tight text-white transition-colors group-hover:text-brand sm:text-[15px]">
                       {s.label}
                     </span>
-                  )}
-                </span>
-                <span className="mt-2 text-[13px] font-bold text-white/85">{s.name}</span>
-                <span className="mt-1 text-xs leading-5 text-white/50">{s.hint}</span>
-                <span className="mt-auto flex flex-wrap items-center gap-1.5 pt-4 text-[11px]">
-                  <span className="bg-white/[0.06] px-2 py-1 text-white/60">{s.countryName}</span>
-                  {s.official && (
-                    <span className="inline-flex items-center gap-1 bg-white/[0.06] px-2 py-1 text-white/60">
-                      <BadgeCheck className="size-3" aria-hidden />
-                      رسمی
-                    </span>
-                  )}
-                  {s.hot && (
-                    <span className="inline-flex items-center gap-1 bg-brand/15 px-2 py-1 font-bold text-brand">
-                      <Flame className="size-3" aria-hidden />
-                      پرطرفدار
-                    </span>
-                  )}
-                  <span className="ms-auto flex items-center gap-1 font-bold text-white/40 transition-colors group-hover:text-brand">
-                    سر بزن <ArrowUpLeft className="size-3.5" aria-hidden />
+                    {s.official && <BadgeCheck className="size-3.5 shrink-0 text-brand" aria-label="فروشگاه رسمی برند" />}
+                  </span>
+                  <span className="mt-0.5 block truncate text-[11px] leading-5 text-white/50 sm:text-xs">{s.hint}</span>
+                  <span className="mt-0.5 flex items-center gap-1.5 text-[10px] leading-4 text-white/35 sm:text-[11px]">
+                    {s.countryName}
+                    {s.hot && (
+                      <span className="inline-flex items-center gap-0.5 font-bold text-brand">
+                        <Flame className="size-3" aria-hidden />
+                        پرطرفدار
+                      </span>
+                    )}
                   </span>
                 </span>
+                <ArrowUpLeft className="hidden size-4 shrink-0 text-white/25 transition-colors group-hover:text-brand sm:block" aria-hidden />
               </a>
             </li>
           ))}
         </ul>
       )}
-      {!filtered && !all && shown.length > FIRST && (
+      {!filtered && !all && shown.length > FIRST_NARROW && (
         <button
           type="button"
           onClick={() => setAll(true)}
@@ -170,5 +161,22 @@ export function StoreBrowser({ tiles }: { tiles: StoreTile[] }) {
       )}
       <p className="mt-4 text-[11px] leading-5 text-white/35">درصد تخفیف‌ها طبق اعلام خود فروشگاه‌ها برای بلک‌فرایدی امسال است و روی همه‌ی کالاها نیست.</p>
     </div>
+  );
+}
+
+/** The store's own site icon on a white tile; its initial when there is none (or it fails to load). */
+function StoreIcon({ src, label }: { src?: string; label: string }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span className="grid size-10 shrink-0 place-items-center overflow-hidden bg-white sm:size-11" aria-hidden>
+      {src && !failed ? (
+        // eslint-disable-next-line @next/next/no-img-element -- tiny cached icons from our own domain
+        <img src={src} alt="" width={28} height={28} loading="lazy" decoding="async" onError={() => setFailed(true)} className="size-7 object-contain sm:size-8" />
+      ) : (
+        <span dir="ltr" className="text-lg font-black text-ink">
+          {label.replace(/^the\s+/i, "").charAt(0).toUpperCase()}
+        </span>
+      )}
+    </span>
   );
 }

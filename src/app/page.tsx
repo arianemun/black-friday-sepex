@@ -9,8 +9,8 @@ import { AboutSepex } from "@/components/landing/about-sepex";
 import { Reveal } from "@/components/landing/reveal";
 import { SepexMark } from "@/components/brand/logo";
 import { LandingFooter } from "@/components/landing/landing-footer";
-import { storeLogos } from "@/lib/store-logos";
 import { storePopularity } from "@/lib/store-popularity";
+import { cachedStoreIcons } from "@/lib/store-icons";
 import { tehranDay } from "@/lib/shifts";
 import { Faq, Paths } from "@/components/landing/sections";
 import { StickyCta } from "@/components/landing/sticky-cta";
@@ -105,7 +105,7 @@ export default function HomePage() {
           <HowItWorks />
         </Reveal>
         <Reveal>
-          <PopularStores logos={storeLogos()} popularity={storePopularity()} today={tehranDay()} />
+          <PopularStores icons={cachedStoreIcons()} popularity={storePopularity()} today={tehranDay()} />
         </Reveal>
         <Reveal>
           <ShuffleDeck products={products} />

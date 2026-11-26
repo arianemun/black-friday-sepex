@@ -29,4 +29,15 @@ export async function register() {
     setTimeout(tick, 5 * 60_000).unref();
     setInterval(tick, 6 * 3_600_000).unref();
   }
+
+  // Store icons for the landing: fetch missing ones shortly after start; weekly check, each icon refreshed after 30 days.
+  {
+    const { warmStoreIcons } = await import("./lib/store-icons");
+    const tick = () =>
+      warmStoreIcons()
+        .then((n) => console.log(`[store-icon] ${n} icon(s) ready`))
+        .catch((e) => console.error("[store-icon] warm-up failed:", (e as Error).message));
+    setTimeout(tick, 20_000).unref();
+    setInterval(tick, 7 * 86_400_000).unref();
+  }
 }
