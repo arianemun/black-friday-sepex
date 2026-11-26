@@ -37,6 +37,7 @@ export const EVENT_LABELS: Record<string, string> = {
   contact_email: "ایمیل",
   social_instagram: "رفتن به اینستاگرام",
   outbound: "لینک بیرونی (فروشگاه‌ها و…)",
+  store_filter: "فیلتر فروشگاه‌ها (دسته یا کشور)",
   expand: "باز کردن بخش‌های جمع‌شده (سؤال‌ها…)",
   form_step: "رسیدن به مرحله‌ی فرم سفارش",
   form_error: "خطای اعتبارسنجی فرم",
@@ -122,6 +123,8 @@ export function eventDetail(name: string, props: Record<string, unknown> | strin
       return p.ok === true || p.ok === "true" ? "موفق" : `ناموفق${v("status") ? ` (${v("status")})` : ""}${v("reason") ? ` ${v("reason")}` : ""}`;
     case "outbound":
       return v("host") || v("label");
+    case "store_filter":
+      return [v("cat"), v("country")].filter(Boolean).join("، ");
     default:
       return v("label") || v("section");
   }

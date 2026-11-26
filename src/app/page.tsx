@@ -10,6 +10,8 @@ import { Reveal } from "@/components/landing/reveal";
 import { SepexMark } from "@/components/brand/logo";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { storeLogos } from "@/lib/store-logos";
+import { storePopularity } from "@/lib/store-popularity";
+import { tehranDay } from "@/lib/shifts";
 import { Faq, Paths } from "@/components/landing/sections";
 import { StickyCta } from "@/components/landing/sticky-cta";
 import { SiteHeader } from "@/components/site/site-header";
@@ -103,7 +105,7 @@ export default function HomePage() {
           <HowItWorks />
         </Reveal>
         <Reveal>
-          <PopularStores logos={storeLogos()} />
+          <PopularStores logos={storeLogos()} popularity={storePopularity()} today={tehranDay()} />
         </Reveal>
         <Reveal>
           <ShuffleDeck products={products} />

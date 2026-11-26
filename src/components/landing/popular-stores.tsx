@@ -1,51 +1,46 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowUpLeft, Camera } from "lucide-react";
-import { countryName, storeLabel, stores } from "@/lib/catalog";
+import { ArrowLeft, Camera } from "lucide-react";
+import { STORE_PRIORITY, activeDeal, countryName, storeLabel, suggestedStores } from "@/lib/catalog";
 import { toFaDigits } from "@/lib/utils";
+import { StoreBrowser, type StoreTile } from "./store-browser";
 
-/** Popular stores as logo tiles, plus "didn't find it?" and the store count. */
+/** Stores worth buying from, filterable by category and country, most requested first. */
+export function PopularStores({ logos, popularity, today }: { logos: Record<string, string>; popularity: Record<string, number>; today: string }) {
+  const list = suggestedStores();
+  // Most requested first; then our priority list; then the catalog order.
+  const rank = (k: string) => {
+    const i = STORE_PRIORITY.indexOf(k);
+    return i >= 0 ? i : 100 + list.findIndex((s) => s.key === k);
+  };
+  const ranked = [...list].sort((a, b) => (popularity[b.key] ?? 0) - (popularity[a.key] ?? 0) || rank(a.key) - rank(b.key));
+  // "Popular with our customers": the top few that people actually ordered from, more than once.
+  const hot = new Set(ranked.filter((s) => (popularity[s.key] ?? 0) >= 2).slice(0, 6).map((s) => s.key));
+  const tiles: StoreTile[] = ranked.map((s) => ({
+    key: s.key,
+    label: storeLabel(s),
+    name: s.name,
+    url: s.url,
+    hint: s.hint ?? "",
+    country: s.country,
+    countryName: countryName(s.country),
+    cats: s.cats ?? [],
+    official: !!s.official,
+    logo: logos[s.key],
+    deal: activeDeal(s, today),
+    hot: hot.has(s.key),
+  }));
 
-const FEATURED = ["amazon-ae", "noon", "namshi", "sharafdg", "amazon-us", "ebay", "walmart", "bestbuy", "amazon-de", "zalando", "trendyol", "hepsiburada"];
-
-export function PopularStores({ logos }: { logos: Record<string, string> }) {
-  const list = FEATURED.map((k) => stores.find((s) => s.key === k)!).filter(Boolean);
   return (
     <section id="stores" className="scroll-mt-4 bg-black py-20 sm:py-28" aria-labelledby="stores-title">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="grid gap-10 lg:grid-cols-[1fr_22rem]">
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-semibold text-brand">نمی‌دونی از کجا بخری؟</p>
             <h2 id="stores-title" className="mt-2 text-3xl font-black leading-tight text-white sm:text-[2.6rem]">سایت‌های محبوب برای خرید</h2>
-            <p className="mt-3 max-w-xl leading-8 text-white/55">یه سر بزن، کالات رو پیدا کن و لینکش رو برامون بفرست. این‌ها فقط چندتاشونه؛ به هیچ فروشگاهی محدود نیستی.</p>
-
-            <ul className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-              {list.map((s, i) => (
-                <li key={s.key} className="rv" style={{ "--i": Math.min(i, 8) } as React.CSSProperties}>
-                  <a
-                    href={s.url}
-                    target="_blank"
-                    rel="noopener nofollow noreferrer"
-                    className="group flex h-full flex-col bg-[#111] p-4 ring-1 ring-inset ring-white/8 transition-all hover:-translate-y-0.5 hover:ring-brand/50 sm:p-5"
-                  >
-                    <span className="flex h-14 items-center justify-start">
-                      {logos[s.key] ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- small static logo files
-                        <img src={logos[s.key]} alt={s.name} className="max-h-10 max-w-[8rem] object-contain" loading="lazy" />
-                      ) : (
-                        <span className="text-2xl font-black text-white transition-colors group-hover:text-brand">{storeLabel(s)}</span>
-                      )}
-                    </span>
-                    <span className="mt-3 text-xs leading-5 text-white/50">{s.hint}</span>
-                    <span className="mt-auto flex items-center justify-between pt-4 text-xs">
-                      <span className="bg-white/[0.06] px-2 py-1 text-white/60">{countryName(s.country)}</span>
-                      <span className="flex items-center gap-1 font-bold text-white/40 transition-colors group-hover:text-brand">
-                        سر بزن <ArrowUpLeft className="size-3.5" />
-                      </span>
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
+            <p className="mt-3 max-w-xl leading-8 text-white/55">
+              دسته‌ی کالات رو انتخاب کن، یه سر به سایتش بزن و لینک کالا رو برامون بفرست. به این فهرست هم محدود نیستی.
+            </p>
+            <StoreBrowser tiles={tiles} />
           </div>
 
           <aside className="flex flex-col gap-3 lg:pt-28">
@@ -63,10 +58,8 @@ export function PopularStores({ logos }: { logos: Record<string, string> }) {
               </Link>
             </div>
             <div className="bg-[#111] p-6 ring-1 ring-inset ring-white/8">
-              <p className="text-sm text-white/50">فروشگاه‌های شناخته‌شده</p>
-              <p className="mt-1 text-5xl font-black text-white">
-                +{toFaDigits(stores.length)}
-              </p>
+              <p className="text-sm text-white/50">فروشگاه و برند پیشنهادی</p>
+              <p className="mt-1 text-5xl font-black text-white">+{toFaDigits(list.length)}</p>
               <p className="mt-2 text-sm leading-6 text-white/55">و هر سایت خارجی دیگه‌ای که لینکش رو داشته باشی.</p>
             </div>
           </aside>
