@@ -57,3 +57,13 @@ describe("store priority", () => {
     for (const k of STORE_PRIORITY) expect(keys.has(k), k).toBe(true);
   });
 });
+
+describe("stores seen in real requests", () => {
+  it("recognises Amazon EU short links and the newly added stores", () => {
+    expect(detectStore("https://amzn.eu/d/abc123")?.key).toBe("amazon-de");
+    expect(detectStore("https://www.decathlon.com.tr/p/x")?.key).toBe("decathlon-tr");
+    expect(detectStore("https://tr.uspoloassn.com/x")?.key).toBe("uspolo-tr");
+    expect(detectStore("https://www.pullandbear.com/ae/x-l123")?.key).toBe("pullandbear-ae");
+    expect(detectStore("https://www.adidas.ae/en/samba")?.key).toBe("adidas-ae");
+  });
+});

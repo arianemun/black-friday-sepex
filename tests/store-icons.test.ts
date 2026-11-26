@@ -2,39 +2,102 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import sharp from "sharp";
+import zlib from "node:zlib";
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bf-icons-"));
 process.env.DATA_DIR = dir;
 afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));
 
-const png = (size: number) => sharp({ create: { width: size, height: size, channels: 4, background: { r: 200, g: 30, b: 30, alpha: 1 } } }).png().toBuffer();
+// A real PNG built by hand: the test must not need sharp (the production CPU can't load it).
+function crcTable() {
+  const t: number[] = [];
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t.push(c >>> 0);
+  }
+  return t;
+}
+const CRC = crcTable();
+const crc = (b: Buffer) => {
+  let c = 0xffffffff;
+  for (const x of b) c = CRC[(c ^ x) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+};
+const chunk = (type: string, data: Buffer) => {
+  const len = Buffer.alloc(4);
+  len.writeUInt32BE(data.length);
+  const td = Buffer.concat([Buffer.from(type, "latin1"), data]);
+  const c = Buffer.alloc(4);
+  c.writeUInt32BE(crc(td));
+  return Buffer.concat([len, td, c]);
+};
+async function png(size: number) {
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(size, 0);
+  ihdr.writeUInt32BE(size, 4);
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 2; // RGB
+  const row = Buffer.concat([Buffer.from([0]), Buffer.alloc(size * 3, 0xc8)]);
+  const raw = Buffer.concat(Array.from({ length: size }, () => row));
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", ihdr),
+    chunk("IDAT", zlib.deflateSync(raw)),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+const pngWidth = (b: Buffer) => b.readUInt32BE(16);
 const fetchMock = vi.fn();
 vi.mock("@/lib/safe-fetch", () => ({ safeFetch: (...a: unknown[]) => fetchMock(...a) }));
+// Like the production server: sharp can't load there.
+vi.mock("@/lib/image", async (orig) => ({ ...(await orig<typeof import("@/lib/image")>()), loadSharp: async () => null }));
 
 describe("store icons", () => {
   beforeEach(() => fetchMock.mockReset());
 
-  it("fetches a store's icon once, normalised to 128 px, and serves it from cache", async () => {
+  it("fetches a store's icon once and serves it from cache", async () => {
     fetchMock.mockResolvedValue({ status: 200, contentType: "image/png", body: await png(64), url: "" });
     const { storeIcon, cachedStoreIcons } = await import("@/lib/store-icons");
     const p = await storeIcon("noon");
     expect(p).toBeTruthy();
-    expect((await sharp(fs.readFileSync(p!)).metadata()).width).toBe(128);
+    expect(pngWidth(fs.readFileSync(p!))).toBe(64); // kept as is without sharp
     expect(String(fetchMock.mock.calls[0][0])).toContain("domain=www.noon.com");
     await storeIcon("noon");
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(cachedStoreIcons().has("noon")).toBe(true);
   });
 
-  it("rejects tiny or missing icons and does not retry the same day", async () => {
+  it("falls back to the site's own apple-touch-icon when Google has none", async () => {
     const { storeIcon } = await import("@/lib/store-icons");
-    fetchMock.mockResolvedValue({ status: 200, contentType: "image/png", body: await png(16), url: "" });
+    const good = await png(180);
+    const tiny = await png(16);
+    fetchMock.mockImplementation(async (...a: unknown[]) =>
+      String(a[0]).endsWith("/apple-touch-icon.png") ? { status: 200, body: good } : { status: 200, body: tiny },
+    );
+    expect(await storeIcon("trendyol")).toBeTruthy();
+    const urls = fetchMock.mock.calls.map((c) => String(c[0]));
+    expect(urls.at(-1)).toBe("https://www.trendyol.com/apple-touch-icon.png");
+  });
+
+  it("tries the main domain for regional subdomains", async () => {
+    const { storeIcon } = await import("@/lib/store-icons");
+    fetchMock.mockResolvedValue({ status: 404, body: await png(64) });
+    expect(await storeIcon("6thstreet")).toBeNull();
+    const urls = fetchMock.mock.calls.map((c) => String(c[0]));
+    expect(urls).toContain("https://www.google.com/s2/favicons?domain=6thstreet.com&sz=128");
+  });
+
+  it("does not retry a miss the same day, but retries misses from an older version", async () => {
+    const { storeIcon } = await import("@/lib/store-icons");
+    fetchMock.mockResolvedValue({ status: 404, body: await png(64) });
     expect(await storeIcon("namshi")).toBeNull();
-    fetchMock.mockResolvedValue({ status: 404, contentType: "image/png", body: await png(64), url: "" });
-    expect(await storeIcon("trendyol")).toBeNull();
-    expect(await storeIcon("trendyol")).toBeNull();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const n = fetchMock.mock.calls.length;
+    expect(await storeIcon("namshi")).toBeNull();
+    expect(fetchMock.mock.calls.length).toBe(n);
+    fs.writeFileSync(path.join(dir, "store-icons", "namshi.miss"), ""); // written by the first version
+    await storeIcon("namshi");
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(n);
   });
 
   it("ignores unknown stores", async () => {
