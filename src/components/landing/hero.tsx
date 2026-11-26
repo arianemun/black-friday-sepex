@@ -82,15 +82,24 @@ export function Hero() {
         <div className="hero-in mt-4 flex flex-col items-center gap-2 text-sm [--in:960ms] sm:flex-row sm:gap-3">
           {hero.alt.map((a, i) => {
             const Icon = i === 0 ? Camera : Ship;
-            return (
+            // The photo route is highlighted with a border. clip-path would cut a ring at the
+            // chamfered corners, so the border is a 1px chamfered layer behind the button.
+            return i === 0 ? (
               <Link
                 key={a.href}
                 href={a.href}
-                className={
-                  i === 0
-                    ? "chamfer-sm inline-flex h-11 items-center gap-2 bg-white/[0.07] px-4 font-bold text-brand ring-1 ring-inset ring-brand/50 transition-colors hover:bg-brand hover:text-ink"
-                    : "chamfer-sm inline-flex h-10 items-center gap-2 bg-white/[0.07] px-4 font-semibold text-white/80 transition-colors hover:bg-brand hover:text-ink"
-                }
+                className="chamfer-sm group inline-flex bg-brand/55 p-px transition-colors hover:bg-brand focus-visible:bg-brand focus-visible:outline-none"
+              >
+                <span className="chamfer-sm inline-flex h-[42px] items-center gap-2 bg-[#161616] px-4 font-bold text-brand transition-colors group-hover:bg-brand group-hover:text-ink group-focus-visible:bg-brand group-focus-visible:text-ink">
+                  <Icon className="size-4" aria-hidden />
+                  {a.label}
+                </span>
+              </Link>
+            ) : (
+              <Link
+                key={a.href}
+                href={a.href}
+                className="chamfer-sm inline-flex h-10 items-center gap-2 bg-white/[0.07] px-4 font-semibold text-white/80 transition-colors hover:bg-brand hover:text-ink"
               >
                 <Icon className="size-4" aria-hidden />
                 {a.label}
