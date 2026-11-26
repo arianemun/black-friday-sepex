@@ -58,7 +58,8 @@ type W = { sql: string; args: unknown[] };
 
 /** WHERE for sessions (alias s) in the scope; `prev` selects the comparison window. */
 export function where(s: Scope, prev = false, alias = "s"): W {
-  const c = [`${alias}.is_staff = 0`, `${alias}.started_at >= ?`, `${alias}.started_at < ?`];
+  // The comparison window ends where this one starts; this one includes its last instant ("now").
+  const c = [`${alias}.is_staff = 0`, `${alias}.started_at >= ?`, prev ? `${alias}.started_at < ?` : `${alias}.started_at <= ?`];
   const args: unknown[] = prev ? [s.prevSince, s.since] : [s.since, s.until];
   if (s.device) {
     c.push(`${alias}.device = ?`);
