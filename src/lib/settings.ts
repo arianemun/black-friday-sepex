@@ -11,6 +11,10 @@ export type Settings = {
   telegram: string;
   instagram: string;
   bale: string;
+  /** Which SMS.ir account sends (see lib/sms.ts), and who switched it last. */
+  sms_account: "a" | "b";
+  sms_account_by: string;
+  sms_account_at: string;
 };
 
 export const defaultSettings: Settings = {
@@ -24,6 +28,9 @@ export const defaultSettings: Settings = {
   telegram: "",
   instagram: "",
   bale: "",
+  sms_account: "a",
+  sms_account_by: "",
+  sms_account_at: "",
 };
 
 export function getSettings(): Settings {

@@ -20,6 +20,7 @@ import { deleteUpload, storeRemoteImage, storeUpload } from "@/lib/uploads";
 import { enrichRequestLinks } from "@/lib/requests";
 import { logEvent } from "@/lib/events";
 import { toEnDigits } from "@/lib/utils";
+import { sendTemplateSms, smsAccount, type SmsAccountKey } from "@/lib/sms";
 
 export type ActionState = { ok?: boolean; error?: string; message?: string; data?: Record<string, string | null> } | null;
 
@@ -328,4 +329,40 @@ export async function sessionNoteAction(sid: string, _: ActionState, fd: FormDat
   setSessionNote(sid, str(fd, "note", 1000), fd.get("starred") === "1");
   revalidatePath(`/admin/insights/sessions/${sid}`);
   return { ok: true, message: "ذخیره شد." };
+}
+
+/* ---------------------------------------------------------------- SMS account */
+
+const smsKey = (v: FormDataEntryValue | null): SmsAccountKey | null => (v === "a" || v === "b" ? v : null);
+
+/** Chooses which SMS.ir account sends every message from now on. */
+export async function setSmsAccountAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const me = await requireAdmin();
+  const acc = smsKey(fd.get("account"));
+  if (!acc) return { error: "حساب نامعتبر است." };
+  const a = smsAccount(acc);
+  if (!a.configured) return { error: `کلید API «${a.label}» روی سرور تنظیم نشده است.` };
+  saveSettings({ sms_account: acc, sms_account_by: me.name, sms_account_at: nowIso() });
+  console.info(`[sms] active account set to ${acc} by staff #${me.id}`);
+  revalidatePath("/admin/settings");
+  return { ok: true, message: `از این به بعد پیامک‌ها از «${a.label}» ارسال می‌شوند.` };
+}
+
+/** Sends the OTP template with a dummy code from the chosen account, to check it works. */
+export async function smsTestAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const me = await requireAdmin();
+  const acc = smsKey(fd.get("account"));
+  const mobile = normalizeIranMobile(str(fd, "mobile", 20));
+  if (!acc) return { error: "حساب نامعتبر است." };
+  if (!mobile) return { error: "شماره موبایل معتبر نیست." };
+  if (!rateLimit(`sms-test:${me.id}`, 5, 600)) return { error: "پیامک آزمایشی زیادی فرستادید. چند دقیقه دیگر دوباره امتحان کنید." };
+  const a = smsAccount(acc);
+  if (!a.configured) return { error: `کلید API «${a.label}» روی سرور تنظیم نشده است.` };
+  if (!a.templates.otp) return { error: `قالب کد تأیید «${a.label}» تنظیم نشده است.` };
+  const otpParam = process.env[acc === "a" ? "SMSIR_OTP_PARAM" : "SMSIR_B_OTP_PARAM"] || process.env.SMSIR_OTP_PARAM || "CODE";
+  const r = await sendTemplateSms(mobile, a.templates.otp, [{ name: otpParam, value: "12345" }], acc);
+  if ("dryRun" in r && r.dryRun) return { error: "ارسال واقعی خاموش است (SMS_DRY_RUN=1)؛ پیامکی فرستاده نشد." };
+  return r.ok
+    ? { ok: true, message: `پیامک آزمایشی (کد ۱۲۳۴۵) از «${a.label}» فرستاده شد.` }
+    : { error: `SMS.ir پیامک را نپذیرفت. قالب و تأیید آن را در پنل «${a.label}» بررسی کنید؛ جزئیات در لاگ سرور است.` };
 }

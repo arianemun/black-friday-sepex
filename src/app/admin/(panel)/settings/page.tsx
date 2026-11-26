@@ -1,7 +1,8 @@
 import { requireAdmin } from "@/lib/auth";
 import { fetchProxies } from "@/lib/safe-fetch";
 import { getSettings } from "@/lib/settings";
-import { smsDryRun } from "@/lib/sms";
+import { SMS_ACCOUNT_KEYS, activeSmsAccountKey, smsAccount, smsCredit, smsDryRun } from "@/lib/sms";
+import { SmsAccounts } from "@/components/admin/sms-accounts";
 import { loadSharp } from "@/lib/image";
 import { backupIntervalHours, listBackups } from "@/lib/backup";
 import { SettingsForm } from "@/components/admin/settings-form";
@@ -25,14 +26,17 @@ function isFresh(at: Date | undefined) {
 export default async function SettingsPage() {
   await requireAdmin();
   const s = getSettings();
+  const active = activeSmsAccountKey();
+  const tpl = smsAccount(active).templates;
+  const smsAccounts = await Promise.all(SMS_ACCOUNT_KEYS.map(async (k) => ({ ...smsAccount(k), credit: await smsCredit(k) })));
   const env = {
     smsLive: !smsDryRun(),
-    otpTemplate: !!process.env.SMSIR_OTP_TEMPLATE_ID,
-    customerTemplate: !!process.env.SMSIR_CUSTOMER_TEMPLATE_ID,
-    expertTemplate: !!process.env.SMSIR_EXPERT_TEMPLATE_ID,
+    otpTemplate: !!tpl.otp,
+    customerTemplate: !!tpl.customer,
+    expertTemplate: !!tpl.expert,
     proxies: fetchProxies().map((p) => p.label),
     sharp: !!(await loadSharp()),
-    escalationTemplate: !!process.env.SMSIR_ESCALATION_TEMPLATE_ID,
+    escalationTemplate: !!tpl.escalation,
   };
   const backups = listBackups();
   const lastBackup = backups[0];
@@ -43,14 +47,23 @@ export default async function SettingsPage() {
     <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] [&>*]:min-w-0">
       <div>
       <PageHeader title="تنظیمات و سامانه" description="زمان کمپین، روش اعلان به کارشناس‌ها و راه‌های ارتباطی فوتر" />
-      <SettingsForm settings={{ ...s, countdown_target: toTehranLocal(s.countdown_target), campaign_end: toTehranLocal(s.campaign_end) }} />
+      <div className="flex flex-col gap-4">
+        <SmsAccounts
+          accounts={smsAccounts}
+          active={active}
+          changedBy={s.sms_account_by}
+          changedAt={s.sms_account_at}
+          dryRun={process.env.SMS_DRY_RUN === "1"}
+        />
+        <SettingsForm settings={{ ...s, countdown_target: toTehranLocal(s.countdown_target), campaign_end: toTehranLocal(s.campaign_end) }} />
+      </div>
       </div>
       <section className="flex flex-col gap-3 rounded-xl border border-[#E4E4E7] bg-white p-5 text-sm lg:sticky lg:top-24 lg:mt-[4.25rem]">
         <h2 className="m-0 text-[15px] font-bold">وضعیت سرویس‌ها</h2>
         <p className="text-xs text-[#71717A]">از فایل ‎.env سرور خوانده می‌شوند.</p>
         <ul className="flex flex-col divide-y divide-[#F4F4F5]">
           {[
-            ["ارسال پیامک (SMS.ir)", env.smsLive, "فعال", "شبیه‌سازی؛ پیامکی ارسال نمی‌شود"],
+            [`ارسال پیامک (SMS.ir، ${smsAccount(active).label})`, env.smsLive, "فعال", "شبیه‌سازی؛ پیامکی ارسال نمی‌شود"],
             ["قالب پیامک کد تأیید", env.otpTemplate, "تنظیم شده", "تنظیم نشده"],
             ["قالب پیامک ثبت درخواست (مشتری)", env.customerTemplate, "تنظیم شده", "تنظیم نشده"],
             ["قالب پیامک درخواست جدید (کارشناس)", env.expertTemplate, "تنظیم شده", "تنظیم نشده"],
