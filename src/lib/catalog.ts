@@ -52,6 +52,8 @@ export type Store = {
   /** false: still recognised in links, but not suggested (hard to buy from for our customers). */
   suggest?: boolean;
   deal?: StoreDeal;
+  /** Where to look for the store's icon when its own domain has none (e.g. the brand's main site). */
+  iconHost?: string;
 };
 
 export const stores: Store[] = [
@@ -77,7 +79,7 @@ export const stores: Store[] = [
   { key: "ounass", name: "اوناس", latin: "Ounass", url: "https://www.ounass.ae", country: "AE", domains: ["ounass.ae"], short: "اوناس", hint: "برندهای لوکس و طراحان", cats: ["luxury", "fashion", "beauty"] },
   { key: "levelshoes", name: "لول شوز", latin: "Level Shoes", url: "https://www.levelshoes.com", country: "AE", domains: ["levelshoes.com"], short: "لول شوز", hint: "کفش و کیف لوکس", cats: ["luxury", "fashion"] },
   { key: "sssports", name: "سان اند سند اسپورتس", latin: "Sun & Sand Sports", url: "https://en-ae.sssports.com", country: "AE", domains: ["sssports.com"], short: "سان اند سند", hint: "نایک، آدیداس، نیوبالانس و…", cats: ["sport", "fashion"], deal: { min: 50, max: 70, until: "2026-11-29" } },
-  { key: "sephora-ae", name: "سفورا", latin: "Sephora", url: "https://www.sephora.ae", country: "AE", domains: ["sephora.ae"], short: "سفورا", hint: "آرایشی، مراقبت پوست و عطر", cats: ["beauty"] },
+  { key: "sephora-ae", name: "سفورا", latin: "Sephora", url: "https://www.sephora.ae", country: "AE", domains: ["sephora.ae"], short: "سفورا", hint: "آرایشی، مراقبت پوست و عطر", cats: ["beauty"], iconHost: "www.sephora.com" },
   { key: "sharafdg", name: "شرف دی‌جی", latin: "Sharaf DG", url: "https://uae.sharafdg.com", country: "AE", domains: ["sharafdg.com"], short: "شرف دی‌جی", hint: "لوازم الکترونیکی", cats: ["digital"] },
   { key: "jumbo", name: "جامبو", latin: "Jumbo", url: "https://www.jumbo.ae", country: "AE", domains: ["jumbo.ae"], short: "جامبو", hint: "موبایل، لپ‌تاپ و صوتی", cats: ["digital"] },
   { key: "virginmegastore", name: "ویرجین مگااستور", latin: "Virgin Megastore", url: "https://www.virginmegastore.ae", country: "AE", domains: ["virginmegastore.ae"], short: "ویرجین", hint: "گیمینگ، گجت و سرگرمی", cats: ["digital", "kids"] },
@@ -112,7 +114,7 @@ export const stores: Store[] = [
   { key: "hepsiburada", name: "هپسی‌بورادا", latin: "Hepsiburada", url: "https://www.hepsiburada.com", country: "TR", domains: ["hepsiburada.com"], short: "هپسی‌بورادا", hint: "فروشگاه همه‌چیز ترکیه", cats: ["all", "digital", "home"] },
   { key: "amazon-tr", name: "آمازون ترکیه", latin: "amazon.com.tr", url: "https://www.amazon.com.tr", country: "TR", domains: ["amazon.com.tr"], brand: "Amazon TR", hint: "دیجیتال و خانه ترکیه", cats: ["all", "digital"] },
   { key: "n11", name: "ان‌یازده", latin: "n11", url: "https://www.n11.com", country: "TR", domains: ["n11.com"], short: "n11", hint: "بازار آنلاین ترکیه", cats: ["all"] },
-  { key: "lcwaikiki", name: "ال‌سی وایکیکی", latin: "LC Waikiki", url: "https://www.lcw.com", country: "TR", domains: ["lcw.com", "lcwaikiki.com"], short: "ال‌سی وایکیکی", hint: "پوشاک خانواده و کودک", cats: ["fashion", "kids"], official: true },
+  { key: "lcwaikiki", name: "ال‌سی وایکیکی", latin: "LC Waikiki", url: "https://www.lcw.com", country: "TR", domains: ["lcw.com", "lcwaikiki.com"], short: "ال‌سی وایکیکی", hint: "پوشاک خانواده و کودک", cats: ["fashion", "kids"], official: true, iconHost: "www.lcwaikiki.com" },
   { key: "defacto", name: "دیفکتو", latin: "DeFacto", url: "https://www.defacto.com.tr", country: "TR", domains: ["defacto.com.tr", "defacto.com"], short: "دیفکتو", hint: "پوشاک روزمره", cats: ["fashion", "kids"], official: true },
   { key: "koton", name: "کوتون", latin: "Koton", url: "https://www.koton.com", country: "TR", domains: ["koton.com"], short: "کوتون", hint: "مد زنانه و مردانه", cats: ["fashion"], official: true },
   { key: "mavi", name: "ماوی", latin: "Mavi", url: "https://www.mavi.com", country: "TR", domains: ["mavi.com"], short: "ماوی", hint: "جین و پوشاک", cats: ["fashion"], official: true },

@@ -7,9 +7,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ key: st
   const p = await storeIcon(key);
   if (!p) return new Response(null, { status: 404, headers: { "Cache-Control": "public, max-age=3600" } });
   const svg = p.endsWith(".svg");
+  const type = svg ? "image/svg+xml" : p.endsWith(".jpg") ? "image/jpeg" : "image/png";
   return new Response(new Uint8Array(fs.readFileSync(p)), {
     headers: {
-      "Content-Type": svg ? "image/svg+xml" : "image/png",
+      "Content-Type": type,
       "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400",
       "X-Content-Type-Options": "nosniff",
       // An SVG opened directly must not run anything.

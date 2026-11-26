@@ -22,8 +22,8 @@ const MIN_SIZE = 32; // smaller than this looks blurry: show the monogram instea
 const FRESH_MS = 30 * 86_400_000;
 const MISS_RETRY_MS = 86_400_000;
 /** Written into .miss files: a miss recorded by an older version (fewer sources) is retried at once. */
-const SOURCES_VERSION = "3";
-const EXTS = ["png", "svg"] as const;
+const SOURCES_VERSION = "4";
+const EXTS = ["png", "jpg", "svg"] as const;
 type Ext = (typeof EXTS)[number];
 type Icon = { buf: Buffer; ext: Ext };
 
@@ -42,6 +42,19 @@ const existing = (key: string) => EXTS.map((e) => fileFor(key, e)).find((p) => f
 function pngSize(buf: Buffer): { w: number; h: number } | null {
   if (sniffImage(buf)?.ext !== "png" || buf.length < 24) return null;
   return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
+}
+
+/** JPEG width/height from the first SOF marker. */
+function jpegSize(buf: Buffer): { w: number; h: number } | null {
+  let i = 2;
+  while (i + 9 < buf.length) {
+    if (buf[i] !== 0xff) return null;
+    const marker = buf[i + 1];
+    const len = buf.readUInt16BE(i + 2);
+    if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) return { h: buf.readUInt16BE(i + 5), w: buf.readUInt16BE(i + 7) };
+    i += 2 + len;
+  }
+  return null;
 }
 
 /** An SVG we can serve: no scripts, event handlers or external references. */
@@ -68,6 +81,11 @@ async function toIcon(body: Buffer, contentType: string): Promise<Icon | string>
     if ((meta.width ?? 0) < MIN_SIZE) return `${meta.width ?? 0}px`;
     const buf = await img.resize(SIZE, SIZE, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 0 } }).png().toBuffer();
     return { buf, ext: "png" };
+  }
+  // Without sharp: PNG and JPEG are kept as they are (browsers show both).
+  if (raster.ext === "jpg") {
+    const size = jpegSize(body);
+    return size && size.w >= MIN_SIZE ? { buf: body, ext: "jpg" } : `${size?.w ?? 0}px jpg`;
   }
   if (raster.ext !== "png") return `${raster.ext} (needs sharp)`;
   const size = pngSize(body);
@@ -131,8 +149,8 @@ export async function declaredIcons(pageUrl: string): Promise<{ urls: string[]; 
   return { urls: urls.slice(0, 4), note: urls.length ? "" : "no icon tags" };
 }
 
-async function download(storeUrl: string): Promise<{ icon: Icon | null; why: string[] }> {
-  const host = new URL(storeUrl).hostname;
+async function download(storeUrl: string, iconHost?: string): Promise<{ icon: Icon | null; why: string[] }> {
+  const host = iconHost ?? new URL(storeUrl).hostname;
   const apex = apexOf(host);
   const why: string[] = [];
   const attempt = async (label: string, src: string) => {
@@ -144,7 +162,7 @@ async function download(storeUrl: string): Promise<{ icon: Icon | null; why: str
   let icon = await attempt("google", google(host));
   if (!icon && apex !== host) icon = await attempt("google(apex)", google(apex));
   if (!icon) {
-    const declared = await declaredIcons(storeUrl);
+    const declared = await declaredIcons(iconHost ? `https://${iconHost}` : storeUrl);
     if (declared.note) why.push(`page: ${declared.note}`);
     for (const u of declared.urls) {
       icon = await attempt("declared", u);
@@ -176,7 +194,7 @@ export async function storeIcon(key: string): Promise<string | null> {
   if (running) return running;
   const job = (async () => {
     try {
-      const { icon, why } = await download(store.url);
+      const { icon, why } = await download(store.url, store.iconHost);
       fs.mkdirSync(DIR, { recursive: true });
       if (!icon) {
         console.warn(`[store-icon] ${key}: no usable icon (${why.join("; ")})`);
@@ -209,8 +227,8 @@ export function cachedStoreIcons(): Set<string> {
     return new Set(
       fs
         .readdirSync(DIR)
-        .filter((f) => /\.(png|svg)$/.test(f))
-        .map((f) => f.replace(/\.(png|svg)$/, "")),
+        .filter((f) => /\.(png|jpg|svg)$/.test(f))
+        .map((f) => f.replace(/\.(png|jpg|svg)$/, "")),
     );
   } catch {
     return new Set();

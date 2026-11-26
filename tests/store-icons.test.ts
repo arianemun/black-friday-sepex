@@ -125,6 +125,21 @@ describe("store icons", () => {
     expect(safeSvg(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><image href="https://evil.example/x.png"/></svg>'))).toBe(false);
   });
 
+  it("keeps a JPEG icon as is when sharp is unavailable", async () => {
+    const { storeIcon } = await import("@/lib/store-icons");
+    // Minimal JPEG header: SOI, then a SOF0 segment declaring 64x64.
+    const jpg = Buffer.from([0xff, 0xd8, 0xff, 0xc0, 0x00, 0x11, 0x08, 0x00, 0x40, 0x00, 0x40, 0x03, 1, 0x22, 0, 2, 0x11, 1, 3, 0x11, 1, 0xff, 0xd9]);
+    fetchMock.mockResolvedValue({ status: 200, body: jpg, contentType: "image/jpeg", url: "" });
+    expect(await storeIcon("maxfashion")).toMatch(/maxfashion\.jpg$/);
+  });
+
+  it("looks for the icon on the brand's main site when the store says so", async () => {
+    const { storeIcon } = await import("@/lib/store-icons");
+    fetchMock.mockResolvedValue({ status: 200, body: await png(64), contentType: "image/png", url: "" });
+    await storeIcon("sephora-ae");
+    expect(String(fetchMock.mock.calls[0][0])).toContain("domain=www.sephora.com");
+  });
+
   it("ignores unknown stores", async () => {
     const { storeIcon } = await import("@/lib/store-icons");
     expect(await storeIcon("../../etc/passwd")).toBeNull();
