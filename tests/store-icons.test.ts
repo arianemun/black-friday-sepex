@@ -77,7 +77,7 @@ describe("store icons", () => {
     );
     expect(await storeIcon("trendyol")).toBeTruthy();
     const urls = fetchMock.mock.calls.map((c) => String(c[0]));
-    expect(urls.at(-1)).toBe("https://www.trendyol.com/apple-touch-icon.png");
+    expect(urls).toContain("https://www.trendyol.com/apple-touch-icon.png");
   });
 
   it("tries the main domain for regional subdomains", async () => {
@@ -98,6 +98,31 @@ describe("store icons", () => {
     fs.writeFileSync(path.join(dir, "store-icons", "namshi.miss"), ""); // written by the first version
     await storeIcon("namshi");
     expect(fetchMock.mock.calls.length).toBeGreaterThan(n);
+  });
+
+  it("uses the icon the site declares in its page when the usual places have none", async () => {
+    const { storeIcon } = await import("@/lib/store-icons");
+    const good = await png(192);
+    const tiny = await png(16);
+    const page = `<html><head><link rel="icon" href="/fav.ico"><link rel="apple-touch-icon" sizes="180x180" href="/static/touch-180.png"></head></html>`;
+    fetchMock.mockImplementation(async (...a: unknown[]) => {
+      const url = String(a[0]);
+      if (url.includes("google.com")) return { status: 200, body: tiny, contentType: "image/png", url };
+      if (url === "https://www.taobao.com") return { status: 200, body: Buffer.from(page), contentType: "text/html", url: "https://www.taobao.com/" };
+      if (url === "https://www.taobao.com/static/touch-180.png") return { status: 200, body: good, contentType: "image/png", url };
+      return { status: 404, body: Buffer.alloc(0), contentType: "", url };
+    });
+    const p = await storeIcon("taobao");
+    expect(p).toMatch(/taobao\.png$/);
+    expect(pngWidth(fs.readFileSync(p!))).toBe(192);
+  });
+
+  it("keeps a safe SVG icon and refuses one with scripts", async () => {
+    const { safeSvg } = await import("@/lib/store-icons");
+    expect(safeSvg(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0h10v10z"/></svg>'))).toBe(true);
+    expect(safeSvg(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'))).toBe(false);
+    expect(safeSvg(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" onload="x()"></svg>'))).toBe(false);
+    expect(safeSvg(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><image href="https://evil.example/x.png"/></svg>'))).toBe(false);
   });
 
   it("ignores unknown stores", async () => {

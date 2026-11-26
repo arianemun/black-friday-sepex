@@ -6,7 +6,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ key: st
   if (!/^[a-z0-9-]{1,40}$/.test(key)) return new Response(null, { status: 404 });
   const p = await storeIcon(key);
   if (!p) return new Response(null, { status: 404, headers: { "Cache-Control": "public, max-age=3600" } });
+  const svg = p.endsWith(".svg");
   return new Response(new Uint8Array(fs.readFileSync(p)), {
-    headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400" },
+    headers: {
+      "Content-Type": svg ? "image/svg+xml" : "image/png",
+      "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400",
+      "X-Content-Type-Options": "nosniff",
+      // An SVG opened directly must not run anything.
+      ...(svg ? { "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox" } : {}),
+    },
   });
 }
