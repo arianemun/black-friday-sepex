@@ -57,6 +57,22 @@ const fmtPrice = (v: string | null, cur: string | null) => {
   return `${Number.isFinite(n) ? n.toLocaleString("en-US", { maximumFractionDigits: 2 }) : v}${cur ? ` ${cur}` : ""}`;
 };
 
+/**
+ * A first guess at the category of a product sent by the bookmark: words in its title, then the
+ * store's main category. Staff can still change it in the form.
+ */
+function guessCategory(storeCats: string[] | undefined, title?: string | null): string {
+  const t = (title ?? "").toLowerCase();
+  if (/shoe|sneaker|boot|trainer|running|football|jersey|tracksuit|tank top|sport|gym|yoga/.test(t)) return "sport";
+  if (/perfume|parfum|eau de|fragrance|oil|makeup|serum|cream|skin|hair|shaver|trimmer|airwrap/.test(t)) return "beauty";
+  if (/phone|iphone|galaxy|airpods|headphone|earbuds|laptop|macbook|ipad|tablet|watch|camera|console|playstation|speaker/.test(t)) return "digital";
+  if (/kid|baby|toy|lego/.test(t)) return "kids";
+  if (/dress|shirt|t-shirt|jacket|bag|jeans|hoodie|abaya|trouser|skirt|wallet|sunglass/.test(t)) return "fashion";
+  const map: Record<string, string> = { fashion: "fashion", sport: "sport", digital: "digital", beauty: "beauty", home: "home", kids: "kids", luxury: "fashion" };
+  for (const c of storeCats ?? []) if (map[c]) return map[c];
+  return "other";
+}
+
 /* ------------------------------------------------------------------ status */
 
 type Filter = "all" | "live" | "queue" | "attention" | "off";
@@ -394,7 +410,7 @@ export function ProductManager({ products, status, siteUrl }: { products: P[]; s
     /* eslint-disable-next-line react-hooks/set-state-in-effect -- one-time fill from the bookmark */
     openForm(
       {
-        ...(known ? fromRow(known) : { ...empty, queued: "1", store_key: st?.key ?? "", country: st?.country ?? "" }),
+        ...(known ? fromRow(known) : { ...empty, queued: "1", store_key: st?.key ?? "", country: st?.country ?? "", category: guessCategory(st?.cats, d.t) }),
         url,
         title: d.t?.trim().slice(0, 300) || known?.title || "",
         image_url: img,

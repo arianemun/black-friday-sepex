@@ -199,6 +199,8 @@ export async function saveProductAction(_: ActionState, fd: FormData): Promise<A
     if (existing) p.id = existing.id;
   }
   const discount = p.discount_percent ? Math.min(99, Math.max(1, Number(p.discount_percent) || 0)) || null : discountOf(p.price, p.old_price);
+  // Typed by staff → manual; worked out from two prices the bookmark read on the page → site.
+  const discountSource = discount ? (p.discount_percent ? "manual" : stock === "in" || stock === "out" ? "site" : "manual") : null;
   const db = getDb();
   if (p.id) {
     const old = db.prepare("SELECT image_upload_id FROM products WHERE id = ?").get(p.id) as { image_upload_id: string | null } | undefined;
@@ -208,14 +210,14 @@ export async function saveProductAction(_: ActionState, fd: FormData): Promise<A
        image_upload_id=COALESCE(?, image_upload_id), name_fa=COALESCE(?, name_fa), name_en=COALESCE(?, name_en),
        discount_source = CASE WHEN ? THEN ? WHEN discount_percent IS ? THEN discount_source ELSE 'manual' END, updated_at=? WHERE id=?`
     ).run(p.title, url, p.category, p.country || null, store, p.price || null, p.old_price || null, p.currency || null, discount, p.sort, imageId, p.name_fa || null, p.name_en || null,
-      fromPage ? 1 : 0, discount ? "site" : null, discount, nowIso(), p.id);
+      fromPage ? 1 : 0, discountSource, discount, nowIso(), p.id);
     if (imageId && old.image_upload_id && old.image_upload_id !== imageId) await deleteUpload(old.image_upload_id);
   } else {
     db.prepare(
       `INSERT INTO products(title, url, category, country, store_key, price, old_price, currency, discount_percent, discount_source, sort, image_upload_id,
          name_fa, name_en, code, active, queued, published_at)
        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
-    ).run(p.title, url, p.category, p.country || null, store, p.price || null, p.old_price || null, p.currency || null, discount, discount ? (fromPage ? "site" : "manual") : null, p.sort, imageId,
+    ).run(p.title, url, p.category, p.country || null, store, p.price || null, p.old_price || null, p.currency || null, discount, discountSource, p.sort, imageId,
       p.name_fa || null, p.name_en || null, newCode(), p.queued ? 0 : 1, p.queued ? 1 : 0, p.queued ? null : nowIso());
   }
   revalidatePath("/admin/products");

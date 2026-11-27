@@ -123,6 +123,28 @@ describe("automatic deals", () => {
     });
   });
 
+  it("a discount staff entered (or the bookmark read) survives a check that can't see the crossed-out price", async () => {
+    const { checkProduct } = await import("@/lib/deals");
+    const { getDb } = await import("@/lib/db");
+    const db = getDb();
+    db.prepare(
+      "INSERT INTO products(title, url, source, active, price, old_price, discount_percent, discount_source, stock) VALUES('Bag', 'https://www.namshi.com/uae-en/bag/p/', 'manual', 1, '129', '215', 40, 'site', 'in')"
+    ).run();
+    const row = () => db.prepare("SELECT * FROM products WHERE url = 'https://www.namshi.com/uae-en/bag/p/'").get() as import("@/lib/products").ProductRow;
+    // Same price, no crossed-out price visible to the server → nothing lost.
+    metaMock.mockResolvedValueOnce(meta({ price: "129 AED", oldPrice: null, availability: "in" }));
+    await checkProduct(row());
+    expect(row()).toMatchObject({ discount_percent: 40, old_price: "215", discount_source: "site" });
+    // Price moved a little, still on sale → percent follows the crossed-out price.
+    metaMock.mockResolvedValueOnce(meta({ price: "139", oldPrice: null, availability: "in" }));
+    await checkProduct(row());
+    expect(row()).toMatchObject({ discount_percent: 35, old_price: "215" });
+    // Back to full price → the sale is over.
+    metaMock.mockResolvedValueOnce(meta({ price: "215", oldPrice: null, availability: "in" }));
+    await checkProduct(row());
+    expect(row()).toMatchObject({ discount_percent: null, old_price: null });
+  });
+
   it("a researched discount is dropped when the store raises the price", async () => {
     const { checkProduct } = await import("@/lib/deals");
     const { getDb } = await import("@/lib/db");

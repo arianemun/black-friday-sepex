@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { detectStore } from "./catalog";
 import { getDb, nowIso } from "./db";
-import { discountOf, fetchLinkMeta } from "./link-meta";
+import { discountOf, fetchLinkMeta, toNumber } from "./link-meta";
 import type { ProductRow } from "./products";
 import { deleteUpload, storeRemoteImage } from "./uploads";
 
@@ -97,22 +97,27 @@ export async function checkProduct(p: ProductRow): Promise<CheckResult> {
   const stock: ProductRow["stock"] = meta.availability === "out" ? "out" : meta.availability === "in" ? "in" : "unknown";
   const siteDiscount = discountOf(meta.price, meta.oldPrice);
   const price = meta.price ?? p.price;
-  // A discount read from the store wins; a researched one stays until the store shows another price.
+  // A discount read from the store wins. Otherwise the recorded one (staff, bookmark, research)
+  // stays: the server often can't see the crossed-out price that a person saw. It is dropped
+  // only when the store now asks more than the recorded price, i.e. the sale is over.
   let discount = p.discount_percent;
   let source = p.discount_source;
   let old = p.old_price;
+  const now$ = toNumber(meta.price), was$ = toNumber(p.price);
   if (siteDiscount) {
     discount = siteDiscount;
     source = "site";
     old = meta.oldPrice ?? null;
-  } else if (p.discount_source === "site") {
-    discount = null;
-    source = null;
-    old = null;
-  } else if (p.discount_source === "research" && meta.price && p.price && Number(meta.price) > Number(p.price) * 1.02) {
-    // The store raised the price since the research: the researched percent is stale.
-    discount = null;
-    source = null;
+  } else if (discount && now$ && was$ && now$ > was$ * 1.02) {
+    const fromOld = old ? discountOf(now$, old) : null;
+    discount = fromOld;
+    if (!fromOld) {
+      source = null;
+      old = null;
+    }
+  } else if (discount && old && now$ && was$ && Math.abs(now$ - was$) / was$ > 0.005) {
+    // Price moved a little (still on sale): keep the percent true to the crossed-out price.
+    discount = discountOf(now$, old) ?? discount;
   }
 
   let imageId = p.image_upload_id;

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Camera, Ship } from "lucide-react";
+import { Camera, ChevronDown, Ship, Store, Tag as TagIcon } from "lucide-react";
 import { hero } from "@/content/landing";
 import { storeLabel, stores } from "@/lib/catalog";
 import { SepexLogo } from "@/components/brand/logo";
@@ -53,7 +53,7 @@ function PriceTag({ t }: { t: Tag }) {
   );
 }
 
-export function Hero() {
+export function Hero({ deals }: { deals?: { count: number; maxDiscount: number | null } }) {
   return (
     <section className="relative isolate overflow-hidden bg-black text-white" aria-labelledby="hero-title">
       <div className="spotlight pointer-events-none absolute inset-0 -z-10" aria-hidden />
@@ -108,16 +108,39 @@ export function Hero() {
           })}
         </div>
 
-        {/* Small screens: the tags sit in a row instead of floating around the stage. */}
-        <ul className="hero-in mt-10 flex flex-wrap justify-center [--in:1080ms] gap-x-2 gap-y-3 lg:hidden" aria-label="چند فروشگاه" dir="ltr">
-          {TAGS.map((t, i) => (
-            <li key={t.key} style={{ transform: `rotate(${i % 2 ? 3 : -3}deg)` }}>
-              <span className={`price-tag inline-block py-2 pl-3.5 pr-8 text-base font-black leading-none ${t.tone === "yellow" ? "bg-brand text-ink" : "bg-[#1b1b1b] text-brand ring-1 ring-inset ring-brand/35"}`}>
-                {tagName(t.key)}
+        {/* Small screens: instead of the floating tags, two shortcuts to what people come for. */}
+        <nav className="hero-in mt-10 grid w-full max-w-md grid-cols-2 gap-3 [--in:1080ms] lg:hidden" aria-label="میان‌بر">
+          {deals && deals.count > 0 && (
+            <a
+              href="#deals"
+              className="chamfer-sm group relative flex flex-col items-start gap-1.5 overflow-hidden bg-brand px-4 pb-3.5 pt-4 text-right text-ink shadow-[0_0_40px_-8px_rgb(255_203_5/0.55)] active:scale-[0.98]"
+            >
+              <span className="flex w-full items-center justify-between">
+                <TagIcon className="size-5" aria-hidden />
+                <span className="relative flex size-2.5" aria-hidden>
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-ink/60 motion-reduce:hidden" />
+                  <span className="relative inline-flex size-2.5 rounded-full bg-ink" />
+                </span>
               </span>
-            </li>
-          ))}
-        </ul>
+              <span className="text-[15px] font-black leading-6">پیشنهادهای بلک‌فرایدی</span>
+              <span className="flex items-center gap-1 text-xs font-bold text-ink/70">
+                {deals.maxDiscount ? `تا ${deals.maxDiscount.toLocaleString("fa-IR")}٪ تخفیف` : "کالاهای منتخب"}
+                <ChevronDown className="size-3.5" aria-hidden />
+              </span>
+            </a>
+          )}
+          <a
+            href="#stores"
+            className={`chamfer-sm flex flex-col items-start gap-1.5 bg-[#1b1b1b] px-4 pb-3.5 pt-4 text-right text-white ring-1 ring-inset ring-brand/40 active:scale-[0.98] ${deals && deals.count > 0 ? "" : "col-span-2"}`}
+          >
+            <Store className="size-5 text-brand" aria-hidden />
+            <span className="text-[15px] font-black leading-6">نمی‌دونی از کجا بخری؟</span>
+            <span className="flex items-center gap-1 text-xs font-bold text-white/55">
+              سایت‌های محبوب
+              <ChevronDown className="size-3.5" aria-hidden />
+            </span>
+          </a>
+        </nav>
         <a href="#deals" className="mt-12 hidden flex-col items-center gap-2 text-xs text-white/40 hover:text-white/70 sm:flex">
           بیا پایین
           <span className="scroll-cue h-8 w-px bg-gradient-to-b from-brand to-transparent" aria-hidden />

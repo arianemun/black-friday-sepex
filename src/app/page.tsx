@@ -61,7 +61,7 @@ export default function HomePage() {
     <>
       <SiteHeader />
       <main>
-        <Hero />
+        <Hero deals={{ count: products.length, maxDiscount: products.reduce<number | null>((m, p) => (p.discount && (!m || p.discount > m) ? p.discount : m), null) }} />
         <Reveal>
           <Paths />
         </Reveal>
