@@ -93,19 +93,28 @@ export async function storeUpload(
   return { id, kind: opts.kind, file_name: fileName, mime, size: out.length, width, height, request_item_id: null };
 }
 
-/** Downloads a remote product image (SSRF-guarded) and stores it as a product upload. Tries each proxy, then direct. */
+/**
+ * Downloads a remote product image (SSRF-guarded) and stores it as a product upload. Tries each
+ * proxy, then direct. Never asks for AVIF: CDNs (noon) serve it when allowed, and without sharp
+ * the server keeps only JPEG/PNG/WebP/GIF. If a CDN still sends something else, ask for JPEG.
+ */
+const IMAGE_ACCEPTS = ["image/webp,image/jpeg,image/png;q=0.9,image/gif;q=0.8", "image/jpeg"];
 export async function storeRemoteImage(url: string): Promise<UploadRow | null> {
   const routes: (FetchProxy | null)[] = [...fetchProxies(), null];
   for (const proxy of routes) {
-    try {
-      const res = await safeFetch(url, { proxy, maxBytes: MAX_UPLOAD_BYTES, accept: "image/avif,image/webp,image/*,*/*;q=0.8" });
-      if (res.status >= 400) {
-        console.warn(`[uploads] remote image via ${proxy?.label ?? "direct"}: http_${res.status} ${url.slice(0, 120)}`);
-        continue;
+    for (const accept of IMAGE_ACCEPTS) {
+      try {
+        const res = await safeFetch(url, { proxy, maxBytes: MAX_UPLOAD_BYTES, accept });
+        if (res.status >= 400) {
+          console.warn(`[uploads] remote image via ${proxy?.label ?? "direct"}: http_${res.status} ${url.slice(0, 120)}`);
+          break;
+        }
+        return await storeUpload(res.body, { kind: "product", maxSide: 900 });
+      } catch (e) {
+        const msg = (e as Error).message;
+        console.warn(`[uploads] remote image via ${proxy?.label ?? "direct"} (${accept.split(",")[0]}) failed: ${msg}`);
+        if (msg !== "bad_type") break; // network trouble: next route; wrong format: ask for JPEG
       }
-      return await storeUpload(res.body, { kind: "product", maxSide: 900 });
-    } catch (e) {
-      console.warn(`[uploads] remote image via ${proxy?.label ?? "direct"} failed:`, (e as Error).message);
     }
   }
   return null;
