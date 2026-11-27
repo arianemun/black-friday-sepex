@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button, FieldInput, FormField } from "@/components/admin-ui";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/admin-ui/dialog";
 import { countryName, storeByKey } from "@/lib/catalog";
-import { cutWhiteBackground, drawStory, STICKER_ZONE, STORY_H, STORY_W } from "@/lib/story-render";
+import { drawStory, STICKER_ZONE, STORY_H, STORY_W } from "@/lib/story-render";
 import type { ProductRow } from "@/lib/products";
 
 type P = ProductRow & { image: string | null };
@@ -48,12 +48,11 @@ function StoryEditor({ product, siteUrl }: { product: P; siteUrl: string }) {
   const [nameFa, setNameFa] = useState(product.name_fa ?? "");
   const [nameEn, setNameEn] = useState(product.name_en ?? product.title);
   const [discount, setDiscount] = useState(product.discount_percent ? String(product.discount_percent) : "");
-  const [cutBg, setCutBg] = useState(true);
   const [custom, setCustom] = useState<string | null>(null);
   const [showZone, setShowZone] = useState(true);
   const [ready, setReady] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const cutRef = useRef<{ src: string; cut: boolean; canvas: HTMLCanvasElement } | null>(null);
+  const imgRef = useRef<{ src: string; img: HTMLImageElement } | null>(null);
   const link = dealLink(siteUrl, product.code);
   const src = custom ?? product.image;
 
@@ -64,13 +63,13 @@ function StoryEditor({ product, siteUrl }: { product: P; siteUrl: string }) {
       // Load the real face only: next/font's "Fallback" face is a local() alias that rejects the whole load.
       const main = family.split(",")[0].trim();
       await Promise.all([300, 500, 700, 800, 850, 950].map((w) => document.fonts.load(`${w} 48px ${main}`, "سپکس abc ۱").catch(() => null)));
-      let img: HTMLCanvasElement | null = null;
+      let img: HTMLImageElement | null = null;
       if (src) {
-        if (cutRef.current?.src === src && cutRef.current.cut === cutBg) img = cutRef.current.canvas;
+        if (imgRef.current?.src === src) img = imgRef.current.img;
         else {
           try {
-            img = cutWhiteBackground(await loadImage(src), cutBg && !custom);
-            cutRef.current = { src, cut: cutBg, canvas: img };
+            img = await loadImage(src);
+            imgRef.current = { src, img };
           } catch {
             img = null;
           }
@@ -85,7 +84,7 @@ function StoryEditor({ product, siteUrl }: { product: P; siteUrl: string }) {
     return () => {
       alive = false;
     };
-  }, [nameFa, nameEn, discount, cutBg, src, custom, store]);
+  }, [nameFa, nameEn, discount, src, store]);
 
   function download() {
     canvasRef.current?.toBlob((b) => {
@@ -140,16 +139,12 @@ function StoryEditor({ product, siteUrl }: { product: P; siteUrl: string }) {
         </FormField>
         <div className="flex flex-col gap-2 text-[13px]">
           <label className="flex items-center gap-2">
-            <input type="checkbox" checked={cutBg} onChange={(e) => setCutBg(e.target.checked)} className="size-4 accent-[#18181B]" disabled={!!custom} />
-            حذف پس‌زمینه‌ی سفید عکس کالا
-          </label>
-          <label className="flex items-center gap-2">
             <input type="checkbox" checked={showZone} onChange={(e) => setShowZone(e.target.checked)} className="size-4 accent-[#18181B]" />
             نمایش محل استیکر لینک
           </label>
           <label className="inline-flex w-fit cursor-pointer items-center gap-1.5 font-semibold text-[#18181B] hover:underline">
             <ImagePlus className="size-4" aria-hidden />
-            عکس دیگر (PNG بدون پس‌زمینه بهتر است)
+            عکس دیگر برای این استوری
             <input
               type="file"
               accept="image/png,image/webp,image/jpeg"

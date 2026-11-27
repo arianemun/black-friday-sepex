@@ -24,126 +24,31 @@ export type StoryData = {
   source?: string | null;
 };
 
-/** Makes a near-white background that touches the edges transparent, then trims empty margins. */
-export function cutWhiteBackground(img: CanvasImageSource & { width: number; height: number }, enabled = true): HTMLCanvasElement {
-  const max = 1400;
-  const k = Math.min(1, max / Math.max(img.width, img.height));
-  const w = Math.max(1, Math.round(img.width * k));
-  const h = Math.max(1, Math.round(img.height * k));
-  const c = document.createElement("canvas");
-  c.width = w;
-  c.height = h;
-  const ctx = c.getContext("2d", { willReadFrequently: true })!;
-  ctx.drawImage(img, 0, 0, w, h);
-  const data = ctx.getImageData(0, 0, w, h);
-  const px = data.data;
-
-  if (enabled) {
-    const isBg = (i: number) => {
-      const r = px[i], g = px[i + 1], b = px[i + 2], a = px[i + 3];
-      if (a < 20) return true;
-      const mn = Math.min(r, g, b), mx = Math.max(r, g, b);
-      return mn > 232 && mx - mn < 20;
-    };
-    const seen = new Uint8Array(w * h);
-    const stack: number[] = [];
-    const push = (x: number, y: number) => {
-      const p = y * w + x;
-      if (seen[p]) return;
-      seen[p] = 1;
-      if (isBg(p * 4)) stack.push(p);
-    };
-    for (let x = 0; x < w; x++) {
-      push(x, 0);
-      push(x, h - 1);
+/**
+ * The colour of a product photo's own background (its corners), so the frame around the photo
+ * continues it seamlessly. Store photos are usually white; transparent PNGs get white.
+ */
+export function photoBackground(img: CanvasImageSource & { width: number; height: number }): string {
+  try {
+    const c = document.createElement("canvas");
+    c.width = 32;
+    c.height = 32;
+    const ctx = c.getContext("2d", { willReadFrequently: true })!;
+    ctx.drawImage(img, 0, 0, 32, 32);
+    const d = ctx.getImageData(0, 0, 32, 32).data;
+    let r = 0, g = 0, b = 0, n = 0;
+    for (const [x, y] of [[0, 0], [31, 0], [0, 31], [31, 31], [16, 0], [16, 31], [0, 16], [31, 16]]) {
+      const i = (y * 32 + x) * 4;
+      if (d[i + 3] < 200) continue;
+      r += d[i];
+      g += d[i + 1];
+      b += d[i + 2];
+      n++;
     }
-    for (let y = 0; y < h; y++) {
-      push(0, y);
-      push(w - 1, y);
-    }
-    const removed = new Uint8Array(w * h);
-    while (stack.length) {
-      const p = stack.pop()!;
-      removed[p] = 1;
-      const x = p % w, y = (p - x) / w;
-      if (x > 0) push(x - 1, y);
-      if (x < w - 1) push(x + 1, y);
-      if (y > 0) push(x, y - 1);
-      if (y < h - 1) push(x, y + 1);
-    }
-    // Only cut when the background really is white around the edges (a photo keeps its frame).
-    let edge = 0, edgeBg = 0;
-    for (let x = 0; x < w; x++) {
-      edge += 2;
-      edgeBg += removed[x] + removed[(h - 1) * w + x];
-    }
-    for (let y = 0; y < h; y++) {
-      edge += 2;
-      edgeBg += removed[y * w] + removed[y * w + w - 1];
-    }
-    // Enclosed pure-white areas (inside a headband, between straps) are background too.
-    const holeSeen = new Uint8Array(w * h);
-    const isPure = (p: number) => {
-      const i = p * 4;
-      return px[i + 3] > 200 && Math.min(px[i], px[i + 1], px[i + 2]) >= 247 && Math.max(px[i], px[i + 1], px[i + 2]) - Math.min(px[i], px[i + 1], px[i + 2]) < 8;
-    };
-    const minHole = Math.max(400, w * h * 0.004);
-    for (let start = 0; start < w * h; start++) {
-      if (removed[start] || holeSeen[start] || !isPure(start)) continue;
-      const region: number[] = [];
-      const st = [start];
-      holeSeen[start] = 1;
-      while (st.length) {
-        const p = st.pop()!;
-        region.push(p);
-        const x = p % w;
-        for (const q of [x > 0 ? p - 1 : -1, x < w - 1 ? p + 1 : -1, p - w, p + w]) {
-          if (q < 0 || q >= w * h || holeSeen[q] || removed[q] || !isPure(q)) continue;
-          holeSeen[q] = 1;
-          st.push(q);
-        }
-      }
-      if (region.length >= minHole) for (const p of region) removed[p] = 1;
-    }
-    let total = 0;
-    for (let p = 0; p < w * h; p++) total += removed[p];
-    // Cutting away nearly everything means the product itself is white: keep the photo as it is.
-    if (edgeBg / edge > 0.5 && total / (w * h) < 0.9) {
-      for (let p = 0; p < w * h; p++) {
-        if (removed[p]) {
-          px[p * 4 + 3] = 0;
-          continue;
-        }
-        // Soften the outline: near-white pixels next to the cut fade out.
-        const x = p % w, y = (p - x) / w;
-        const near = (x > 0 && removed[p - 1]) || (x < w - 1 && removed[p + 1]) || (y > 0 && removed[p - w]) || (y < h - 1 && removed[p + w]);
-        if (near) {
-          const i = p * 4;
-          const light = Math.min(px[i], px[i + 1], px[i + 2]);
-          if (light > 200) px[i + 3] = Math.round(px[i + 3] * Math.max(0.15, (255 - light) / 55));
-        }
-      }
-      ctx.putImageData(data, 0, 0);
-    }
+    return n >= 5 ? `rgb(${Math.round(r / n)},${Math.round(g / n)},${Math.round(b / n)})` : "#FFFFFF";
+  } catch {
+    return "#FFFFFF";
   }
-
-  // Trim transparent margins so the product fills its spot.
-  const a = ctx.getImageData(0, 0, w, h).data;
-  let x0 = w, y0 = h, x1 = -1, y1 = -1;
-  for (let y = 0; y < h; y++)
-    for (let x = 0; x < w; x++)
-      if (a[(y * w + x) * 4 + 3] > 24) {
-        if (x < x0) x0 = x;
-        if (x > x1) x1 = x;
-        if (y < y0) y0 = y;
-        if (y > y1) y1 = y;
-      }
-  if (x1 < 0 || (x0 === 0 && y0 === 0 && x1 === w - 1 && y1 === h - 1)) return c;
-  const t = document.createElement("canvas");
-  t.width = x1 - x0 + 1;
-  t.height = y1 - y0 + 1;
-  t.getContext("2d")!.drawImage(c, x0, y0, t.width, t.height, 0, 0, t.width, t.height);
-  return t;
 }
 
 /** Chamfered rectangle: the top-right corner cut, the shape the SEPEX identity uses. */
@@ -272,33 +177,35 @@ export function drawStory(ctx: CanvasRenderingContext2D, d: StoryData, product: 
   ctx.scale(sc, sc);
   ctx.translate(-cx, -720);
 
-  // Product on the yellow square.
-  const sq = { x: 232, y: 760, s: 600 };
-  chamferRect(ctx, sq.x, sq.y, sq.s, sq.s, 44);
+  // Product: a yellow frame, inside it a panel in the photo's own background colour, and the
+  // photo as it is (no cut-out, no shadow) with even margins.
+  const sq = { x: 404, y: 760, s: 600 };
+  const frame = 14;
+  chamferRect(ctx, sq.x, sq.y, sq.s, sq.s, 48);
   ctx.fillStyle = YELLOW;
   ctx.fill();
+  const inner = { x: sq.x + frame, y: sq.y + frame, s: sq.s - frame * 2 };
+  chamferRect(ctx, inner.x, inner.y, inner.s, inner.s, 40);
+  ctx.fillStyle = product && product.width > 0 ? photoBackground(product) : "#FFFFFF";
+  ctx.fill();
   if (product && product.width > 0) {
-    const area = { x: 300, y: 720, w: 720, h: 740 };
-    const k = Math.min(area.w / product.width, area.h / product.height);
+    const pad = 30;
+    const box = inner.s - pad * 2;
+    const k = Math.min(box / product.width, box / product.height);
     const pw = product.width * k, ph = product.height * k;
-    const px = area.x + (area.w - pw) / 2, py = area.y + (area.h - ph) / 2;
     ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,0.55)";
-    ctx.shadowBlur = 60;
-    ctx.shadowOffsetX = -10;
-    ctx.shadowOffsetY = 34;
-    ctx.drawImage(product, px, py, pw, ph);
+    chamferRect(ctx, inner.x, inner.y, inner.s, inner.s, 40);
+    ctx.clip();
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(product, inner.x + (inner.s - pw) / 2, inner.y + (inner.s - ph) / 2, pw, ph);
     ctx.restore();
   }
 
-  // Discount, on the left over the square's edge.
+  // Discount, on the dark side to the left of the frame.
   ctx.direction = "ltr";
   ctx.textAlign = "right";
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = "#FFFFFF";
-  ctx.shadowColor = "rgba(0,0,0,0.45)";
-  ctx.shadowBlur = 18;
-  ctx.shadowOffsetY = 4;
   const tx = 372;
   const spacing = (px: number) => {
     if ("letterSpacing" in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${px}px`;
@@ -337,8 +244,8 @@ export function drawStory(ctx: CanvasRenderingContext2D, d: StoryData, product: 
     ? ["تا تخفیف فعاله، از لینک زیر درخواست", "خریدش رو در سپکس ثبت کنید."]
     : ["تا بلک‌فرایدی تموم نشده، از لینک زیر", "درخواست خریدش رو در سپکس ثبت کنید."];
   ctx.font = `700 52px ${family}`;
-  ctx.fillText(cta[0], cx, 1510);
-  ctx.fillText(cta[1], cx, 1592);
+  ctx.fillText(cta[0], cx, 1478);
+  ctx.fillText(cta[1], cx, 1560);
 
   ctx.restore();
 }
