@@ -10,7 +10,7 @@ import { LOGO_PATH } from "@/components/brand/logo";
 export const STORY_W = 1080;
 export const STORY_H = 1920;
 /** The band left empty for the link sticker (y range), shown as a guide in the editor only. */
-export const STICKER_ZONE = { y: 1640, h: 170 };
+export const STICKER_ZONE = { y: 1665, h: 165 };
 
 const YELLOW = "#FFCB05";
 const INK = "#111111";
@@ -20,8 +20,8 @@ export type StoryData = {
   nameFa: string;
   nameEn: string;
   discount: number | null;
-  /** e.g. "از noon، امارات" — optional line under the English name. */
-  source?: string | null;
+  /** The store's name and its icon, shown as a badge on the product photo. */
+  store?: { name: string; icon: (CanvasImageSource & { width: number; height: number }) | null } | null;
 };
 
 /**
@@ -160,14 +160,6 @@ export function drawStory(ctx: CanvasRenderingContext2D, d: StoryData, product: 
     ctx.fillText(nameEn, cx, y + 34);
     y += 64;
   }
-  if (d.source) {
-    ctx.direction = "rtl";
-    ctx.fillStyle = "rgba(255,255,255,0.6)";
-    ctx.font = `500 30px ${family}`;
-    ctx.fillText(d.source, cx, y + 42);
-    y += 50;
-  }
-
   // The product block is laid out for a one-line name (top at 720, bottom at 1450). A taller
   // header pushes it down and shrinks it so the call to action keeps its place.
   const top = Math.max(720, y + 40);
@@ -177,63 +169,91 @@ export function drawStory(ctx: CanvasRenderingContext2D, d: StoryData, product: 
   ctx.scale(sc, sc);
   ctx.translate(-cx, -720);
 
-  // Product: a yellow frame, inside it a panel in the photo's own background colour, and the
-  // photo as it is (no cut-out, no shadow) with even margins.
-  const sq = { x: 404, y: 760, s: 600 };
-  const frame = 14;
-  chamferRect(ctx, sq.x, sq.y, sq.s, sq.s, 48);
-  ctx.fillStyle = YELLOW;
-  ctx.fill();
-  const inner = { x: sq.x + frame, y: sq.y + frame, s: sq.s - frame * 2 };
-  chamferRect(ctx, inner.x, inner.y, inner.s, inner.s, 40);
+  // Product: the photo as it is, centred on a panel in its own background colour (no frame,
+  // no shadow, no cut-out). Top-right corner cut, like the rest of the identity.
+  const panel = { x: cx - 320, y: 750, s: 640 };
+  chamferRect(ctx, panel.x, panel.y, panel.s, panel.s, 48);
   ctx.fillStyle = product && product.width > 0 ? photoBackground(product) : "#FFFFFF";
   ctx.fill();
   if (product && product.width > 0) {
-    const pad = 30;
-    const box = inner.s - pad * 2;
+    const pad = 64;
+    const box = panel.s - pad * 2;
     const k = Math.min(box / product.width, box / product.height);
     const pw = product.width * k, ph = product.height * k;
     ctx.save();
-    chamferRect(ctx, inner.x, inner.y, inner.s, inner.s, 40);
+    chamferRect(ctx, panel.x, panel.y, panel.s, panel.s, 48);
     ctx.clip();
     ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(product, inner.x + (inner.s - pw) / 2, inner.y + (inner.s - ph) / 2, pw, ph);
+    ctx.drawImage(product, panel.x + (panel.s - pw) / 2, panel.y + (panel.s - ph) / 2 + 12, pw, ph);
     ctx.restore();
   }
 
-  // Discount, on the dark side to the left of the frame.
-  ctx.direction = "ltr";
-  ctx.textAlign = "right";
-  ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = "#FFFFFF";
-  const tx = 372;
   const spacing = (px: number) => {
     if ("letterSpacing" in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${px}px`;
   };
   const words = (px: number) => {
     if ("wordSpacing" in ctx) (ctx as CanvasRenderingContext2D & { wordSpacing: string }).wordSpacing = `${px}px`;
   };
-  words(16);
+
+  // Discount: a yellow tag over the photo's top-left corner.
+  const tag = { x: panel.x - 52, y: panel.y - 40, w: 300, h: 236 };
+  chamferRect(ctx, tag.x, tag.y, tag.w, tag.h, 30);
+  ctx.fillStyle = YELLOW;
+  ctx.fill();
+  ctx.fillStyle = INK;
+  ctx.direction = "ltr";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  const tcx = tag.x + tag.w / 2;
+  words(10);
   if (d.discount) {
-    spacing(-2);
-    ctx.font = `800 68px ${family}`;
-    ctx.fillText("get Up to", tx, 838);
-    spacing(-6);
-    ctx.font = `950 168px ${family}`;
-    ctx.fillText(`%${d.discount}`, tx, 990);
-    spacing(-2);
-    ctx.font = `800 68px ${family}`;
-    ctx.fillText("discount", tx, 1052);
+    spacing(-1);
+    ctx.font = `800 44px ${family}`;
+    ctx.fillText("get Up to", tcx, tag.y + 62);
+    spacing(-5);
+    fitFont(ctx, `%${d.discount}`, family, 950, 124, 90, tag.w - 36);
+    ctx.fillText(`%${d.discount}`, tcx, tag.y + 172);
+    spacing(-1);
+    ctx.font = `800 44px ${family}`;
+    ctx.fillText("discount", tcx, tag.y + 214);
   } else {
-    spacing(-3);
-    ctx.font = `950 92px ${family}`;
-    ctx.fillText("Black", tx, 868);
-    ctx.fillText("Friday", tx, 958);
-    ctx.font = `800 64px ${family}`;
-    ctx.fillText("deal", tx, 1030);
+    spacing(-2);
+    ctx.font = `950 66px ${family}`;
+    ctx.fillText("Black", tcx, tag.y + 86);
+    ctx.fillText("Friday", tcx, tag.y + 152);
+    ctx.font = `800 44px ${family}`;
+    ctx.fillText("deal", tcx, tag.y + 206);
   }
   spacing(0);
   words(0);
+
+  // Store: its logo and name on a dark badge over the photo's bottom-right corner.
+  if (d.store) {
+    const icon = d.store.icon && d.store.icon.width > 0 ? d.store.icon : null;
+    ctx.font = `700 36px ${family}`;
+    const nameW = ctx.measureText(d.store.name).width;
+    const h = 92, tile = 64;
+    const w = 26 + (icon ? tile + 18 : 0) + nameW + 30;
+    const bx = panel.x + panel.s + 30 - w, by = panel.y + panel.s - h / 2;
+    ctx.fillStyle = INK;
+    ctx.fillRect(bx, by, w, h);
+    ctx.fillStyle = YELLOW;
+    ctx.fillRect(bx, by + h - 6, w, 6);
+    let x = bx + 26;
+    if (icon) {
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(x, by + (h - 6 - tile) / 2, tile, tile);
+      const k = Math.min((tile - 14) / icon.width, (tile - 14) / icon.height);
+      const iw = icon.width * k, ih = icon.height * k;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(icon, x + (tile - iw) / 2, by + (h - 6 - tile) / 2 + (tile - ih) / 2, iw, ih);
+      x += tile + 18;
+    }
+    ctx.fillStyle = "#FFFFFF";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(d.store.name, x, by + (h - 6) / 2 + 2);
+  }
   ctx.restore();
 
   // Call to action.
@@ -244,8 +264,8 @@ export function drawStory(ctx: CanvasRenderingContext2D, d: StoryData, product: 
     ? ["تا تخفیف فعاله، از لینک زیر درخواست", "خریدش رو در سپکس ثبت کنید."]
     : ["تا بلک‌فرایدی تموم نشده، از لینک زیر", "درخواست خریدش رو در سپکس ثبت کنید."];
   ctx.font = `700 52px ${family}`;
-  ctx.fillText(cta[0], cx, 1478);
-  ctx.fillText(cta[1], cx, 1560);
+  ctx.fillText(cta[0], cx, 1522);
+  ctx.fillText(cta[1], cx, 1602);
 
   ctx.restore();
 }

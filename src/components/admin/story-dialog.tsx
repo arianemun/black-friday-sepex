@@ -5,7 +5,7 @@ import { Copy, Download, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 import { Button, FieldInput, FormField } from "@/components/admin-ui";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/admin-ui/dialog";
-import { countryName, storeByKey } from "@/lib/catalog";
+import { storeByKey } from "@/lib/catalog";
 import { drawStory, STICKER_ZONE, STORY_H, STORY_W } from "@/lib/story-render";
 import type { ProductRow } from "@/lib/products";
 
@@ -77,8 +77,21 @@ function StoryEditor({ product, siteUrl }: { product: P; siteUrl: string }) {
       }
       if (!alive || !canvasRef.current) return;
       const n = Number(discount);
-      const source = store ? `از ${store.brand ?? store.latin}، ${countryName(store.country)}` : null;
-      drawStory(canvasRef.current.getContext("2d")!, { nameFa, nameEn, discount: n >= 3 && n <= 90 ? Math.round(n) : null, source }, img, family);
+      let icon: HTMLImageElement | null = null;
+      if (store) {
+        try {
+          icon = await loadImage(`/store-icon/${store.key}`);
+        } catch {
+          icon = null;
+        }
+      }
+      if (!alive || !canvasRef.current) return;
+      drawStory(
+        canvasRef.current.getContext("2d")!,
+        { nameFa, nameEn, discount: n >= 3 && n <= 90 ? Math.round(n) : null, store: store ? { name: store.brand ?? store.latin, icon } : null },
+        img,
+        family
+      );
       setReady(true);
     })();
     return () => {
