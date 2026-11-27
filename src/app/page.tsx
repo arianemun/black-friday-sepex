@@ -68,12 +68,11 @@ export default function HomePage() {
         <Reveal>
           <PopularStores icons={cachedStoreIcons()} popularity={storePopularity()} today={tehranDay()} />
         </Reveal>
-        <AboutSepex />
         {products.length > 0 && (
           <Reveal>
             <section
               id="deals"
-              className="relative isolate scroll-mt-4 overflow-hidden bg-black py-20 text-white sm:py-24"
+              className="relative isolate scroll-mt-4 overflow-hidden bg-black pt-6 pb-10 text-white sm:pt-8 sm:pb-12"
               aria-labelledby="deals-title"
             >
               <div
@@ -101,6 +100,7 @@ export default function HomePage() {
             </section>
           </Reveal>
         )}
+        <AboutSepex />
         <Reveal>
           <CategoryWall />
         </Reveal>
