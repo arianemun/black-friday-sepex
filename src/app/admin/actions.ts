@@ -35,7 +35,12 @@ export async function loginAction(_: ActionState, fd: FormData): Promise<ActionS
   if (!rateLimit(`login:ip:${ip}`, 10, 900)) return { error: "تلاش زیاد بود. ۱۵ دقیقه بعد دوباره امتحان کنید." };
   const ok = await login(str(fd, "username", 60), String(fd.get("password") ?? "").slice(0, 200));
   if (!ok) return { error: "نام کاربری یا رمز عبور اشتباه است." };
-  redirect("/admin");
+  redirect(safeNext(String(fd.get("next") ?? "")));
+}
+
+/** Where to go after login: only a page of this panel (e.g. a product sent by the bookmark). */
+function safeNext(next: string): string {
+  return /^\/admin(\/[^/\\]|\?|$)/.test(next) && !next.startsWith("//") && next.length < 6000 ? next : "/admin";
 }
 
 export async function logoutAction() {
@@ -167,6 +172,9 @@ export async function saveProductAction(_: ActionState, fd: FormData): Promise<A
     name_en: str(fd, "name_en", 80),
     queued: fd.get("queued") === "1",
   });
+  // Stock read in the staff member's own browser (the bookmarklet), for stores that block the server.
+  const stock = str(fd, "stock", 8);
+  const fromPage = stock === "in" || stock === "out";
   if (!parsed.success) return { error: "عنوان، لینک و دسته‌بندی را کامل وارد کنید." };
   const p = parsed.data;
   const url = extractUrl(p.url);
@@ -185,6 +193,11 @@ export async function saveProductAction(_: ActionState, fd: FormData): Promise<A
   }
 
   const store = p.store_key || detectStore(url)?.key || null;
+  // The same product page sent again (bookmarklet on a product already in the list) updates it.
+  if (!p.id) {
+    const existing = getDb().prepare("SELECT id FROM products WHERE url = ?").get(url) as { id: number } | undefined;
+    if (existing) p.id = existing.id;
+  }
   const discount = p.discount_percent ? Math.min(99, Math.max(1, Number(p.discount_percent) || 0)) || null : discountOf(p.price, p.old_price);
   const db = getDb();
   if (p.id) {
@@ -192,20 +205,31 @@ export async function saveProductAction(_: ActionState, fd: FormData): Promise<A
     if (!old) return { error: "کالا پیدا نشد." };
     db.prepare(
       `UPDATE products SET title=?, url=?, category=?, country=?, store_key=?, price=?, old_price=?, currency=?, discount_percent=?, sort=?,
-       image_upload_id=COALESCE(?, image_upload_id), name_fa=?, name_en=?,
-       discount_source = CASE WHEN discount_percent IS ? THEN discount_source ELSE 'manual' END, updated_at=? WHERE id=?`
-    ).run(p.title, url, p.category, p.country || null, store, p.price || null, p.old_price || null, p.currency || null, discount, p.sort, imageId, p.name_fa || null, p.name_en || null, discount, nowIso(), p.id);
-    if (imageId && old.image_upload_id) await deleteUpload(old.image_upload_id);
+       image_upload_id=COALESCE(?, image_upload_id), name_fa=COALESCE(?, name_fa), name_en=COALESCE(?, name_en),
+       discount_source = CASE WHEN ? THEN ? WHEN discount_percent IS ? THEN discount_source ELSE 'manual' END, updated_at=? WHERE id=?`
+    ).run(p.title, url, p.category, p.country || null, store, p.price || null, p.old_price || null, p.currency || null, discount, p.sort, imageId, p.name_fa || null, p.name_en || null,
+      fromPage ? 1 : 0, discount ? "site" : null, discount, nowIso(), p.id);
+    if (imageId && old.image_upload_id && old.image_upload_id !== imageId) await deleteUpload(old.image_upload_id);
   } else {
     db.prepare(
       `INSERT INTO products(title, url, category, country, store_key, price, old_price, currency, discount_percent, discount_source, sort, image_upload_id,
          name_fa, name_en, code, active, queued, published_at)
        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
-    ).run(p.title, url, p.category, p.country || null, store, p.price || null, p.old_price || null, p.currency || null, discount, discount ? "manual" : null, p.sort, imageId,
+    ).run(p.title, url, p.category, p.country || null, store, p.price || null, p.old_price || null, p.currency || null, discount, discount ? (fromPage ? "site" : "manual") : null, p.sort, imageId,
       p.name_fa || null, p.name_en || null, newCode(), p.queued ? 0 : 1, p.queued ? 1 : 0, p.queued ? null : nowIso());
   }
   revalidatePath("/admin/products");
   revalidatePath("/");
+  if (stock === "in" || stock === "out") {
+    const id = p.id ?? (db.prepare("SELECT id FROM products WHERE url = ?").get(url) as { id: number } | undefined)?.id;
+    if (id) {
+      db.prepare(
+        `UPDATE products SET stock = ?, checked_at = ?, check_fails = 0, check_note = 'browser',
+           discount_source = CASE WHEN discount_percent IS NOT NULL THEN 'site' ELSE discount_source END,
+           active = CASE WHEN ? = 'out' THEN 0 ELSE active END, auto_hidden = CASE WHEN ? = 'out' AND active = 1 THEN 1 ELSE auto_hidden END WHERE id = ?`
+      ).run(stock, nowIso(), stock, stock, id);
+    }
+  }
   if (p.image_url && !imageId && !(file instanceof File && file.size > 0)) {
     return { ok: true, message: "ذخیره شد، ولی عکس از این لینک دانلود نشد. لینک مستقیم عکس (آخرش ‎.jpg/.png/.webp) بدهید یا فایل عکس را بارگذاری کنید." };
   }

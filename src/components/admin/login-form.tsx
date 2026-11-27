@@ -4,10 +4,11 @@ import { useActionState } from "react";
 import { loginAction } from "@/app/admin/actions";
 import { Button, FieldInput, FormField } from "@/components/admin-ui";
 
-export function LoginForm() {
+export function LoginForm({ next = "" }: { next?: string }) {
   const [state, action, pending] = useActionState(loginAction, null);
   return (
     <form action={action}>
+      <input type="hidden" name="next" value={next} />
       {state?.error && (
         <p role="alert" className="mb-4 rounded-lg border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-sm text-[#B91C1C]">
           {state.error}

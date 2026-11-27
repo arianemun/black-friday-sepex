@@ -144,11 +144,11 @@ describe("automatic deals", () => {
     expect(live.published_at <= nowIso()).toBe(true);
   });
 
-  it("an existing v1 pool gets batch 2 once; too few live products are filled from the pool at once", async () => {
+  it("an existing v1 pool gets the later batches once; too few live products are filled from the pool at once", async () => {
     const { seedDeals, DEAL_SEED, publishIfDue, visibleLiveCount, MIN_LIVE } = await import("@/lib/deals");
     const { getDb } = await import("@/lib/db");
     const db = getDb();
-    const batch2 = DEAL_SEED.filter((x) => x.batch === 2);
+    const batch2 = DEAL_SEED.filter((x) => (x.batch ?? 1) > 1);
     for (const b of batch2) db.prepare("DELETE FROM products WHERE url = ?").run(b.url);
     db.prepare("UPDATE settings SET value = 'v1' WHERE key = 'deals_seeded'").run();
     expect(seedDeals()).toBe(batch2.length);

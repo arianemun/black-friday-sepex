@@ -246,11 +246,17 @@ export const DEAL_SEED: Seed[] = [
   { url: "https://www.trendyol.com/dyson/airwrap-i-d-sac-sekillendirme-ve-kurutma-seti-kivircik-bukleli-ceramic-patina-ve-topaz-p-897054238", title: "Dyson Airwrap i.d. Curly+Coily (Ceramic Patina & Topaz)", name_fa: "حالت‌دهنده مو دایسون ایرورپ i.d", name_en: "Dyson Airwrap i.d.", category: "beauty", currency: "TRY" },
   // Batch 2 (27 Nov evening): Amazon.de reads cleanly (image, stock, crossed-out price), so more from there.
   { batch: 2, url: "https://www.amazon.de/Beats-Studio-Personalisiertes-verlustfreies-Kompatibilit%C3%A4t/dp/B0C95J98LV", title: "Beats Studio Pro Wireless Noise Cancelling Headphones", name_fa: "هدفون بیتس استودیو پرو", name_en: "Beats Studio Pro", category: "digital", currency: "EUR" },
-  { batch: 2, url: "https://www.amazon.de/beats-Solo-Ear-Akkulaufzeit-Mattschwarz/dp/B0CZPMXGSH", title: "Beats Solo 4 Wireless On-Ear Headphones, Matte Black", name_fa: "هدفون بیتس سولو ۴", name_en: "Beats Solo 4", category: "digital", currency: "EUR" },
-  { batch: 2, url: "https://www.amazon.de/soundcore-Liberty-Noise-Cancelling-Kopfh%C3%B6rer-AMOLED-Champagne/dp/B0GWLN2Y14", title: "Anker soundcore Liberty 5 Pro Max Noise-Cancelling Earbuds", name_fa: "هندزفری انکر ساندکر لیبرتی ۵ پرو مکس", name_en: "soundcore Liberty 5 Pro Max", category: "digital", currency: "EUR" },
   { batch: 2, url: "https://www.amazon.de/adidas-Herren-Samba-Og-Niedrig/dp/B0F31PB6JF", title: "adidas Men's Samba OG, Core Black / White / Gum", name_fa: "کفش آدیداس سامبا مشکی", name_en: "adidas Samba OG", category: "fashion", currency: "EUR" },
   { batch: 2, url: "https://www.amazon.de/-/en/PHILIPS-Precision-Attachments-QP6652-35/dp/B0DCFYXPR1", title: "PHILIPS OneBlade Pro 360 Face & Body (QP6652/35)", name_fa: "ماشین اصلاح فیلیپس وان‌بلید پرو ۳۶۰", name_en: "Philips OneBlade Pro 360", category: "beauty", currency: "EUR" },
+  // Batch 3: Amazon UAE first (the store Iranian buyers ask for most); ahead of everything else in the queue.
+  { batch: 3, sort: 5, now: true, url: "https://www.amazon.ae/Samsung-Storage-Titanium-Smartphone-Approved/dp/B0DSLTQQL3", title: "Samsung Galaxy S25 Ultra 256GB/12GB Titanium Gray (UAE)", name_fa: "گوشی سامسونگ گلکسی S25 اولترا", name_en: "Samsung Galaxy S25 Ultra 256GB", category: "digital", currency: "AED" },
+  { batch: 3, sort: 5, now: true, url: "https://www.amazon.ae/Apple-Wireless-headphones-charging-compatible/dp/B0FQFYMLS5", title: "Apple AirPods Pro 3", name_fa: "ایرپاد پرو ۳ اپل", name_en: "Apple AirPods Pro 3", category: "digital", currency: "AED" },
+  { batch: 3, sort: 5, now: true, url: "https://www.amazon.ae/Apple-iPhone-Pro-Max-256/dp/B0FQFHZF6L", title: "Apple iPhone 17 Pro Max 256GB Cosmic Orange", name_fa: "گوشی آیفون ۱۷ پرو مکس", name_en: "iPhone 17 Pro Max 256GB", category: "digital", currency: "AED" },
+  { batch: 3, sort: 5, now: true, url: "https://www.amazon.ae/Dyson-Airwrap-i-d-Multi-styler-dryer/dp/B0FLK45SF7", title: "Dyson Airwrap i.d. Straight+Wavy (Ceramic Pink/Rose Gold)", name_fa: "حالت‌دهنده مو دایسون ایرورپ", name_en: "Dyson Airwrap i.d.", category: "beauty", currency: "AED" },
+  { batch: 3, sort: 5, url: "https://www.amazon.ae/Dyson-Airwrap-Co-anda2x-Multi-Styler-Straight/dp/B0F9679PP3", title: "Dyson Airwrap Co-anda2x Straight+Wavy (Ceramic Pink)", name_fa: "حالت‌دهنده مو دایسون ایرورپ Co-anda2x", name_en: "Dyson Airwrap Co-anda2x", category: "beauty", currency: "AED" },
 ];
+
+export const SEED_VERSION = Math.max(...DEAL_SEED.map((x) => x.batch ?? 1));
 
 /** Live products the landing can actually show (it hides automatic ones without an image). */
 export const MIN_LIVE = 6;
@@ -265,9 +271,9 @@ export function visibleLiveCount(): number {
  */
 export function seedDeals(): number {
   const db = getDb();
-  const done = settingGet("deals_seeded");
-  if (done === "v2") return 0;
-  const first = done !== "v1";
+  const done = Number((settingGet("deals_seeded") ?? "v0").replace(/^v/, "")) || 0;
+  if (done >= SEED_VERSION) return 0;
+  const first = done === 0;
   const exists = db.prepare("SELECT 1 FROM products WHERE url = ?");
   const ins = db.prepare(
     `INSERT INTO products(title, url, category, country, store_key, price, old_price, currency, discount_percent, discount_source, source,
@@ -278,7 +284,7 @@ export function seedDeals(): number {
   db.transaction(() => {
     const now = nowIso();
     for (const s of DEAL_SEED) {
-      if (!first && (s.batch ?? 1) < 2) continue;
+      if ((s.batch ?? 1) <= done) continue;
       if (exists.get(s.url)) continue;
       const store = detectStore(s.url);
       ins.run(
@@ -292,7 +298,7 @@ export function seedDeals(): number {
       db.prepare("UPDATE products SET active = 0, updated_at = ? WHERE source = 'sample' AND active = 1").run(now);
       settingSet("deals_last_publish", now);
     }
-    settingSet("deals_seeded", "v2");
+    settingSet("deals_seeded", `v${SEED_VERSION}`);
   })();
   if (n) console.log(`[deals] seeded ${n} product(s)`);
   return n;

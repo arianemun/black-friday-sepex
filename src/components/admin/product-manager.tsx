@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useTransition } from "react";
-import { Clapperboard, Copy, Package, Pencil, RefreshCw, Rocket, Trash2, Wand2 } from "lucide-react";
+import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { DropdownMenu } from "radix-ui";
+import { AlertTriangle, Clapperboard, Copy, ImageOff, MoreHorizontal, Package, Pencil, Plus, RefreshCw, Rocket, Trash2, Wand2, ListPlus, ListMinus } from "lucide-react";
 import { toast } from "sonner";
 import {
   checkDealsAction,
@@ -13,17 +14,20 @@ import {
   setDealsAutoAction,
   toggleProductAction,
 } from "@/app/admin/actions";
+import { categories, categoryName, countries, countryName, detectStore, extractUrl, stores, storeByKey } from "@/lib/catalog";
 import type { DealsStatus } from "@/lib/deals";
-import { dealLink, StoryDialog } from "./story-dialog";
-import { categories, categoryName, countries, countryName, stores, storeByKey } from "@/lib/catalog";
 import type { ProductRow } from "@/lib/products";
-import { AdminTable, AdminTd, AdminTh, AdminTHead, AdminTr, Badge, Button, EmptyState, FieldInput, FormField, IconButton, fieldControlClass } from "@/components/admin-ui";
+import { Badge, Button, EmptyState, FieldInput, FormField, IconButton, SegmentedControl, fieldControlClass } from "@/components/admin-ui";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/admin-ui/dialog";
 import { useConfirm } from "@/components/admin-ui/confirm-dialog";
+import { Switch } from "@/components/ui/switch";
 import { cn, toFaDigits } from "@/lib/utils";
+import { dealLink, StoryDialog } from "./story-dialog";
+import { Bookmarklet, readImport } from "./bookmarklet";
 
 type P = ProductRow & { image: string | null; orders: number };
 
-const empty = { id: "", url: "", title: "", name_fa: "", name_en: "", category: "digital", country: "", store_key: "", price: "", old_price: "", currency: "", discount_percent: "", sort: "0", image_url: "", queued: "0" };
+const empty = { id: "", url: "", title: "", name_fa: "", name_en: "", category: "digital", country: "", store_key: "", price: "", old_price: "", currency: "", discount_percent: "", sort: "0", image_url: "", queued: "0", stock: "" };
 type Form = typeof empty;
 
 const fromRow = (p: P): Form => ({
@@ -42,21 +46,83 @@ const fromRow = (p: P): Form => ({
   discount_percent: p.discount_percent ? String(p.discount_percent) : "",
   sort: String(p.sort),
   image_url: "",
+  stock: "",
 });
 
 const fmtTime = (iso: string | null) =>
   iso ? new Intl.DateTimeFormat("fa-IR", { timeZone: "Asia/Tehran", weekday: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)) : "—";
 
-function StockBadge({ p }: { p: P }) {
-  if (p.queued && !p.active) return <Badge variant="info" className="whitespace-nowrap">در صف انتشار</Badge>;
+const fmtPrice = (v: string | null, cur: string | null) => {
+  if (!v) return null;
+  const n = Number(String(v).replace(/,/g, ""));
+  return `${Number.isFinite(n) ? n.toLocaleString("en-US", { maximumFractionDigits: 2 }) : v}${cur ? ` ${cur}` : ""}`;
+};
+
+/* ------------------------------------------------------------------ status */
+
+type Filter = "all" | "live" | "queue" | "attention" | "off";
+
+/** Needs a person: shown (or about to be) but has no picture, or the store says sold out. */
+const needsAttention = (p: P) => ((p.active || p.queued) && !p.image) || p.stock === "out";
+const isLive = (p: P) => !!p.active;
+const inQueue = (p: P) => !!p.queued && !p.active;
+
+function StatusBadge({ p }: { p: P }) {
+  if (p.active && !p.image) return <Badge variant="warning" className="whitespace-nowrap">بدون عکس، دیده نمی‌شود</Badge>;
   if (p.stock === "out") return <Badge variant="danger" className="whitespace-nowrap">ناموجود{p.auto_hidden ? "، پنهان شد" : ""}</Badge>;
+  if (inQueue(p)) return <Badge variant="info" className="whitespace-nowrap">در صف انتشار</Badge>;
   if (!p.active) return <Badge className="whitespace-nowrap">خاموش</Badge>;
-  if (p.stock === "in") return <Badge variant="success" className="whitespace-nowrap">موجود</Badge>;
-  if (p.check_note === "blocked") return <Badge variant="warning" className="whitespace-nowrap" title="فروشگاه جلوی بررسی خودکار را می‌گیرد">بررسی نشد</Badge>;
-  return <Badge variant="warning" className="whitespace-nowrap" title="سایت وضعیت موجودی را اعلام نمی‌کند">موجودی نامعلوم</Badge>;
+  return <Badge variant="success" className="whitespace-nowrap">روی لندینگ</Badge>;
 }
 
-function AutoPanel({ status }: { status: DealsStatus }) {
+function StockLine({ p }: { p: P }) {
+  const text =
+    p.check_note === "browser"
+      ? `از مرورگر، ${p.stock === "in" ? "موجود" : "ناموجود"}`
+      : p.check_note === "blocked"
+        ? "فروشگاه جلوی بررسی را گرفت"
+        : p.stock === "in"
+          ? "موجود"
+          : p.stock === "out"
+            ? "ناموجود"
+            : p.checked_at
+              ? "سایت موجودی را اعلام نمی‌کند"
+              : "هنوز بررسی نشده";
+  return (
+    <span className="mt-1 block text-[11px] leading-4 text-[#71717A]">
+      {text}
+      {p.checked_at && <span className="text-[#A1A1AA]">، {fmtTime(p.checked_at)}</span>}
+    </span>
+  );
+}
+
+function StoreLine({ p }: { p: P }) {
+  const store = storeByKey(p.store_key);
+  const [broken, setBroken] = useState(false);
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs text-[#52525B]">
+      {store && !broken && (
+        // eslint-disable-next-line @next/next/no-img-element -- our own icon route
+        <img src={`/store-icon/${store.key}`} alt="" className="size-4 rounded-[3px] object-contain" onError={() => setBroken(true)} />
+      )}
+      {store?.name ?? "فروشگاه نامشخص"}
+      {!store && p.country && <span className="text-[#A1A1AA]">، {countryName(p.country)}</span>}
+    </span>
+  );
+}
+
+/* ------------------------------------------------------------------ top: automation */
+
+function Stat({ label, value, tone }: { label: string; value: string; tone?: "warn" | "bad" }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-[#E4E4E7] bg-white px-4 py-3">
+      <span className="text-xs font-medium text-[#71717A]">{label}</span>
+      <span className={cn("text-xl font-extrabold leading-tight text-[#18181B]", tone === "warn" && "text-[#B45309]", tone === "bad" && "text-[#B91C1C]")}>{value}</span>
+    </div>
+  );
+}
+
+function AutoBar({ status, counts }: { status: DealsStatus; counts: { visible: number; attention: number } }) {
   const [pending, start] = useTransition();
   const run = (fn: () => Promise<{ ok?: boolean; error?: string; message?: string } | null>) =>
     start(async () => {
@@ -65,45 +131,45 @@ function AutoPanel({ status }: { status: DealsStatus }) {
       else if (r?.message) toast.success(r.message);
     });
   return (
-    <section className={cn("col-span-full flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-[#E4E4E7] bg-white p-4", pending && "opacity-70")}>
-      <label className="flex items-center gap-2 text-[14px] font-bold">
-        <input type="checkbox" checked={status.auto} onChange={(e) => start(() => setDealsAutoAction(e.target.checked))} className="size-4 accent-[#18181B]" />
-        انتشار خودکار هر ۲ ساعت
-      </label>
-      <dl className="flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-[#52525B] [&_dd]:font-bold [&_dd]:text-[#18181B] [&>div]:flex [&>div]:gap-1.5">
-        <div><dt>روی لندینگ:</dt><dd>{toFaDigits(status.live)}</dd></div>
-        <div><dt>در صف:</dt><dd>{toFaDigits(status.pool)}</dd></div>
-        <div><dt>ناموجود:</dt><dd>{toFaDigits(status.soldOut)}</dd></div>
-        <div><dt>انتشار بعدی:</dt><dd>{status.nextPublishAt ? fmtTime(status.nextPublishAt) : "—"}</dd></div>
-        <div><dt>آخرین بررسی موجودی:</dt><dd>{fmtTime(status.lastCheckAt)}</dd></div>
-      </dl>
-      <div className="ms-auto flex gap-2">
-        <Button variant="secondary" size="sm" icon={<RefreshCw />} loading={pending} onClick={() => run(() => checkDealsAction())}>
-          بررسی موجودی الان
-        </Button>
-        <Button variant="secondary" size="sm" icon={<Rocket />} disabled={!status.pool} onClick={() => run(() => publishNextAction())}>
-          انتشار کالای بعدی
-        </Button>
+    <section className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <Stat label="دیده می‌شود روی لندینگ" value={toFaDigits(counts.visible)} />
+        <Stat label="در صف انتشار" value={toFaDigits(status.pool)} />
+        <Stat label="نیاز به رسیدگی" value={toFaDigits(counts.attention)} tone={counts.attention ? "warn" : undefined} />
+        <Stat label="انتشار بعدی" value={status.auto ? fmtTime(status.nextPublishAt) : "خاموش"} />
+        <Stat label="آخرین بررسی موجودی" value={fmtTime(status.lastCheckAt)} />
       </div>
-      <p className="basis-full text-xs leading-5 text-[#71717A]">
-        موجودی و قیمت هر ۳۰ دقیقه از خود سایت خوانده می‌شود. کالای ناموجود از لندینگ پنهان می‌شود و با موجود شدن برمی‌گردد. اگر فروشگاه جلوی بررسی را بگیرد، کالا پنهان نمی‌شود و «بررسی نشد» می‌خورد.
-      </p>
+      <div className={cn("flex flex-wrap items-center gap-3 rounded-xl border border-[#E4E4E7] bg-white px-4 py-3", pending && "opacity-70")}>
+        <label className="flex items-center gap-2.5 text-[13px] font-semibold">
+          <Switch checked={status.auto} onCheckedChange={(v) => start(() => setDealsAutoAction(v))} aria-label="انتشار خودکار" />
+          انتشار خودکار
+        </label>
+        <span className="text-xs text-[#71717A]">هر ۲ ساعت یک کالا از صف؛ اگر کمتر از ۶ کالا دیده شود، فوراً. موجودی و قیمت هر ۳۰ دقیقه.</span>
+        <div className="ms-auto flex flex-wrap gap-2">
+          <Button variant="secondary" size="sm" icon={<RefreshCw />} loading={pending} onClick={() => run(() => checkDealsAction())}>
+            بررسی موجودی الان
+          </Button>
+          <Button variant="secondary" size="sm" icon={<Rocket />} disabled={!status.pool} onClick={() => run(() => publishNextAction())}>
+            انتشار کالای بعدی
+          </Button>
+        </div>
+      </div>
     </section>
   );
 }
 
-export function ProductManager({ products, status, siteUrl }: { products: P[]; status: DealsStatus; siteUrl: string }) {
-  const [story, setStory] = useState<P | null>(null);
-  const [form, setForm] = useState<Form>(empty);
-  const [preview, setPreview] = useState<string | null>(null);
+/* ------------------------------------------------------------------ add / edit modal */
+
+function ProductDialog({ open, onOpenChange, initial, initialPreview }: { open: boolean; onOpenChange: (o: boolean) => void; initial: Form; initialPreview: string | null }) {
+  const [form, setForm] = useState<Form>(initial);
+  const [preview, setPreview] = useState<string | null>(initialPreview);
   const [fetchState, fetchAction, fetching] = useActionState(fetchProductMetaAction, null);
   const [saveState, saveAction, saving] = useActionState(saveProductAction, null);
-  const formRef = useRef<HTMLFormElement>(null);
-  const [pending, start] = useTransition();
-  const confirm = useConfirm();
+  const handled = useRef<unknown>(null);
 
   useEffect(() => {
-    if (!fetchState) return;
+    if (!fetchState || handled.current === fetchState) return;
+    handled.current = fetchState;
     const d = fetchState.data ?? {};
     /* eslint-disable react-hooks/set-state-in-effect -- apply server action result to the form */
     setForm((f) => ({
@@ -116,60 +182,97 @@ export function ProductManager({ products, status, siteUrl }: { products: P[]; s
       currency: d.currency ?? f.currency,
       store_key: d.store_key || f.store_key,
       country: d.country || f.country,
-      image_url: d.image ?? "",
+      image_url: d.image ?? f.image_url,
     }));
-    setPreview(d.image ?? null);
+    if (d.image) setPreview(d.image);
     /* eslint-enable react-hooks/set-state-in-effect */
     if (fetchState.error) toast.warning(fetchState.error);
     else if (fetchState.message) toast.success(fetchState.message);
   }, [fetchState]);
 
   useEffect(() => {
-    if (!saveState) return;
+    if (!saveState || handled.current === saveState) return;
+    handled.current = saveState;
     if (saveState.error) toast.error(saveState.error);
     else if (saveState.ok) {
       toast.success(saveState.message ?? "ذخیره شد.");
-      /* eslint-disable-next-line react-hooks/set-state-in-effect -- reset after a successful save */
-      setForm(empty);
-      setPreview(null);
-      formRef.current?.reset();
+      onOpenChange(false);
     }
-  }, [saveState]);
+  }, [saveState, onOpenChange]);
 
   const set = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const editing = !!form.id;
 
   return (
-    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[22rem_minmax(0,1fr)] [&>*]:min-w-0">
-      <AutoPanel status={status} />
-      <StoryDialog product={story} siteUrl={siteUrl} onClose={() => setStory(null)} />
-      <section className="flex flex-col gap-4 rounded-xl border border-[#E4E4E7] bg-white p-5 lg:sticky lg:top-24">
-        <h2 className="m-0 text-[15px] font-bold">{form.id ? "ویرایش کالا" : "افزودن کالا"}</h2>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[min(680px,calc(100%-2rem))] gap-5">
+        <DialogHeader>
+          <DialogTitle>{editing ? "ویرایش کالا" : "افزودن کالا"}</DialogTitle>
+          <DialogDescription>لینک صفحه‌ی کالا را بدهید و «خواندن» را بزنید. اگر فروشگاه اجازه نداد، از دکمه‌ی «ارسال به سپکس» در صفحه‌ی کالا استفاده کنید یا مشخصات را دستی پر کنید.</DialogDescription>
+        </DialogHeader>
 
-        <form action={fetchAction} className="flex flex-col gap-1.5">
-          <label htmlFor="p-url" className="text-[13px] font-semibold">لینک کالا</label>
-          <div className="flex gap-2">
-            <FieldInput id="p-url" name="url" dir="ltr" value={form.url} onChange={set("url")} placeholder="https://" className="text-left" />
-            <Button type="submit" variant="secondary" loading={fetching} disabled={!form.url} icon={<Wand2 />} title="خواندن خودکار اطلاعات">
-              خواندن
-            </Button>
-          </div>
-          <p className="text-xs text-[#71717A]">اگر فروشگاه اجازه ندهد، مشخصات را دستی پر کنید.</p>
+        <form action={fetchAction} className="flex gap-2">
+          <FieldInput aria-label="لینک کالا" name="url" dir="ltr" value={form.url} onChange={set("url")} placeholder="https://" className="text-left" />
+          <Button type="submit" variant="secondary" loading={fetching} disabled={!form.url} icon={<Wand2 />}>
+            خواندن
+          </Button>
         </form>
 
-        <form ref={formRef} action={saveAction} className="flex flex-col gap-4">
+        <form action={saveAction} className="flex flex-col gap-4">
           <input type="hidden" name="id" value={form.id} />
           <input type="hidden" name="url" value={form.url} />
-          <FormField label="عنوان" htmlFor="p-title">
+          <input type="hidden" name="stock" value={form.stock} />
+
+          <div className="grid gap-4 sm:grid-cols-[9rem_minmax(0,1fr)]">
+            <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg border border-[#E4E4E7] bg-white">
+              {preview ? (
+                // eslint-disable-next-line @next/next/no-img-element -- preview before saving
+                <img src={preview} alt="" referrerPolicy="no-referrer" className="size-full object-contain p-2" onError={() => setPreview(null)} />
+              ) : (
+                <ImageOff className="size-7 text-[#D4D4D8]" aria-hidden />
+              )}
+            </div>
+            <div className="flex min-w-0 flex-col gap-3">
+              <FormField label="لینک عکس" htmlFor="p-imgurl" helper="روی عکس کالا در سایت راست‌کلیک ← Copy image address">
+                <FieldInput
+                  id="p-imgurl"
+                  name="image_url"
+                  dir="ltr"
+                  placeholder="https://…/image.jpg"
+                  value={form.image_url}
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, image_url: e.target.value }));
+                    if (/^https:\/\//.test(e.target.value)) setPreview(e.target.value);
+                  }}
+                  className="text-left"
+                />
+              </FormField>
+              <FormField label="یا فایل عکس" htmlFor="p-img">
+                <input id="p-img" name="image" type="file" accept="image/jpeg,image/png,image/webp" className="block w-full text-xs text-[#52525B] file:ml-3 file:h-8 file:rounded-lg file:border file:border-[#E4E4E7] file:bg-white file:px-3 file:text-[13px] file:font-semibold file:text-[#18181B] hover:file:bg-[#FAFAFA]" onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) setPreview(URL.createObjectURL(f));
+                }} />
+              </FormField>
+            </div>
+          </div>
+
+          <FormField label="عنوان در فروشگاه" htmlFor="p-title">
             <FieldInput id="p-title" name="title" dir="auto" required value={form.title} onChange={set("title")} />
           </FormField>
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label="اسم فارسی (استوری)" htmlFor="p-fa"><FieldInput id="p-fa" name="name_fa" value={form.name_fa} onChange={set("name_fa")} placeholder="هدفون سونی" /></FormField>
-            <FormField label="اسم انگلیسی" htmlFor="p-en"><FieldInput id="p-en" name="name_en" dir="ltr" value={form.name_en} onChange={set("name_en")} placeholder="Sony WH-1000XM5" /></FormField>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <FormField label="اسم فارسی (استوری و لندینگ)" htmlFor="p-fa"><FieldInput id="p-fa" name="name_fa" value={form.name_fa} onChange={set("name_fa")} placeholder="هدفون سونی" /></FormField>
+            <FormField label="اسم انگلیسی کوتاه" htmlFor="p-en"><FieldInput id="p-en" name="name_en" dir="ltr" value={form.name_en} onChange={set("name_en")} placeholder="Sony WH-1000XM5" /></FormField>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-3">
             <FormField label="دسته" htmlFor="p-cat">
               <select id="p-cat" name="category" value={form.category} onChange={set("category")} className={fieldControlClass}>
                 {categories.map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
+              </select>
+            </FormField>
+            <FormField label="فروشگاه" htmlFor="p-store">
+              <select id="p-store" name="store_key" value={form.store_key} onChange={set("store_key")} className={fieldControlClass}>
+                <option value="">تشخیص از لینک</option>
+                {stores.map((s) => <option key={s.key} value={s.key}>{s.name}</option>)}
               </select>
             </FormField>
             <FormField label="کشور" htmlFor="p-country">
@@ -179,168 +282,277 @@ export function ProductManager({ products, status, siteUrl }: { products: P[]; s
               </select>
             </FormField>
           </div>
-          <FormField label="فروشگاه" htmlFor="p-store">
-            <select id="p-store" name="store_key" value={form.store_key} onChange={set("store_key")} className={fieldControlClass}>
-              <option value="">تشخیص از لینک</option>
-              {stores.map((s) => <option key={s.key} value={s.key}>{s.name}</option>)}
-            </select>
-          </FormField>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <FormField label="قیمت" htmlFor="p-price"><FieldInput id="p-price" name="price" dir="ltr" value={form.price} onChange={set("price")} /></FormField>
             <FormField label="قیمت قبل" htmlFor="p-old"><FieldInput id="p-old" name="old_price" dir="ltr" value={form.old_price} onChange={set("old_price")} /></FormField>
             <FormField label="ارز" htmlFor="p-cur"><FieldInput id="p-cur" name="currency" dir="ltr" placeholder="AED" value={form.currency} onChange={set("currency")} /></FormField>
+            <FormField label="درصد تخفیف" htmlFor="p-disc" helper="خالی: از دو قیمت"><FieldInput id="p-disc" name="discount_percent" dir="ltr" inputMode="numeric" value={form.discount_percent} onChange={set("discount_percent")} /></FormField>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label="درصد تخفیف" htmlFor="p-disc"><FieldInput id="p-disc" name="discount_percent" dir="ltr" inputMode="numeric" value={form.discount_percent} onChange={set("discount_percent")} /></FormField>
-            <FormField label="اولویت نمایش" htmlFor="p-sort" helper="عدد بزرگ‌تر، جلوتر"><FieldInput id="p-sort" name="sort" dir="ltr" inputMode="numeric" value={form.sort} onChange={set("sort")} /></FormField>
-          </div>
-          <FormField label="تصویر" htmlFor="p-img" helper={preview ? "از لینک خوانده شد؛ برای تعویض فایل بدهید." : "JPG، PNG یا WebP؛ سبک (زیر ۳۰۰ کیلوبایت)."}>
-            <input id="p-img" name="image" type="file" accept="image/jpeg,image/png,image/webp" className="block w-full text-xs text-[#52525B] file:ml-3 file:h-8 file:rounded-lg file:border file:border-[#E4E4E7] file:bg-white file:px-3 file:text-[13px] file:font-semibold file:text-[#18181B] hover:file:bg-[#FAFAFA]" />
-          </FormField>
-          <FormField label="یا لینک عکس" htmlFor="p-imgurl" helper="اگر فروشگاه جلوی خواندن را گرفت: روی عکس کالا در سایت راست‌کلیک ← Copy image address.">
-            <FieldInput
-              id="p-imgurl"
-              name="image_url"
-              dir="ltr"
-              placeholder="https://…/image.jpg"
-              value={form.image_url}
-              onChange={(e) => {
-                setForm((f) => ({ ...f, image_url: e.target.value }));
-                setPreview(/^https:\/\//.test(e.target.value) ? e.target.value : null);
-              }}
-              className="text-left"
-            />
-          </FormField>
-          {preview && (
-            // eslint-disable-next-line @next/next/no-img-element -- remote preview before saving
-            <img src={preview} alt="" referrerPolicy="no-referrer" className="h-32 w-full rounded-lg border border-[#E4E4E7] object-contain" />
-          )}
-          {!form.id && (
-            <label className="flex items-center gap-2 text-[13px]">
-              <input type="checkbox" name="queued" value="1" checked={form.queued === "1"} onChange={(e) => setForm((f) => ({ ...f, queued: e.target.checked ? "1" : "0" }))} className="size-4 accent-[#18181B]" />
-              به صف انتشار خودکار برود (نه همین الان)
-            </label>
-          )}
-          <div className="flex gap-2">
-            <Button type="submit" className="flex-1" loading={saving} disabled={!form.url}>
-              {form.id ? "ذخیره‌ی تغییرات" : form.queued === "1" ? "افزودن به صف" : "افزودن به لندینگ"}
-            </Button>
-            {form.id && (
-              <Button variant="secondary" onClick={() => { setForm(empty); setPreview(null); }}>
-                انصراف
-              </Button>
+          <input type="hidden" name="sort" value={form.sort} />
+
+          <div className="flex flex-wrap items-center gap-3 border-t border-[#F4F4F5] pt-4">
+            {!editing && (
+              <label className="flex items-center gap-2 text-[13px]">
+                <input type="checkbox" name="queued" value="1" checked={form.queued === "1"} onChange={(e) => setForm((f) => ({ ...f, queued: e.target.checked ? "1" : "0" }))} className="size-4 accent-[#18181B]" />
+                به صف انتشار خودکار برود
+              </label>
             )}
+            <div className="ms-auto flex gap-2">
+              <Button variant="secondary" onClick={() => onOpenChange(false)}>انصراف</Button>
+              <Button type="submit" loading={saving} disabled={!form.url}>
+                {editing ? "ذخیره‌ی تغییرات" : form.queued === "1" ? "افزودن به صف" : "افزودن به لندینگ"}
+              </Button>
+            </div>
           </div>
         </form>
-      </section>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
-      <section className={cn("rounded-xl border border-[#E4E4E7] bg-white", pending && "opacity-70")}>
-        {products.length === 0 ? (
-          <EmptyState icon={<Package />} title="هنوز کالایی اضافه نشده" hint="تا وقتی کالای فعالی نباشد، بخش پیشنهادها روی لندینگ نمایش داده نمی‌شود." />
+/* ------------------------------------------------------------------ row actions */
+
+function RowMenu({ p, onEdit, run }: { p: P; onEdit: () => void; run: (fn: () => Promise<unknown>) => void }) {
+  const confirm = useConfirm();
+  const item = "flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-2 text-[13px] text-[#18181B] outline-none data-[highlighted]:bg-[#F4F4F5]";
+  return (
+    <DropdownMenu.Root dir="rtl">
+      <DropdownMenu.Trigger asChild>
+        <IconButton aria-label="کارهای بیشتر" tooltip="بیشتر">
+          <MoreHorizontal />
+        </IconButton>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content align="end" sideOffset={4} className="admin-theme z-50 min-w-44 rounded-lg border border-[#E4E4E7] bg-white p-1 shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+          <DropdownMenu.Item className={item} onSelect={onEdit}>
+            <Pencil className="size-4" aria-hidden /> ویرایش
+          </DropdownMenu.Item>
+          <DropdownMenu.Item
+            className={item}
+            onSelect={() =>
+              run(async () => {
+                const r = await checkDealsAction(p.id);
+                if (r?.error) toast.warning(r.error);
+                else if (r?.message) toast.success(r.message);
+              })
+            }
+          >
+            <RefreshCw className="size-4" aria-hidden /> بررسی موجودی
+          </DropdownMenu.Item>
+          {!p.active &&
+            (p.queued ? (
+              <DropdownMenu.Item className={item} onSelect={() => run(() => queueProductAction(p.id, false))}>
+                <ListMinus className="size-4" aria-hidden /> خارج کردن از صف
+              </DropdownMenu.Item>
+            ) : (
+              <DropdownMenu.Item className={item} onSelect={() => run(() => queueProductAction(p.id, true))}>
+                <ListPlus className="size-4" aria-hidden /> به صف انتشار
+              </DropdownMenu.Item>
+            ))}
+          <DropdownMenu.Separator className="my-1 h-px bg-[#F4F4F5]" />
+          <DropdownMenu.Item
+            className={cn(item, "text-[#B91C1C]")}
+            onSelect={async () => {
+              const ok = await confirm({ title: "حذف کالا", message: `«${p.name_fa || p.title}» حذف شود؟ لینک اختصاصی‌اش هم دیگر کار نمی‌کند.`, confirmLabel: "حذف", danger: true });
+              if (ok) run(() => deleteProductAction(p.id));
+            }}
+          >
+            <Trash2 className="size-4" aria-hidden /> حذف
+          </DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
+}
+
+/* ------------------------------------------------------------------ page */
+
+export function ProductManager({ products, status, siteUrl }: { products: P[]; status: DealsStatus; siteUrl: string }) {
+  const [story, setStory] = useState<P | null>(null);
+  const [dialog, setDialog] = useState<{ key: number; form: Form; preview: string | null } | null>(null);
+  const [filter, setFilter] = useState<Filter>("all");
+  const [pending, start] = useTransition();
+  const run = (fn: () => Promise<unknown>) => start(async () => void (await fn()));
+
+  const openForm = (form: Form, preview: string | null = null) => setDialog({ key: Date.now(), form, preview });
+
+  // A product page sent by the bookmark: open the form filled in (keeping what we know about it).
+  useEffect(() => {
+    const d = readImport();
+    if (!d) return;
+    window.history.replaceState(null, "", window.location.pathname);
+    const url = extractUrl(d.u) ?? d.u;
+    const known = products.find((p) => p.url === url);
+    const st = detectStore(url);
+    const stock = /OutOfStock|SoldOut|Discontinued/i.test(d.a ?? "") ? "out" : /InStock|LimitedAvailability|PreOrder/i.test(d.a ?? "") ? "in" : "";
+    const img = d.i && /^https:\/\//.test(d.i) ? d.i : "";
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- one-time fill from the bookmark */
+    openForm(
+      {
+        ...(known ? fromRow(known) : { ...empty, queued: "1", store_key: st?.key ?? "", country: st?.country ?? "" }),
+        url,
+        title: d.t?.trim().slice(0, 300) || known?.title || "",
+        image_url: img,
+        price: d.p ? String(d.p) : (known?.price ?? ""),
+        old_price: d.o ? String(d.o) : "",
+        discount_percent: "",
+        currency: d.c || known?.currency || "",
+        stock,
+      },
+      img || known?.image || null
+    );
+    toast.info(known ? "اطلاعات تازه‌ی این کالا از صفحه‌اش آمد؛ بررسی و ذخیره کنید." : "اطلاعات کالا از صفحه‌اش آمد؛ اسم فارسی و دسته را بزنید و ذخیره کنید.");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on arrival
+  }, []);
+
+  const counts = useMemo(
+    () => ({
+      all: products.length,
+      live: products.filter(isLive).length,
+      queue: products.filter(inQueue).length,
+      attention: products.filter(needsAttention).length,
+      off: products.filter((p) => !p.active && !p.queued).length,
+      visible: products.filter((p) => p.active && (p.image || p.source !== "auto")).length,
+    }),
+    [products]
+  );
+  const shown = products.filter((p) =>
+    filter === "live" ? isLive(p) : filter === "queue" ? inQueue(p) : filter === "attention" ? needsAttention(p) : filter === "off" ? !p.active && !p.queued : true
+  );
+  const missingImages = products.filter((p) => (p.active || p.queued) && !p.image).length;
+
+  return (
+    <div className="flex flex-col gap-5">
+      <AutoBar status={status} counts={counts} />
+
+      {missingImages > 0 && (
+        <div className="flex flex-col gap-3 rounded-xl border border-[#FDE68A] bg-[#FFFBEB] px-4 py-3 text-[13px] leading-6 text-[#78350F] sm:flex-row sm:items-center">
+          <AlertTriangle className="hidden size-5 shrink-0 text-[#B45309] sm:block" aria-hidden />
+          <p className="min-w-0 flex-1">
+            <b>{toFaDigits(missingImages)} کالا عکس ندارد</b> و تا عکس نگیرد روی لندینگ دیده نمی‌شود. نون و ترندیول جلوی خواندن خودکار را می‌گیرند: دکمه‌ی روبه‌رو را یک بار به نوار بوکمارک مرورگر بکشید، بعد در صفحه‌ی هر کالا رویش بزنید. عکس، قیمت، تخفیف و موجودی همان صفحه این‌جا می‌آید.
+          </p>
+          <Bookmarklet />
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="-mx-1 max-w-full overflow-x-auto px-1 [&_button]:whitespace-nowrap">
+        <SegmentedControl<Filter>
+          aria-label="فیلتر کالاها"
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { id: "all", label: `همه ${toFaDigits(counts.all)}` },
+            { id: "live", label: `روشن ${toFaDigits(counts.live)}` },
+            { id: "queue", label: `در صف ${toFaDigits(counts.queue)}` },
+            { id: "attention", label: `نیاز به رسیدگی ${toFaDigits(counts.attention)}` },
+            { id: "off", label: `خاموش ${toFaDigits(counts.off)}` },
+          ]}
+          className="w-max"
+        />
+        </div>
+        <div className="ms-auto flex items-center gap-2">
+          {!missingImages && <Bookmarklet />}
+          <Button icon={<Plus />} onClick={() => openForm(empty)}>
+            افزودن کالا
+          </Button>
+        </div>
+      </div>
+
+      <section className={cn("overflow-hidden rounded-xl border border-[#E4E4E7] bg-white", pending && "opacity-70")}>
+        {shown.length === 0 ? (
+          <EmptyState icon={<Package />} title={products.length ? "کالایی در این فیلتر نیست" : "هنوز کالایی اضافه نشده"} hint={products.length ? undefined : "با «افزودن کالا» یا دکمه‌ی «ارسال به سپکس» شروع کنید."} />
         ) : (
-          <AdminTable>
-            <AdminTHead>
-              <tr>
-                <AdminTh>کالا</AdminTh>
-                <AdminTh className="hidden sm:table-cell" numeric>تخفیف</AdminTh>
-                <AdminTh>وضعیت</AdminTh>
-                <AdminTh className="hidden md:table-cell" numeric>کلیک و سفارش</AdminTh>
-                <AdminTh>فعال</AdminTh>
-                <AdminTh className="w-32" />
-              </tr>
-            </AdminTHead>
-            <tbody>
-              {products.map((p) => (
-                <AdminTr key={p.id}>
-                  <AdminTd className="max-sm:max-w-[11rem]">
-                    <div className="flex items-center gap-3">
-                      <div className="size-11 shrink-0 overflow-hidden rounded-lg border border-[#E4E4E7] bg-white">
-                        {p.image && (
-                          // eslint-disable-next-line @next/next/no-img-element -- our own /media route
-                          <img src={p.image} alt="" className="size-full object-contain" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p dir="auto" className="line-clamp-2 max-w-[18rem] font-semibold sm:truncate">{p.name_fa || p.title}</p>
-                        <p className="text-xs text-[#71717A]">
-                          {categoryName(p.category)}، {storeByKey(p.store_key)?.name ?? "فروشگاه نامشخص"}{p.country ? ` ${countryName(p.country)}` : ""}
-                          {p.source === "sample" && <Badge variant="warning" className="mr-1.5">نمونه</Badge>}
-                        </p>
-                      </div>
-                    </div>
-                  </AdminTd>
-                  <AdminTd numeric className="hidden sm:table-cell">
-                    {p.discount_percent ? `٪${toFaDigits(p.discount_percent)}` : "—"}
-                    {p.discount_source && <span className="block text-[11px] text-[#71717A]">{p.discount_source === "site" ? "از سایت" : p.discount_source === "research" ? "تحقیق" : "دستی"}</span>}
-                  </AdminTd>
-                  <AdminTd>
-                    <StockBadge p={p} />
-                    <span className="mt-0.5 block text-[11px] text-[#71717A]">{p.checked_at ? fmtTime(p.checked_at) : "هنوز بررسی نشده"}</span>
-                  </AdminTd>
-                  <AdminTd numeric className="hidden md:table-cell">
-                    {toFaDigits(p.clicks)} / {toFaDigits(p.orders)}
-                  </AdminTd>
-                  <AdminTd>
-                    <input
-                      type="checkbox"
-                      aria-label="نمایش روی لندینگ"
-                      checked={!!p.active}
-                      onChange={(e) => start(() => toggleProductAction(p.id, e.target.checked))}
-                      className="size-4 accent-[#18181B]"
-                    />
-                    {!p.active && !p.queued && p.stock !== "out" && (
-                      <button type="button" onClick={() => start(() => queueProductAction(p.id, true))} className="mt-1 block text-[11px] font-semibold text-[#2563EB] hover:underline">
-                        به صف
-                      </button>
+          <ul className="divide-y divide-[#F4F4F5]">
+            {shown.map((p) => {
+              const price = fmtPrice(p.price, p.currency);
+              const old = p.old_price && p.discount_percent ? fmtPrice(p.old_price, p.currency) : null;
+              return (
+                <li key={p.id} className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-x-4 gap-y-2.5 px-4 py-3 md:grid-cols-[3.5rem_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_4.5rem_auto]">
+                  <button
+                    type="button"
+                    onClick={() => openForm(fromRow(p), p.image)}
+                    className="flex size-14 items-center justify-center overflow-hidden rounded-lg border border-[#E4E4E7] bg-white hover:border-[#A1A1AA]"
+                    aria-label="ویرایش"
+                  >
+                    {p.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- our own /media route
+                      <img src={p.image} alt="" className="size-full object-contain p-1" />
+                    ) : (
+                      <ImageOff className="size-5 text-[#D4D4D8]" aria-hidden />
                     )}
-                  </AdminTd>
-                  <AdminTd>
-                    <div className="ms-auto grid w-max grid-cols-3 gap-0.5">
-                      <IconButton aria-label="ساخت استوری" tooltip="استوری اینستاگرام" onClick={() => setStory(p)}>
-                        <Clapperboard />
-                      </IconButton>
-                      <IconButton
-                        aria-label="کپی لینک اختصاصی"
-                        tooltip="کپی لینک اختصاصی"
-                        onClick={() => navigator.clipboard.writeText(dealLink(siteUrl, p.code)).then(() => toast.success("لینک اختصاصی کپی شد."))}
-                      >
-                        <Copy />
-                      </IconButton>
-                      <IconButton
-                        aria-label="بررسی موجودی"
-                        tooltip="بررسی موجودی همین کالا"
-                        onClick={() =>
-                          start(async () => {
-                            const r = await checkDealsAction(p.id);
-                            if (r?.error) toast.warning(r.error);
-                            else if (r?.message) toast.success(r.message);
-                          })
-                        }
-                      >
-                        <RefreshCw />
-                      </IconButton>
-                      <IconButton aria-label="ویرایش" tooltip="ویرایش" onClick={() => { setForm(fromRow(p)); setPreview(p.image); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
-                        <Pencil />
-                      </IconButton>
-                      <IconButton
-                        variant="destructive"
-                        aria-label="حذف"
-                        tooltip="حذف"
-                        onClick={async () => {
-                          const ok = await confirm({ title: "حذف کالا", message: `«${p.title}» از لندینگ حذف شود؟`, confirmLabel: "حذف", danger: true });
-                          if (ok) start(() => deleteProductAction(p.id));
-                        }}
-                      >
-                        <Trash2 />
-                      </IconButton>
+                  </button>
+
+                  <div className="min-w-0">
+                    <p className="truncate text-[14px] font-bold text-[#18181B]">{p.name_fa || p.title}</p>
+                    {p.name_en && <p dir="ltr" className="truncate text-right text-xs text-[#52525B]">{p.name_en}</p>}
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2">
+                      <StoreLine p={p} />
+                      <span className="text-[11px] text-[#A1A1AA]">{categoryName(p.category)}</span>
                     </div>
-                  </AdminTd>
-                </AdminTr>
-              ))}
-            </tbody>
-          </AdminTable>
+                  </div>
+
+                  <div className="hidden min-w-0 md:block">
+                    {price ? (
+                      <>
+                        <p dir="ltr" className="text-right text-[14px] font-bold text-[#18181B]">{price}</p>
+                        <p className="flex items-center gap-1.5 text-xs">
+                          {p.discount_percent ? (
+                            <span className="rounded bg-[#FFCB05] px-1.5 py-0.5 text-[11px] font-extrabold text-[#111]">٪{toFaDigits(p.discount_percent)}</span>
+                          ) : null}
+                          {old && <span dir="ltr" className="text-[#A1A1AA] line-through">{old}</span>}
+                          {p.discount_source && (
+                            <span className="text-[11px] text-[#A1A1AA]">{p.discount_source === "site" ? "از سایت" : p.discount_source === "research" ? "تحقیق" : "دستی"}</span>
+                          )}
+                        </p>
+                      </>
+                    ) : (
+                      <span className="text-xs text-[#A1A1AA]">قیمت خوانده نشده</span>
+                    )}
+                  </div>
+
+                  <div className="col-span-2 min-w-0 md:col-span-1">
+                    <span className="me-2 inline md:hidden">
+                      {price && <span dir="ltr" className="text-[13px] font-bold text-[#18181B]">{price}</span>}
+                      {p.discount_percent ? <span className="ms-1.5 rounded bg-[#FFCB05] px-1.5 py-0.5 text-[11px] font-extrabold text-[#111]">٪{toFaDigits(p.discount_percent)}</span> : null}
+                    </span>
+                    <StatusBadge p={p} />
+                    <StockLine p={p} />
+                  </div>
+
+                  <div className="hidden text-center md:block" title="کلیک روی لینک اختصاصی / سفارش از همان لینک">
+                    <p className="text-[14px] font-bold text-[#18181B]">{toFaDigits(p.clicks)} / {toFaDigits(p.orders)}</p>
+                    <p className="text-[11px] text-[#A1A1AA]">کلیک / سفارش</p>
+                  </div>
+
+                  <div className="col-span-2 flex items-center justify-between gap-1 border-t border-[#F4F4F5] pt-2.5 md:col-span-1 md:justify-end md:border-0 md:pt-0">
+                    <Switch
+                      checked={!!p.active}
+                      onCheckedChange={(v) => run(() => toggleProductAction(p.id, v))}
+                      aria-label="نمایش روی لندینگ"
+                      className="me-1 scale-90"
+                    />
+                    <Button variant="secondary" size="sm" icon={<Clapperboard />} onClick={() => setStory(p)}>
+                      استوری
+                    </Button>
+                    <IconButton
+                      aria-label="کپی لینک اختصاصی"
+                      tooltip="کپی لینک اختصاصی"
+                      onClick={() => navigator.clipboard.writeText(dealLink(siteUrl, p.code)).then(() => toast.success("لینک اختصاصی کپی شد."))}
+                    >
+                      <Copy />
+                    </IconButton>
+                    <RowMenu p={p} onEdit={() => openForm(fromRow(p), p.image)} run={run} />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
+
+      {dialog && <ProductDialog key={dialog.key} open onOpenChange={(o) => !o && setDialog(null)} initial={dialog.form} initialPreview={dialog.preview} />}
+      <StoryDialog product={story} siteUrl={siteUrl} onClose={() => setStory(null)} />
     </div>
   );
 }

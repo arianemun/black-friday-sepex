@@ -14,7 +14,7 @@ export default async function ProductsPage() {
   const products = listProducts().map((p) => ({ ...p, image: mediaUrl(p.image_upload_id), orders: orders[p.code] ?? 0 }));
   return (
     <>
-      <PageHeader title="پیشنهادهای لندینگ" description="کالاهای فعال روی لندینگ می‌آیند. هر کالا لینک اختصاصی و استوری خودش را دارد؛ با لینک، فرم سفارش از قبل پر است و مشتری فقط اطلاعات تماس را وارد می‌کند." />
+      <PageHeader title="پیشنهادهای لندینگ" description="هر کالا لینک اختصاصی و استوری خودش را دارد؛ با لینک، فرم سفارش از قبل پر است و مشتری فقط اطلاعات تماس را وارد می‌کند." />
       <ProductManager products={products} status={dealsStatus()} siteUrl={siteConfig.url} />
     </>
   );
