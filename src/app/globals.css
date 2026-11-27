@@ -244,6 +244,24 @@
     padding-left: 1.7rem;
   }
   .price-tag-l::after { right: auto; left: 11px; }
+  /* Hanging tag (mobile hero): pointed top with a punched hole the string goes through. */
+  .hang-tag { clip-path: polygon(50% 0, 100% 20px, 100% 100%, 0 100%, 0 20px); }
+  .hang-tag::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 13px;
+    width: 8px;
+    height: 8px;
+    margin-left: -4px;
+    border-radius: 999px;
+    background: #000;
+  }
+  /* 1px yellow outline in the same shape, for the dark tag. */
+  .hang-tag-ring {
+    background: rgb(255 203 5 / 0.45);
+    clip-path: polygon(50% 0, 100% 20px, 100% 100%, 0 100%, 0 20px, 1px 20.5px, 1px calc(100% - 1px), calc(100% - 1px) calc(100% - 1px), calc(100% - 1px) 20.5px, 50% 1.2px, 1px 20.5px, 0 20px);
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -251,6 +269,7 @@
   .tag-drop { animation: tag-drop 900ms cubic-bezier(0.25, 1.4, 0.45, 1) both; animation-delay: var(--d, 0ms); }
   .tag-sway { animation: tag-sway 6s ease-in-out infinite; animation-delay: var(--s, 0s); transform-origin: 100% 50%; }
   .tag-sway-l { transform-origin: 0 50%; }
+  .tag-hang { transform-origin: 50% 0; animation-name: tag-swing; animation-duration: 5s; }
   .ticker { animation: ticker 50s linear infinite; }
 }
 @keyframes light-on {
@@ -266,6 +285,10 @@
 @keyframes tag-sway {
   0%, 100% { transform: rotate(var(--r, 0deg)); }
   50% { transform: rotate(calc(var(--r, 0deg) + 3deg)); }
+}
+@keyframes tag-swing {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(2.5deg); }
 }
 @keyframes ticker {
   from { transform: translateX(0); }

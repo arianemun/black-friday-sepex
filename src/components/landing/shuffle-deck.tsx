@@ -58,21 +58,22 @@ export function ShuffleDeck({ products }: { products: PublicProduct[] }) {
                 className="deck-card absolute inset-0 flex flex-col bg-[#141414] p-3 ring-1 ring-inset ring-white/15 shadow-2xl transition-all duration-700 ease-out"
                 style={style}
               >
-                <div className="flex flex-1 items-center justify-center bg-[#f4f4f2]">
+                {/* Fixed box: a tall or wide photo fits inside it and never stretches the card. */}
+                <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-white">
                   {card ? (
                     // eslint-disable-next-line @next/next/no-img-element -- our own /media route
-                    <img src={card.image} alt="" className="size-4/5 object-contain" />
+                    <img src={card.image} alt="" className="absolute inset-0 m-auto h-[84%] w-[84%] object-contain" />
                   ) : (
                     <Icon className="size-20 text-ink" strokeWidth={1.3} />
                   )}
                 </div>
-                <p dir="auto" className="mt-3 truncate text-sm font-bold text-white/80">{card ? card.label : fb.label}</p>
+                <p dir="auto" className="mt-3 shrink-0 truncate text-sm font-bold text-white/80">{card ? card.label : fb.label}</p>
               </div>
             );
           })}
         </div>
 
-        <h2 id="deck-title" className="rv mt-14 text-3xl font-black leading-tight text-white sm:text-5xl">تا بلک‌فرایدی تمام نشده، سفارش بده</h2>
+        <h2 id="deck-title" className="rv mt-14 text-3xl font-black leading-tight text-balance text-white sm:text-5xl">تا بلک‌فرایدی تمام نشده، سفارش بده</h2>
         <p className="mt-4 max-w-xl leading-8 text-white/55">تخفیف‌ها چند روز بیشتر نمی‌مونن. همین حالا درخواستت رو ثبت کن تا کارشناس‌مون زودتر بررسیش کنه.</p>
         <Link href="/order" className="chamfer-sm mt-9 inline-flex h-14 items-center gap-2 bg-brand px-9 text-lg font-black text-ink shadow-[0_20px_60px_-15px_rgb(255_203_5/0.7)] hover:bg-[#ffd633]">
           ثبت سفارش

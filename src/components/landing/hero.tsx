@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Camera, ChevronDown, Ship, Store, Tag as TagIcon } from "lucide-react";
+import { Camera, Ship } from "lucide-react";
 import { hero } from "@/content/landing";
-import { storeLabel, stores } from "@/lib/catalog";
+import { storeLabel, stores, suggestedStores } from "@/lib/catalog";
 import { SepexLogo } from "@/components/brand/logo";
 import { HeroWordmark } from "./hero-wordmark";
 import { LinkStarter } from "./link-starter";
@@ -25,6 +25,37 @@ const tagName = (key: string) => {
   const s = stores.find((x) => x.key === key);
   return s ? storeLabel(s) : key;
 };
+
+/** A vertical price tag on a short string: one big number, a word, and where it leads. */
+function HangingTag({ href, tone, big, small, label, r, d, s }: { href: string; tone: "yellow" | "dark"; big: string; small: string; label: string; r: number; d: number; s: number }) {
+  const yellow = tone === "yellow";
+  return (
+    <a href={href} className="tag-drop group relative block outline-none" style={{ "--d": `${d}ms` } as React.CSSProperties}>
+      <span className="tag-sway tag-hang relative block" style={{ "--s": `${s}s`, rotate: `${r}deg` } as React.CSSProperties}>
+        {/* the string, from the line above down to the punched hole */}
+        <span className="absolute left-1/2 top-[-1.25rem] z-10 h-[2.3rem] w-px -translate-x-1/2 bg-white/45" aria-hidden />
+        <span
+          className={`hang-tag relative flex w-[8.75rem] flex-col items-center px-3 pb-4 pt-9 text-center transition-transform group-active:scale-95 ${
+            yellow ? "bg-brand text-ink" : "bg-[#181818] text-white"
+          }`}
+        >
+          <span className={`text-[2.5rem] font-black leading-none tracking-tight ${yellow ? "" : "text-brand"}`} dir="ltr">
+            {big}
+          </span>
+          <span className={`mt-1.5 text-[11px] font-bold ${yellow ? "text-ink/60" : "text-white/45"}`}>{small}</span>
+          <span className={`mt-3 w-full border-t border-dashed pt-2.5 text-[13px] font-extrabold leading-5 ${yellow ? "border-ink/25" : "border-white/15"}`}>{label}</span>
+        </span>
+        {/* soft glow / outline that follows the tag's shape */}
+        {yellow ? (
+          <span className="pointer-events-none absolute inset-x-3 -bottom-3 h-8 rounded-full bg-brand/40 blur-xl" aria-hidden />
+        ) : (
+          <span className="hang-tag-ring pointer-events-none absolute inset-0" aria-hidden />
+        )}
+        <span className="pointer-events-none absolute -inset-1.5 opacity-0 outline outline-2 outline-brand group-focus-visible:opacity-100" aria-hidden />
+      </span>
+    </a>
+  );
+}
 
 function PriceTag({ t }: { t: Tag }) {
   // Tags on the right of the stage hang toward the headline: hole on their left side.
@@ -108,38 +139,21 @@ export function Hero({ deals }: { deals?: { count: number; maxDiscount: number |
           })}
         </div>
 
-        {/* Small screens: instead of the floating tags, two shortcuts to what people come for. */}
-        <nav className="hero-in mt-10 grid w-full max-w-md grid-cols-2 gap-3 [--in:1080ms] lg:hidden" aria-label="میان‌بر">
-          {deals && deals.count > 0 && (
-            <a
-              href="#deals"
-              className="chamfer-sm group relative flex flex-col items-start gap-1.5 overflow-hidden bg-brand px-4 pb-3.5 pt-4 text-right text-ink shadow-[0_0_40px_-8px_rgb(255_203_5/0.55)] active:scale-[0.98]"
-            >
-              <span className="flex w-full items-center justify-between">
-                <TagIcon className="size-5" aria-hidden />
-                <span className="relative flex size-2.5" aria-hidden>
-                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-ink/60 motion-reduce:hidden" />
-                  <span className="relative inline-flex size-2.5 rounded-full bg-ink" />
-                </span>
-              </span>
-              <span className="text-[15px] font-black leading-6">پیشنهادهای بلک‌فرایدی</span>
-              <span className="flex items-center gap-1 text-xs font-bold text-ink/70">
-                {deals.maxDiscount ? `تا ${deals.maxDiscount.toLocaleString("fa-IR")}٪ تخفیف` : "کالاهای منتخب"}
-                <ChevronDown className="size-3.5" aria-hidden />
-              </span>
-            </a>
-          )}
-          <a
-            href="#stores"
-            className={`chamfer-sm flex flex-col items-start gap-1.5 bg-[#1b1b1b] px-4 pb-3.5 pt-4 text-right text-white ring-1 ring-inset ring-brand/40 active:scale-[0.98] ${deals && deals.count > 0 ? "" : "col-span-2"}`}
-          >
-            <Store className="size-5 text-brand" aria-hidden />
-            <span className="text-[15px] font-black leading-6">نمی‌دونی از کجا بخری؟</span>
-            <span className="flex items-center gap-1 text-xs font-bold text-white/55">
-              سایت‌های محبوب
-              <ChevronDown className="size-3.5" aria-hidden />
-            </span>
-          </a>
+        {/* Small screens: two price tags hang from a string; each is a shortcut to what people come for. */}
+        <nav className="hero-in relative mt-12 w-full max-w-sm [--in:1080ms] lg:hidden" aria-label="میان‌بر">
+          <svg className="pointer-events-none absolute inset-x-0 top-0 h-8 w-full" viewBox="0 0 320 32" preserveAspectRatio="none" aria-hidden>
+            <path d="M0 2 Q160 26 320 2" fill="none" stroke="rgb(255 255 255 / 0.22)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+          </svg>
+          <ul className="relative flex items-start justify-center gap-7 pt-5">
+            {deals && deals.count > 0 && (
+              <li>
+                <HangingTag href="#deals" tone="yellow" big={deals.maxDiscount ? `٪${deals.maxDiscount.toLocaleString("fa-IR")}` : "BF"} small="تخفیف" label="پیشنهادهای بلک‌فرایدی" r={-5} d={1150} s={0.4} />
+              </li>
+            )}
+            <li>
+              <HangingTag href="#stores" tone="dark" big={`+${suggestedStores().length.toLocaleString("fa-IR")}`} small="سایت پیشنهادی" label="نمی‌دونی از کجا بخری؟" r={5} d={1300} s={1.6} />
+            </li>
+          </ul>
         </nav>
         <a href="#deals" className="mt-12 hidden flex-col items-center gap-2 text-xs text-white/40 hover:text-white/70 sm:flex">
           بیا پایین
