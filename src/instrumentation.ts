@@ -43,7 +43,7 @@ export async function register() {
 
   // Landing deals: seed once, stock/price check every 30 min, next pooled product every 2 hours.
   if (process.env.DEALS_DISABLED !== "1") {
-    const { checkAllDeals, publishIfDue, seedDeals, CHECK_EVERY_MS } = await import("./lib/deals");
+    const { checkAllDeals, publishIfDue, removeAmazonDe, seedDeals, CHECK_EVERY_MS } = await import("./lib/deals");
     let running = false;
     const check = async () => {
       if (running) return;
@@ -66,7 +66,9 @@ export async function register() {
       } catch (e) {
         console.error("[deals] seed failed:", (e as Error).message);
       }
-      void check();
+      void removeAmazonDe()
+        .catch((e) => console.error("[deals] cleanup failed:", (e as Error).message))
+        .finally(() => void check());
     }, 30_000).unref();
     setInterval(check, CHECK_EVERY_MS).unref();
     setInterval(publish, 5 * 60_000).unref();

@@ -5,7 +5,7 @@ import { detectStore } from "./catalog";
 import { getDb, nowIso } from "./db";
 import { discountOf, fetchLinkMeta } from "./link-meta";
 import type { ProductRow } from "./products";
-import { storeRemoteImage } from "./uploads";
+import { deleteUpload, storeRemoteImage } from "./uploads";
 
 /**
  * Automatic landing deals.
@@ -161,7 +161,9 @@ export async function publishNext(opts: { force?: boolean } = {}): Promise<numbe
   const db = getDb();
   const lastCat = (db.prepare("SELECT category FROM products WHERE published_at IS NOT NULL ORDER BY published_at DESC LIMIT 1").get() as { category: string } | undefined)?.category ?? "";
   const pool = db
-    .prepare("SELECT * FROM products WHERE queued = 1 AND active = 0 ORDER BY (image_upload_id IS NULL), (category = ?), sort DESC, id LIMIT 8")
+    .prepare(
+      "SELECT * FROM products WHERE queued = 1 AND active = 0 ORDER BY (image_upload_id IS NULL), (COALESCE(discount_percent, 0) = 0), (category = ?), sort DESC, id LIMIT 8"
+    )
     .all(lastCat) as ProductRow[];
   for (const cand of pool) {
     // Fresh look at the store right before it goes live.
@@ -172,7 +174,7 @@ export async function publishNext(opts: { force?: boolean } = {}): Promise<numbe
       db.prepare("UPDATE products SET queued = 0, auto_hidden = 1, updated_at = ? WHERE id = ?").run(nowIso(), p.id);
       continue;
     }
-    if (!p.image_upload_id && !opts.force) continue;
+    if (!opts.force && (!p.image_upload_id || !p.discount_percent)) continue;
     const now = nowIso();
     db.prepare("UPDATE products SET active = 1, queued = 0, published_at = ?, updated_at = ? WHERE id = ?").run(now, now, p.id);
     settingSet("deals_last_publish", now);
@@ -229,10 +231,7 @@ type Seed = {
 export const DEAL_SEED: Seed[] = [
   // digital
   { url: "https://www.noon.com/uae-en/galaxy-s25-ultra-ai-dual-sim-titanium-grey-12gb-ram-256gb-5g-middle-east-version/N70140492V/p/", title: "Samsung Galaxy S25 Ultra 12GB/256GB Titanium Grey (Middle East)", name_fa: "گوشی سامسونگ گلکسی S25 اولترا", name_en: "Samsung Galaxy S25 Ultra 256GB", category: "digital", price: "2799", old_price: "5099", currency: "AED", discount: 45, now: true },
-  { url: "https://www.amazon.de/Sony-WH-1000XM4C-Cancelling-Multipoint-Connection-Schwarz/dp/B0HBX9NHMS", title: "Sony WH-1000XM4C Wireless Noise Cancelling Headphones", name_fa: "هدفون نویزکنسلینگ سونی", name_en: "Sony WH-1000XM4C", category: "digital", price: "199", old_price: "249", currency: "EUR", discount: 20, now: true },
   { url: "https://www.noon.com/uae-en/airpods-pro-3-wireless-earbuds-bluetooth-headphones-active-noise-cancellation-hearing-test-hearing-aid-hearing-protection-features-heart-rate-sensing-during-workouts-live-translation-high-fidelity-sound-h2-chip-usb-c-charging-white/N70212301V/p/", title: "Apple AirPods Pro 3", name_fa: "ایرپاد پرو ۳ اپل", name_en: "Apple AirPods Pro 3", category: "digital", price: "711.96", old_price: "949", currency: "AED", discount: 24 },
-  { url: "https://www.amazon.de/dp/B0FQFWTRGZ", title: "Apple Watch Series 11 GPS 46mm Space Grey", name_fa: "اپل واچ سری ۱۱", name_en: "Apple Watch Series 11 46mm", category: "digital", price: "439", currency: "EUR" },
-  { url: "https://www.amazon.de/Apple-Kabellose-Ger%C3%A4uschunterdr%C3%BCckung-Herzfrequenzmessung-H%C3%B6rger%C3%A4tefunktion/dp/B0FQF32239", title: "Apple AirPods Pro 3 (Amazon.de)", name_fa: "ایرپاد پرو ۳ اپل", name_en: "Apple AirPods Pro 3", category: "digital", price: "189", old_price: "249", currency: "EUR", discount: 24 },
   // fashion
   { url: "https://www.namshi.com/uae-en/buy-nike-af1-shadow/VF6791DCEFAFE176CF7EFV/p/", title: "Nike Air Force 1 Shadow", name_fa: "کفش نایک ایرفورس ۱ شدو", name_en: "Nike Air Force 1 Shadow", category: "fashion", currency: "AED", now: true },
   { url: "https://www.namshi.com/uae-en/buy-adidas-originals-adidas-samba-og-green-originals-unisex-shoes/Z4EBE76BFDDEE17ED2DF2Z/p/", title: "adidas Originals Samba OG Green", name_fa: "کفش آدیداس سامبا", name_en: "adidas Samba OG", category: "fashion", price: "499", currency: "AED" },
@@ -244,10 +243,6 @@ export const DEAL_SEED: Seed[] = [
   { url: "https://www.noon.com/uae-en/sauvage-edp-for-men-100ml/N23101656A/p/", title: "Dior Sauvage EDP 100ml", name_fa: "عطر دیور ساواج ادوپرفیوم", name_en: "Dior Sauvage EDP 100ml", category: "beauty", price: "500", currency: "AED", now: true },
   { url: "https://www.trendyol.com/dyson/airwrap-co-anda2x-sac-sekillendirme-ve-kurutma-seti-amber-silk-p-1039524765", title: "Dyson Airwrap Co-anda2x (Amber Silk)", name_fa: "حالت‌دهنده مو دایسون ایرورپ", name_en: "Dyson Airwrap Co-anda2x", category: "beauty", currency: "TRY", now: true },
   { url: "https://www.trendyol.com/dyson/airwrap-i-d-sac-sekillendirme-ve-kurutma-seti-kivircik-bukleli-ceramic-patina-ve-topaz-p-897054238", title: "Dyson Airwrap i.d. Curly+Coily (Ceramic Patina & Topaz)", name_fa: "حالت‌دهنده مو دایسون ایرورپ i.d", name_en: "Dyson Airwrap i.d.", category: "beauty", currency: "TRY" },
-  // Batch 2 (27 Nov evening): Amazon.de reads cleanly (image, stock, crossed-out price), so more from there.
-  { batch: 2, url: "https://www.amazon.de/Beats-Studio-Personalisiertes-verlustfreies-Kompatibilit%C3%A4t/dp/B0C95J98LV", title: "Beats Studio Pro Wireless Noise Cancelling Headphones", name_fa: "هدفون بیتس استودیو پرو", name_en: "Beats Studio Pro", category: "digital", currency: "EUR" },
-  { batch: 2, url: "https://www.amazon.de/adidas-Herren-Samba-Og-Niedrig/dp/B0F31PB6JF", title: "adidas Men's Samba OG, Core Black / White / Gum", name_fa: "کفش آدیداس سامبا مشکی", name_en: "adidas Samba OG", category: "fashion", currency: "EUR" },
-  { batch: 2, url: "https://www.amazon.de/-/en/PHILIPS-Precision-Attachments-QP6652-35/dp/B0DCFYXPR1", title: "PHILIPS OneBlade Pro 360 Face & Body (QP6652/35)", name_fa: "ماشین اصلاح فیلیپس وان‌بلید پرو ۳۶۰", name_en: "Philips OneBlade Pro 360", category: "beauty", currency: "EUR" },
   // Batch 3: Amazon UAE first (the store Iranian buyers ask for most); ahead of everything else in the queue.
   { batch: 3, sort: 5, now: true, url: "https://www.amazon.ae/Samsung-Storage-Titanium-Smartphone-Approved/dp/B0DSLTQQL3", title: "Samsung Galaxy S25 Ultra 256GB/12GB Titanium Gray (UAE)", name_fa: "گوشی سامسونگ گلکسی S25 اولترا", name_en: "Samsung Galaxy S25 Ultra 256GB", category: "digital", currency: "AED" },
   { batch: 3, sort: 5, now: true, url: "https://www.amazon.ae/Apple-Wireless-headphones-charging-compatible/dp/B0FQFYMLS5", title: "Apple AirPods Pro 3", name_fa: "ایرپاد پرو ۳ اپل", name_en: "Apple AirPods Pro 3", category: "digital", currency: "AED" },
@@ -261,7 +256,9 @@ export const SEED_VERSION = Math.max(...DEAL_SEED.map((x) => x.batch ?? 1));
 /** Live products the landing can actually show (it hides automatic ones without an image). */
 export const MIN_LIVE = 6;
 export function visibleLiveCount(): number {
-  return (getDb().prepare("SELECT COUNT(*) n FROM products WHERE active = 1 AND (image_upload_id IS NOT NULL OR source != 'auto')").get() as { n: number }).n;
+  return (
+    getDb().prepare(`SELECT COUNT(*) n FROM products WHERE active = 1 AND discount_percent > 0 AND (image_upload_id IS NOT NULL OR source != 'auto')`).get() as { n: number }
+  ).n;
 }
 
 /**
@@ -302,6 +299,23 @@ export function seedDeals(): number {
   })();
   if (n) console.log(`[deals] seeded ${n} product(s)`);
   return n;
+}
+
+/**
+ * One-time removal of the Amazon.de deals (27 Nov: the landing is UAE-first). Their images go
+ * too; a story link to one of them now opens the landing.
+ */
+export async function removeAmazonDe(): Promise<number> {
+  if (settingGet("deals_cleanup") === "amazon-de") return 0;
+  const db = getDb();
+  const rows = db.prepare("SELECT id, image_upload_id FROM products WHERE store_key = 'amazon-de' AND source = 'auto'").all() as { id: number; image_upload_id: string | null }[];
+  db.transaction(() => {
+    for (const r of rows) db.prepare("DELETE FROM products WHERE id = ?").run(r.id);
+    settingSet("deals_cleanup", "amazon-de");
+  })();
+  for (const r of rows) if (r.image_upload_id) await deleteUpload(r.image_upload_id).catch(() => null);
+  if (rows.length) console.log(`[deals] removed ${rows.length} Amazon.de product(s)`);
+  return rows.length;
 }
 
 /** Counted when someone opens a unique link (link-preview bots excluded by the caller). */

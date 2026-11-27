@@ -61,13 +61,14 @@ const fmtPrice = (v: string | null, cur: string | null) => {
 
 type Filter = "all" | "live" | "queue" | "attention" | "off";
 
-/** Needs a person: shown (or about to be) but has no picture, or the store says sold out. */
-const needsAttention = (p: P) => ((p.active || p.queued) && !p.image) || p.stock === "out";
+/** Needs a person: shown (or about to be) but has no picture or no discount, or the store says sold out. */
+const needsAttention = (p: P) => ((p.active || p.queued) && (!p.image || !p.discount_percent)) || p.stock === "out";
 const isLive = (p: P) => !!p.active;
 const inQueue = (p: P) => !!p.queued && !p.active;
 
 function StatusBadge({ p }: { p: P }) {
   if (p.active && !p.image) return <Badge variant="warning" className="whitespace-nowrap">بدون عکس، دیده نمی‌شود</Badge>;
+  if (p.active && !p.discount_percent) return <Badge variant="warning" className="whitespace-nowrap">بدون تخفیف، دیده نمی‌شود</Badge>;
   if (p.stock === "out") return <Badge variant="danger" className="whitespace-nowrap">ناموجود{p.auto_hidden ? "، پنهان شد" : ""}</Badge>;
   if (inQueue(p)) return <Badge variant="info" className="whitespace-nowrap">در صف انتشار</Badge>;
   if (!p.active) return <Badge className="whitespace-nowrap">خاموش</Badge>;
@@ -416,7 +417,7 @@ export function ProductManager({ products, status, siteUrl }: { products: P[]; s
       queue: products.filter(inQueue).length,
       attention: products.filter(needsAttention).length,
       off: products.filter((p) => !p.active && !p.queued).length,
-      visible: products.filter((p) => p.active && (p.image || p.source !== "auto")).length,
+      visible: products.filter((p) => p.active && p.discount_percent && (p.image || p.source !== "auto")).length,
     }),
     [products]
   );
@@ -424,6 +425,7 @@ export function ProductManager({ products, status, siteUrl }: { products: P[]; s
     filter === "live" ? isLive(p) : filter === "queue" ? inQueue(p) : filter === "attention" ? needsAttention(p) : filter === "off" ? !p.active && !p.queued : true
   );
   const missingImages = products.filter((p) => (p.active || p.queued) && !p.image).length;
+  const noDiscount = products.filter((p) => (p.active || p.queued) && p.image && !p.discount_percent).length;
 
   return (
     <div className="flex flex-col gap-5">
@@ -441,6 +443,12 @@ export function ProductManager({ products, status, siteUrl }: { products: P[]; s
           </p>
           <span className="hidden sm:inline-flex"><Bookmarklet /></span>
         </div>
+      )}
+
+      {noDiscount > 0 && (
+        <p className="rounded-xl border border-[#E4E4E7] bg-white px-4 py-3 text-[13px] leading-6 text-[#52525B]">
+          <b className="text-[#18181B]">{toFaDigits(noDiscount)} کالا تخفیف ندارد</b> و روی لندینگ نمی‌آید. اگر سایت تخفیف بدهد، بررسی بعدی خودش نشانش می‌دهد؛ یا قیمت قبل را در ویرایش وارد کنید.
+        </p>
       )}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">

@@ -9,7 +9,7 @@ afterAll(() => fs.rmSync(dir, { recursive: true, force: true }));
 
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 // No image stack in tests (the server CPU can't load sharp either).
-vi.mock("@/lib/uploads", () => ({ storeRemoteImage: async () => null, mediaUrl: (id: string | null) => (id ? `/media/${id}` : null) }));
+vi.mock("@/lib/uploads", () => ({ storeRemoteImage: async () => null, deleteUpload: async () => {}, mediaUrl: (id: string | null) => (id ? `/media/${id}` : null) }));
 const metaMock = vi.fn();
 vi.mock("@/lib/link-meta", async (orig) => ({ ...(await orig<typeof import("@/lib/link-meta")>()), fetchLinkMeta: (url: string) => metaMock(url) }));
 
@@ -129,12 +129,12 @@ describe("automatic deals", () => {
     const { getDb, nowIso } = await import("@/lib/db");
     const db = getDb();
     db.prepare("INSERT INTO uploads(id, kind, file_name, mime, size) VALUES('img-test-000001', 'product', 'x.webp', 'image/webp', 1)").run();
-    db.prepare("UPDATE products SET image_upload_id = 'img-test-000001' WHERE queued = 1").run();
+    db.prepare("UPDATE products SET image_upload_id = 'img-test-000001', discount_percent = 20 WHERE queued = 1").run();
     db.prepare("UPDATE products SET published_at = ? WHERE id = (SELECT id FROM products WHERE active = 1 AND category = 'digital' LIMIT 1)").run(new Date(Date.now() + 1000).toISOString());
 
     // First candidate (not digital) turns out sold out → leaves the queue; the next one goes live.
     const first = db.prepare("SELECT id FROM products WHERE queued = 1 AND active = 0 ORDER BY (category = 'digital'), sort DESC, id LIMIT 1").get() as { id: number };
-    metaMock.mockResolvedValueOnce(meta({ availability: "out" })).mockResolvedValue(meta({ availability: "in" }));
+    metaMock.mockResolvedValueOnce(meta({ availability: "out" })).mockResolvedValue(meta({ availability: "in", price: "80", oldPrice: "100" }));
     const id = await publishNext();
     expect(id).not.toBe(first.id);
     expect(db.prepare("SELECT queued, auto_hidden FROM products WHERE id = ?").get(first.id)).toEqual({ queued: 0, auto_hidden: 1 });
@@ -156,10 +156,26 @@ describe("automatic deals", () => {
     // Everything queued has an image in this test; the store says "in stock".
     db.prepare("UPDATE products SET image_upload_id = 'img-test-000001' WHERE queued = 1").run();
     db.prepare("UPDATE settings SET value = ? WHERE key = 'deals_last_publish'").run(new Date().toISOString());
-    metaMock.mockResolvedValue(meta({ availability: "in" }));
+    metaMock.mockResolvedValue(meta({ availability: "in", price: "80", oldPrice: "100" }));
     expect(visibleLiveCount()).toBeLessThan(MIN_LIVE);
     await publishIfDue();
     expect(visibleLiveCount()).toBeGreaterThanOrEqual(MIN_LIVE);
+  });
+
+  it("Amazon.de deals are removed once; the landing shows only discounted products", async () => {
+    const { removeAmazonDe } = await import("@/lib/deals");
+    const { getPublicProducts } = await import("@/lib/products");
+    const { getDb } = await import("@/lib/db");
+    const db = getDb();
+    db.prepare("INSERT INTO products(title, url, source, store_key, active, discount_percent, image_upload_id) VALUES('DE', 'https://www.amazon.de/dp/X1', 'auto', 'amazon-de', 1, 20, 'img-test-000001')").run();
+    expect(await removeAmazonDe()).toBe(1);
+    expect(await removeAmazonDe()).toBe(0);
+    expect(db.prepare("SELECT COUNT(*) n FROM products WHERE store_key = 'amazon-de'").get()).toEqual({ n: 0 });
+    db.prepare("INSERT INTO products(title, url, source, active, image_upload_id) VALUES('no discount', 'https://example.com/nd', 'auto', 1, 'img-test-000001')").run();
+    const shown = getPublicProducts();
+    expect(shown.length).toBeGreaterThan(0);
+    expect(shown.every((p) => (p.discount ?? 0) > 0)).toBe(true);
+    expect(shown.some((p) => p.title === "no discount")).toBe(false);
   });
 
   it("orders are counted per unique link", async () => {

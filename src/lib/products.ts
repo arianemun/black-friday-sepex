@@ -58,9 +58,9 @@ export function listProducts(opts: { activeOnly?: boolean } = {}): ProductRow[] 
 }
 
 export function getPublicProducts(): PublicProduct[] {
-  // An automatic deal shows once its image has been fetched; a card without a picture sells nothing.
+  // Only real deals: a discount, and (for automatic ones) a fetched image.
   return listProducts({ activeOnly: true })
-    .filter((p) => p.image_upload_id || p.source !== "auto")
+    .filter((p) => (p.discount_percent ?? 0) > 0 && (p.image_upload_id || p.source !== "auto"))
     .map((p) => ({
     id: p.id,
     code: p.code,
