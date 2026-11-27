@@ -201,28 +201,23 @@ export function drawStory(ctx: CanvasRenderingContext2D, d: StoryData, product: 
   ctx.fillStyle = YELLOW;
   ctx.fill();
   ctx.fillStyle = INK;
-  ctx.direction = "ltr";
+  ctx.direction = "rtl";
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   const tcx = tag.x + tag.w / 2;
-  words(10);
+  const fa = (n: number) => String(n).replace(/\d/g, (x) => "۰۱۲۳۴۵۶۷۸۹"[Number(x)]);
   if (d.discount) {
-    spacing(-1);
-    ctx.font = `800 44px ${family}`;
-    ctx.fillText("get Up to", tcx, tag.y + 62);
-    spacing(-5);
-    fitFont(ctx, `%${d.discount}`, family, 950, 124, 90, tag.w - 36);
-    ctx.fillText(`%${d.discount}`, tcx, tag.y + 172);
-    spacing(-1);
-    ctx.font = `800 44px ${family}`;
-    ctx.fillText("discount", tcx, tag.y + 214);
+    ctx.font = `800 46px ${family}`;
+    ctx.fillText("تا", tcx, tag.y + 64);
+    fitFont(ctx, `${fa(d.discount)}٪`, family, 950, 132, 90, tag.w - 36);
+    ctx.fillText(`${fa(d.discount)}٪`, tcx, tag.y + 168);
+    ctx.font = `800 46px ${family}`;
+    ctx.fillText("تخفیف", tcx, tag.y + 214);
   } else {
-    spacing(-2);
-    ctx.font = `950 66px ${family}`;
-    ctx.fillText("Black", tcx, tag.y + 86);
-    ctx.fillText("Friday", tcx, tag.y + 152);
-    ctx.font = `800 44px ${family}`;
-    ctx.fillText("deal", tcx, tag.y + 206);
+    ctx.font = `800 42px ${family}`;
+    ctx.fillText("پیشنهاد ویژه", tcx, tag.y + 78);
+    fitFont(ctx, "بلک‌فرایدی", family, 950, 76, 48, tag.w - 36);
+    ctx.fillText("بلک‌فرایدی", tcx, tag.y + 170);
   }
   spacing(0);
   words(0);
