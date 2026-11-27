@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { getDb, UPLOAD_DIR } from "./db";
-import { safeFetch } from "./safe-fetch";
+import { fetchProxies, safeFetch, type FetchProxy } from "./safe-fetch";
 import { loadSharp, sniffImage } from "./image";
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -93,16 +93,19 @@ export async function storeUpload(
   return { id, kind: opts.kind, file_name: fileName, mime, size: out.length, width, height, request_item_id: null };
 }
 
-/** Downloads a remote product image (SSRF-guarded) and stores it as a product upload. */
+/** Downloads a remote product image (SSRF-guarded) and stores it as a product upload. Tries each proxy, then direct. */
 export async function storeRemoteImage(url: string): Promise<UploadRow | null> {
-  try {
-    const res = await safeFetch(url, { maxBytes: MAX_UPLOAD_BYTES, accept: "image/avif,image/webp,image/*,*/*;q=0.8" });
-    if (res.status >= 400) return null;
-    return await storeUpload(res.body, { kind: "product", maxSide: 900 });
-  } catch (e) {
-    console.warn("[uploads] remote image failed:", (e as Error).message);
-    return null;
+  const routes: (FetchProxy | null)[] = [...fetchProxies(), null];
+  for (const proxy of routes) {
+    try {
+      const res = await safeFetch(url, { proxy, maxBytes: MAX_UPLOAD_BYTES, accept: "image/avif,image/webp,image/*,*/*;q=0.8" });
+      if (res.status >= 400) continue;
+      return await storeUpload(res.body, { kind: "product", maxSide: 900 });
+    } catch (e) {
+      console.warn(`[uploads] remote image via ${proxy?.label ?? "direct"} failed:`, (e as Error).message);
+    }
   }
+  return null;
 }
 
 export function getUpload(id: string): UploadRow | undefined {

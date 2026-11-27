@@ -113,7 +113,7 @@ export function DealsCoverflow({ products }: { products: PublicProduct[] }) {
                   {o === 0 && (
                     <div className="mt-1 flex items-stretch gap-1.5">
                       <Link
-                        href={`/order?method=link&link=${encodeURIComponent(p.url)}`}
+                        href={`/order?deal=${p.code}`}
                         className="flex flex-1 items-center justify-center bg-brand py-2.5 text-sm font-black text-ink hover:bg-[#ffd633]"
                       >
                         همینو برام بیار

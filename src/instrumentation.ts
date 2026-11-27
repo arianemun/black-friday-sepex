@@ -40,4 +40,35 @@ export async function register() {
     setTimeout(tick, 20_000).unref();
     setInterval(tick, 7 * 86_400_000).unref();
   }
+
+  // Landing deals: seed once, stock/price check every 30 min, next pooled product every 2 hours.
+  if (process.env.DEALS_DISABLED !== "1") {
+    const { checkAllDeals, publishIfDue, seedDeals, CHECK_EVERY_MS } = await import("./lib/deals");
+    let running = false;
+    const check = async () => {
+      if (running) return;
+      running = true;
+      try {
+        const r = await checkAllDeals();
+        const out = r.filter((x) => x.stock === "out").length;
+        const blocked = r.filter((x) => x.note === "blocked").length;
+        console.log(`[deals] checked ${r.length}: ${out} sold out, ${blocked} blocked`);
+      } catch (e) {
+        console.error("[deals] check failed:", (e as Error).message);
+      } finally {
+        running = false;
+      }
+    };
+    const publish = () => publishIfDue().catch((e) => console.error("[deals] publish failed:", (e as Error).message));
+    setTimeout(() => {
+      try {
+        seedDeals();
+      } catch (e) {
+        console.error("[deals] seed failed:", (e as Error).message);
+      }
+      void check();
+    }, 30_000).unref();
+    setInterval(check, CHECK_EVERY_MS).unref();
+    setInterval(publish, 5 * 60_000).unref();
+  }
 }

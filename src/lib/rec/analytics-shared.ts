@@ -39,6 +39,7 @@ export const EVENT_LABELS: Record<string, string> = {
   outbound: "لینک بیرونی (فروشگاه‌ها و…)",
   store_filter: "فیلتر فروشگاه‌ها (دسته یا کشور)",
   hero_name: "نوشتن اسم کالا به جای لینک (بالای صفحه)",
+  deal_open: "باز کردن لینک اختصاصی یک پیشنهاد (استوری)",
   expand: "باز کردن بخش‌های جمع‌شده (سؤال‌ها…)",
   form_step: "رسیدن به مرحله‌ی فرم سفارش",
   form_error: "خطای اعتبارسنجی فرم",
@@ -126,6 +127,8 @@ export function eventDetail(name: string, props: Record<string, unknown> | strin
       return v("host") || v("label");
     case "store_filter":
       return [v("cat"), v("country")].filter(Boolean).join("، ");
+    case "deal_open":
+      return v("code");
     default:
       return v("label") || v("section");
   }

@@ -143,10 +143,13 @@ export function OrderWizard({
   initialMethod,
   initialLink,
   initialName = null,
+  initialDeal = null,
 }: {
   initialMethod: Method | null;
   initialLink: string | null;
   initialName?: string | null;
+  /** From a product's unique link: the item is filled in and the form opens at the contact step. */
+  initialDeal?: { code: string; url: string; title: string; preview: ProductPreview } | null;
 }) {
   const [ready, setReady] = useState(false);
   const [step, setStep] = useState(0);
@@ -179,7 +182,16 @@ export function OrderWizard({
     if (document.referrer && !document.referrer.startsWith(window.location.origin)) campaign.referrer = document.referrer.slice(0, 300);
 
     /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration from sessionStorage/URL */
-    if (d && !initialLink && !initialName) {
+    if (initialDeal) {
+      const url = extractUrl(initialDeal.url) ?? initialDeal.url;
+      setDraftToken(d?.draftToken ?? newToken());
+      setUtm({ ...(d?.utm ?? {}), ...campaign });
+      if (d) setContact(d.contact);
+      setMethod("link");
+      setItems([{ ...newItem(url), title: initialDeal.title, preview: initialDeal.preview, previewFor: url }]);
+      setStep(2);
+      track("deal_open", { code: initialDeal.code });
+    } else if (d && !initialLink && !initialName) {
       setMethod(initialMethod ?? d.method);
       setItems(d.items.length ? d.items : [newItem()]);
       setContact(d.contact);
@@ -198,7 +210,7 @@ export function OrderWizard({
     }
     setReady(true);
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [initialMethod, initialLink, initialName]);
+  }, [initialMethod, initialLink, initialName, initialDeal]);
 
   useEffect(() => {
     if (ready && !done) saveDraft({ method, items, contact, draftToken, utm });

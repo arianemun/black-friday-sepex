@@ -415,6 +415,28 @@ const migrations: Migration[] = [
   UPDATE rec_sessions SET active_ms = MIN(duration_ms, 60000 * pages), interactions = clicks,
     engaged = CASE WHEN duration_ms >= 10000 OR pages >= 2 OR tracking_code IS NOT NULL THEN 1 ELSE 0 END;
   `,
+  // 9: automatic deals — pool, stock checks, unique story links.
+  `
+  ALTER TABLE products ADD COLUMN code TEXT;
+  ALTER TABLE products ADD COLUMN name_fa TEXT;
+  ALTER TABLE products ADD COLUMN name_en TEXT;
+  ALTER TABLE products ADD COLUMN stock TEXT NOT NULL DEFAULT 'unknown';
+  ALTER TABLE products ADD COLUMN checked_at TEXT;
+  ALTER TABLE products ADD COLUMN check_fails INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE products ADD COLUMN check_note TEXT;
+  ALTER TABLE products ADD COLUMN queued INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE products ADD COLUMN published_at TEXT;
+  ALTER TABLE products ADD COLUMN auto_hidden INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE products ADD COLUMN discount_source TEXT;
+  ALTER TABLE products ADD COLUMN clicks INTEGER NOT NULL DEFAULT 0;
+  UPDATE products SET code = lower(hex(randomblob(4))) WHERE code IS NULL;
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_products_code ON products(code);
+  -- Any product inserted without a code (older code paths, imports) still gets one.
+  CREATE TRIGGER IF NOT EXISTS products_code AFTER INSERT ON products WHEN NEW.code IS NULL
+  BEGIN UPDATE products SET code = lower(hex(randomblob(4))) WHERE id = NEW.id; END;
+  CREATE INDEX IF NOT EXISTS idx_products_queue ON products(queued, sort, id);
+  CREATE INDEX IF NOT EXISTS idx_requests_campaign ON requests(utm_campaign);
+  `,
 ];
 
 /** Exported for tests; `upTo` lets a test build an older schema version. */

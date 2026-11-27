@@ -45,7 +45,7 @@ export type ProductPreview = { title: string | null; image: string | null; price
 /** Product card read from the store page: image, title, store and price. */
 export function ProductPreviewCard({ preview, quantity, note, compact }: { preview: ProductPreview; quantity?: number | string; note?: string | null; compact?: boolean }) {
   const [broken, setBroken] = useState(false);
-  const image = !broken && preview.image && /^https:\/\//.test(preview.image) ? preview.image : null;
+  const image = !broken && preview.image && /^(https:\/\/|\/media\/)/.test(preview.image) ? preview.image : null;
   const price = preview.price ? [preview.price, preview.currency].filter(Boolean).join(" ") : null;
   return (
     <div className="flex items-start gap-3">

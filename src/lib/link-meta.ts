@@ -17,7 +17,44 @@ export type LinkMeta = {
   finalUrl: string | null;
   /** Title read from the URL slug because the page itself couldn't be fetched. */
   guessed?: boolean;
+  /** What the page says about stock; null when it says nothing we understand. */
+  availability?: "in" | "out" | null;
+  /** The crossed-out price, only when the page states it next to the current price. */
+  oldPrice?: string | null;
 };
+
+const OUT_RE = /OutOfStock|SoldOut|Discontinued|out[ _-]?of[ _-]?stock|^oos$/i;
+const IN_RE = /InStock|LimitedAvailability|OnlineOnly|InStoreOnly|PreOrder|BackOrder|^in[ _-]?stock$|^available/i;
+export function readAvailability(v: unknown): "in" | "out" | null {
+  if (typeof v !== "string" || !v.trim()) return null;
+  const s = v.trim().replace(/^https?:\/\/schema\.org\//i, "");
+  if (OUT_RE.test(s)) return "out";
+  if (IN_RE.test(s)) return "in";
+  return null;
+}
+
+/** "1.299,00" / "1,299.00" / "AED 749" → 1299 / 749. */
+export function toNumber(v: unknown): number | null {
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v !== "string") return null;
+  let s = v.replace(/[^\d.,]/g, "");
+  if (!s) return null;
+  const lastDot = s.lastIndexOf("."), lastComma = s.lastIndexOf(",");
+  if (lastComma > lastDot) {
+    // comma is the decimal separator when followed by 1–2 digits
+    s = /,\d{1,2}$/.test(s) ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
+  } else s = s.replace(/,/g, "");
+  const n = Number(s);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/** Whole-number percent off, only when it is plausible (3–90%). */
+export function discountOf(price: unknown, old: unknown): number | null {
+  const p = toNumber(price), o = toNumber(old);
+  if (!p || !o || o <= p) return null;
+  const d = Math.round((1 - p / o) * 100);
+  return d >= 3 && d <= 90 ? d : null;
+}
 
 const clean = (s: unknown, max = 300) => {
   if (typeof s !== "string" && typeof s !== "number") return null;
@@ -62,12 +99,58 @@ function firstImage(img: unknown): string | null {
   return null;
 }
 
-function offerPrice(offers: unknown): { price: string | null; currency: string | null } {
+function offerPrice(offers: unknown): { price: string | null; currency: string | null; availability: "in" | "out" | null; oldPrice: string | null } {
   const o = (Array.isArray(offers) ? offers[0] : offers) as Json | undefined;
-  if (!o || typeof o !== "object") return { price: null, currency: null };
-  const price = o.price ?? o.lowPrice ?? (o.priceSpecification as Json | undefined)?.price;
-  const currency = o.priceCurrency ?? (o.priceSpecification as Json | undefined)?.priceCurrency;
-  return { price: clean(price, 40), currency: clean(currency, 8) };
+  if (!o || typeof o !== "object") return { price: null, currency: null, availability: null, oldPrice: null };
+  const specs = (Array.isArray(o.priceSpecification) ? o.priceSpecification : [o.priceSpecification]).filter((x): x is Json => !!x && typeof x === "object");
+  const listSpec = specs.find((x) => /StrikethroughPrice|ListPrice|MSRP/i.test(String(x.priceType ?? "")));
+  const saleSpec = specs.find((x) => x !== listSpec);
+  const price = o.price ?? o.lowPrice ?? saleSpec?.price;
+  const currency = o.priceCurrency ?? saleSpec?.priceCurrency ?? listSpec?.priceCurrency;
+  // Several offers (sellers/sizes): in stock if any is.
+  const all = Array.isArray(offers) ? (offers as Json[]) : [o];
+  const avs = all.map((x) => readAvailability(x?.availability));
+  const availability = avs.includes("in") ? "in" : avs.includes("out") ? "out" : null;
+  return { price: clean(price, 40), currency: clean(currency, 8), availability, oldPrice: clean(listSpec?.price, 40) };
+}
+
+/**
+ * Store pages often embed the product state as JSON (noon, Namshi…). A crossed-out price is
+ * taken from it only when the sale price of the pair equals the price already read.
+ */
+const PRICE_PAIRS: [string, string][] = [
+  ["sale_price", "was_price"],
+  ["salePrice", "wasPrice"],
+  ["salePrice", "listPrice"],
+  ["specialPrice", "price"],
+  ["sale_price", "price"],
+  ["discountedPrice", "originalPrice"],
+  ["sellingPrice", "originalPrice"],
+  ["price", "originalPrice"],
+  ["price", "oldPrice"],
+];
+export function embeddedOldPrice(html: string, price: string | null): string | null {
+  const p = toNumber(price);
+  for (const [saleKey, oldKey] of PRICE_PAIRS) {
+    const re = new RegExp(`"${saleKey}"\\s*:\\s*"?([\\d.,]+)"?[^{}]{0,400}?"${oldKey}"\\s*:\\s*"?([\\d.,]+)"?|"${oldKey}"\\s*:\\s*"?([\\d.,]+)"?[^{}]{0,400}?"${saleKey}"\\s*:\\s*"?([\\d.,]+)"?`, "g");
+    for (const m of html.matchAll(re)) {
+      const sale = toNumber(m[1] ?? m[4]);
+      const old = toNumber(m[2] ?? m[3]);
+      if (!sale || !old || old <= sale) continue;
+      if (p && Math.abs(sale - p) / p > 0.01) continue;
+      return String(old);
+    }
+  }
+  return null;
+}
+
+/** Visible stock text (Amazon and similar) when structured data says nothing. */
+function textAvailability($: cheerio.CheerioAPI): "in" | "out" | null {
+  const t = clean($("#availability, #outOfStock, [data-testid=availability]").first().text(), 200)?.toLowerCase() ?? "";
+  if (!t) return null;
+  if (/currently unavailable|nicht verfügbar|derzeit nicht|out of stock|sold out|stokta yok|tükendi/.test(t)) return "out";
+  if (/in stock|auf lager|stokta|only \d+ left|nur noch/.test(t)) return "in";
+  return null;
 }
 
 export function parseLinkMeta(html: string, baseUrl: string): LinkMeta {
@@ -78,6 +161,8 @@ export function parseLinkMeta(html: string, baseUrl: string): LinkMeta {
   let image: string | null = null;
   let price: string | null = null;
   let currency: string | null = null;
+  let availability: "in" | "out" | null = null;
+  let oldPrice: string | null = null;
 
   $('script[type="application/ld+json"]').each((_, el) => {
     if (title && image && price) return;
@@ -89,6 +174,8 @@ export function parseLinkMeta(html: string, baseUrl: string): LinkMeta {
       const o = offerPrice(product.offers);
       price ??= o.price;
       currency ??= o.currency;
+      availability ??= o.availability;
+      oldPrice ??= o.oldPrice;
     } catch {
       /* malformed JSON-LD is common */
     }
@@ -125,11 +212,26 @@ export function parseLinkMeta(html: string, baseUrl: string): LinkMeta {
     meta('meta[property="og:price:currency"]') ??
     meta('meta[itemprop="priceCurrency"]');
 
+  availability ??=
+    readAvailability(meta('meta[property="product:availability"]')) ??
+    readAvailability(meta('meta[property="og:availability"]')) ??
+    readAvailability($('[itemprop="availability"]').first().attr("href") ?? $('[itemprop="availability"]').first().attr("content")) ??
+    textAvailability($);
+  if (!oldPrice && price) {
+    oldPrice =
+      meta('meta[property="product:original_price:amount"]') ??
+      clean($(".basisPrice .a-offscreen, #corePriceDisplay_desktop_feature_div .a-price.a-text-price .a-offscreen").first().text(), 40) ??
+      embeddedOldPrice(html, price);
+  }
+  if (oldPrice && !discountOf(price, oldPrice)) oldPrice = null;
+
   return {
     title,
     image: absolutize(image, baseUrl),
     price,
     currency,
+    availability,
+    oldPrice,
     site: meta('meta[property="og:site_name"]'),
     finalUrl: baseUrl,
   };

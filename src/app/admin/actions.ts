@@ -11,7 +11,9 @@ import { copyWeekForward, isDay, setShift, tehranDay } from "@/lib/shifts";
 import { parseRole } from "@/lib/roles";
 import { listTrainingVideos, recordWatch } from "@/lib/training";
 import { categories, countries, detectStore, extractUrl, statuses } from "@/lib/catalog";
-import { fetchLinkMeta } from "@/lib/link-meta";
+import { discountOf, fetchLinkMeta } from "@/lib/link-meta";
+import { checkAllDeals, checkProduct, newCode, publishNext, setDealsAuto } from "@/lib/deals";
+import type { ProductRow } from "@/lib/products";
 import { normalizeIranMobile } from "@/lib/phone";
 import { rateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request-info";
@@ -118,6 +120,9 @@ export async function fetchProductMetaAction(_: ActionState, fd: FormData): Prom
       title: meta.title,
       image: meta.image,
       price: meta.price,
+      old_price: meta.oldPrice ?? null,
+      discount: String(discountOf(meta.price, meta.oldPrice) ?? ""),
+      stock: meta.availability ?? null,
       currency: meta.currency,
       store_key: store?.key ?? "",
       country: store?.country ?? "",
@@ -138,6 +143,9 @@ const productSchema = z.object({
   discount_percent: z.string().trim().max(3),
   sort: z.coerce.number().int().min(-9999).max(9999).default(0),
   image_url: z.string().trim().max(2000),
+  name_fa: z.string().trim().max(80),
+  name_en: z.string().trim().max(80),
+  queued: z.boolean(),
 });
 
 export async function saveProductAction(_: ActionState, fd: FormData): Promise<ActionState> {
@@ -155,6 +163,9 @@ export async function saveProductAction(_: ActionState, fd: FormData): Promise<A
     discount_percent: toEnDigits(str(fd, "discount_percent", 3)),
     sort: toEnDigits(str(fd, "sort", 6)) || 0,
     image_url: str(fd, "image_url", 2000),
+    name_fa: str(fd, "name_fa", 80),
+    name_en: str(fd, "name_en", 80),
+    queued: fd.get("queued") === "1",
   });
   if (!parsed.success) return { error: "عنوان، لینک و دسته‌بندی را کامل وارد کنید." };
   const p = parsed.data;
@@ -174,32 +185,78 @@ export async function saveProductAction(_: ActionState, fd: FormData): Promise<A
   }
 
   const store = p.store_key || detectStore(url)?.key || null;
-  const discount = p.discount_percent ? Math.min(99, Math.max(1, Number(p.discount_percent) || 0)) || null : null;
+  const discount = p.discount_percent ? Math.min(99, Math.max(1, Number(p.discount_percent) || 0)) || null : discountOf(p.price, p.old_price);
   const db = getDb();
   if (p.id) {
     const old = db.prepare("SELECT image_upload_id FROM products WHERE id = ?").get(p.id) as { image_upload_id: string | null } | undefined;
     if (!old) return { error: "کالا پیدا نشد." };
     db.prepare(
       `UPDATE products SET title=?, url=?, category=?, country=?, store_key=?, price=?, old_price=?, currency=?, discount_percent=?, sort=?,
-       image_upload_id=COALESCE(?, image_upload_id), updated_at=? WHERE id=?`
-    ).run(p.title, url, p.category, p.country || null, store, p.price || null, p.old_price || null, p.currency || null, discount, p.sort, imageId, nowIso(), p.id);
+       image_upload_id=COALESCE(?, image_upload_id), name_fa=?, name_en=?,
+       discount_source = CASE WHEN discount_percent IS ? THEN discount_source ELSE 'manual' END, updated_at=? WHERE id=?`
+    ).run(p.title, url, p.category, p.country || null, store, p.price || null, p.old_price || null, p.currency || null, discount, p.sort, imageId, p.name_fa || null, p.name_en || null, discount, nowIso(), p.id);
     if (imageId && old.image_upload_id) await deleteUpload(old.image_upload_id);
   } else {
     db.prepare(
-      `INSERT INTO products(title, url, category, country, store_key, price, old_price, currency, discount_percent, sort, image_upload_id)
-       VALUES(?,?,?,?,?,?,?,?,?,?,?)`
-    ).run(p.title, url, p.category, p.country || null, store, p.price || null, p.old_price || null, p.currency || null, discount, p.sort, imageId);
+      `INSERT INTO products(title, url, category, country, store_key, price, old_price, currency, discount_percent, discount_source, sort, image_upload_id,
+         name_fa, name_en, code, active, queued, published_at)
+       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+    ).run(p.title, url, p.category, p.country || null, store, p.price || null, p.old_price || null, p.currency || null, discount, discount ? "manual" : null, p.sort, imageId,
+      p.name_fa || null, p.name_en || null, newCode(), p.queued ? 0 : 1, p.queued ? 1 : 0, p.queued ? null : nowIso());
   }
   revalidatePath("/admin/products");
   revalidatePath("/");
-  return { ok: true, message: p.id ? "کالا به‌روز شد." : imageId || p.image_url === "" ? "کالا اضافه شد." : "کالا اضافه شد، ولی تصویرش دانلود نشد. تصویر را دستی بارگذاری کنید." };
+  return { ok: true, message: p.id ? "کالا به‌روز شد." : p.queued ? "کالا به صف انتشار خودکار اضافه شد." : imageId || p.image_url === "" ? "کالا اضافه شد." : "کالا اضافه شد، ولی تصویرش دانلود نشد. تصویر را دستی بارگذاری کنید." };
 }
 
 export async function toggleProductAction(id: number, active: boolean) {
   await requireStaff();
-  getDb().prepare("UPDATE products SET active = ?, updated_at = ? WHERE id = ?").run(active ? 1 : 0, nowIso(), id);
+  // Turned on by hand: it leaves the queue and counts as published now.
+  getDb()
+    .prepare(
+      "UPDATE products SET active = ?, auto_hidden = 0, queued = CASE WHEN ? THEN 0 ELSE queued END, published_at = CASE WHEN ? AND published_at IS NULL THEN ? ELSE published_at END, updated_at = ? WHERE id = ?"
+    )
+    .run(active ? 1 : 0, active ? 1 : 0, active ? 1 : 0, nowIso(), nowIso(), id);
   revalidatePath("/admin/products");
   revalidatePath("/");
+}
+
+export async function queueProductAction(id: number, queued: boolean) {
+  await requireStaff();
+  getDb().prepare("UPDATE products SET queued = ?, active = CASE WHEN ? THEN 0 ELSE active END, updated_at = ? WHERE id = ?").run(queued ? 1 : 0, queued ? 1 : 0, nowIso(), id);
+  revalidatePath("/admin/products");
+  revalidatePath("/");
+}
+
+export async function setDealsAutoAction(on: boolean) {
+  await requireStaff();
+  setDealsAuto(on);
+  revalidatePath("/admin/products");
+}
+
+export async function publishNextAction(): Promise<ActionState> {
+  await requireStaff();
+  const id = await publishNext({ force: true });
+  revalidatePath("/admin/products");
+  revalidatePath("/");
+  return id ? { ok: true, message: "کالای بعدی صف منتشر شد." } : { error: "کالای قابل انتشاری در صف نیست (یا همه ناموجودند)." };
+}
+
+export async function checkDealsAction(id?: number): Promise<ActionState> {
+  await requireStaff();
+  if (!rateLimit(`deals-check:${id ?? "all"}`, 6, 600)) return { error: "چند دقیقه‌ی دیگر دوباره امتحان کنید." };
+  if (id) {
+    const row = getDb().prepare("SELECT * FROM products WHERE id = ?").get(id) as ProductRow | undefined;
+    if (!row) return { error: "کالا پیدا نشد." };
+    const r = await checkProduct(row);
+    revalidatePath("/admin/products");
+    revalidatePath("/");
+    const label = r.note === "blocked" ? "فروشگاه جلوی بررسی را گرفت؛ وضعیت قبلی ماند." : r.stock === "out" ? "ناموجود است؛ از لندینگ پنهان شد." : r.stock === "in" ? "موجود است." : "خوانده شد، ولی سایت وضعیت موجودی را اعلام نمی‌کند.";
+    return { ok: r.note !== "blocked", message: label, error: r.note === "blocked" ? label : undefined };
+  }
+  const all = await checkAllDeals();
+  revalidatePath("/admin/products");
+  return { ok: true, message: `${all.length} کالا بررسی شد.` };
 }
 
 export async function deleteProductAction(id: number) {
