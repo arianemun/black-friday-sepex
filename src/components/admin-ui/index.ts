@@ -17,3 +17,4 @@ export { FormField, FormGrid, FieldInput, FieldTextarea, fieldControlClass, fiel
 export { EmptyState } from './empty-state';
 export { AdminTable, AdminTHead, AdminTh, AdminTr, AdminTd } from './table';
 export { SegmentedControl, type SegmentOption } from './segmented';
+export { Toggle } from './toggle';

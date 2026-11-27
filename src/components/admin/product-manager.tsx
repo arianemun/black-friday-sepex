@@ -17,10 +17,9 @@ import {
 import { categories, categoryName, countries, countryName, detectStore, extractUrl, stores, storeByKey } from "@/lib/catalog";
 import type { DealsStatus } from "@/lib/deals";
 import type { ProductRow } from "@/lib/products";
-import { Badge, Button, EmptyState, FieldInput, FormField, IconButton, SegmentedControl, fieldControlClass } from "@/components/admin-ui";
+import { Badge, Button, EmptyState, FieldInput, FormField, IconButton, SegmentedControl, Toggle, fieldControlClass } from "@/components/admin-ui";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/admin-ui/dialog";
 import { useConfirm } from "@/components/admin-ui/confirm-dialog";
-import { Switch } from "@/components/ui/switch";
 import { cn, toFaDigits } from "@/lib/utils";
 import { dealLink, StoryDialog } from "./story-dialog";
 import { Bookmarklet, readImport } from "./bookmarklet";
@@ -113,11 +112,11 @@ function StoreLine({ p }: { p: P }) {
 
 /* ------------------------------------------------------------------ top: automation */
 
-function Stat({ label, value, tone }: { label: string; value: string; tone?: "warn" | "bad" }) {
+function Stat({ label, value, tone, desktop }: { label: string; value: string; tone?: "warn" | "bad"; desktop?: boolean }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-[#E4E4E7] bg-white px-4 py-3">
-      <span className="text-xs font-medium text-[#71717A]">{label}</span>
-      <span className={cn("text-xl font-extrabold leading-tight text-[#18181B]", tone === "warn" && "text-[#B45309]", tone === "bad" && "text-[#B91C1C]")}>{value}</span>
+    <div className={cn("min-w-0 flex-col gap-1 rounded-xl border border-[#E4E4E7] bg-white px-3 py-2.5 sm:px-4 sm:py-3", desktop ? "hidden sm:flex" : "flex")}>
+      <span className="truncate text-xs font-medium text-[#71717A]">{label}</span>
+      <span className={cn("truncate text-lg font-extrabold leading-tight text-[#18181B] sm:text-xl", tone === "warn" && "text-[#B45309]", tone === "bad" && "text-[#B91C1C]")}>{value}</span>
     </div>
   );
 }
@@ -132,20 +131,25 @@ function AutoBar({ status, counts }: { status: DealsStatus; counts: { visible: n
     });
   return (
     <section className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <Stat label="دیده می‌شود روی لندینگ" value={toFaDigits(counts.visible)} />
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:grid-cols-5">
+        <Stat label="روی لندینگ" value={toFaDigits(counts.visible)} />
         <Stat label="در صف انتشار" value={toFaDigits(status.pool)} />
         <Stat label="نیاز به رسیدگی" value={toFaDigits(counts.attention)} tone={counts.attention ? "warn" : undefined} />
-        <Stat label="انتشار بعدی" value={status.auto ? fmtTime(status.nextPublishAt) : "خاموش"} />
-        <Stat label="آخرین بررسی موجودی" value={fmtTime(status.lastCheckAt)} />
+        <Stat label="انتشار بعدی" value={status.auto ? fmtTime(status.nextPublishAt) : "خاموش"} desktop />
+        <Stat label="آخرین بررسی موجودی" value={fmtTime(status.lastCheckAt)} desktop />
       </div>
-      <div className={cn("flex flex-wrap items-center gap-3 rounded-xl border border-[#E4E4E7] bg-white px-4 py-3", pending && "opacity-70")}>
-        <label className="flex items-center gap-2.5 text-[13px] font-semibold">
-          <Switch checked={status.auto} onCheckedChange={(v) => start(() => setDealsAutoAction(v))} aria-label="انتشار خودکار" />
-          انتشار خودکار
-        </label>
-        <span className="text-xs text-[#71717A]">هر ۲ ساعت یک کالا از صف؛ اگر کمتر از ۶ کالا دیده شود، فوراً. موجودی و قیمت هر ۳۰ دقیقه.</span>
-        <div className="ms-auto flex flex-wrap gap-2">
+      <div className={cn("flex flex-col gap-3 rounded-xl border border-[#E4E4E7] bg-white px-4 py-3 lg:flex-row lg:items-center", pending && "opacity-70")}>
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <Toggle checked={status.auto} onCheckedChange={(v) => start(() => setDealsAutoAction(v))} aria-labelledby="auto-label" className="mt-0.5" />
+          <div className="min-w-0">
+            <p id="auto-label" className="text-[13px] font-semibold text-[#18181B]">انتشار خودکار</p>
+            <p className="text-xs leading-5 text-[#71717A]">هر ۲ ساعت یک کالا از صف؛ اگر کمتر از ۶ کالا دیده شود، فوراً. موجودی و قیمت هر ۳۰ دقیقه.</p>
+            <p className="mt-1 text-xs leading-5 text-[#52525B] sm:hidden">
+              انتشار بعدی: <b>{status.auto ? fmtTime(status.nextPublishAt) : "خاموش"}</b>، آخرین بررسی: <b>{fmtTime(status.lastCheckAt)}</b>
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2 lg:flex">
           <Button variant="secondary" size="sm" icon={<RefreshCw />} loading={pending} onClick={() => run(() => checkDealsAction())}>
             بررسی موجودی الان
           </Button>
@@ -429,14 +433,18 @@ export function ProductManager({ products, status, siteUrl }: { products: P[]; s
         <div className="flex flex-col gap-3 rounded-xl border border-[#FDE68A] bg-[#FFFBEB] px-4 py-3 text-[13px] leading-6 text-[#78350F] sm:flex-row sm:items-center">
           <AlertTriangle className="hidden size-5 shrink-0 text-[#B45309] sm:block" aria-hidden />
           <p className="min-w-0 flex-1">
-            <b>{toFaDigits(missingImages)} کالا عکس ندارد</b> و تا عکس نگیرد روی لندینگ دیده نمی‌شود. نون و ترندیول جلوی خواندن خودکار را می‌گیرند: دکمه‌ی روبه‌رو را یک بار به نوار بوکمارک مرورگر بکشید، بعد در صفحه‌ی هر کالا رویش بزنید. عکس، قیمت، تخفیف و موجودی همان صفحه این‌جا می‌آید.
+            <b>{toFaDigits(missingImages)} کالا عکس ندارد</b> و تا عکس نگیرد روی لندینگ دیده نمی‌شود.{" "}
+            <span className="hidden sm:inline">
+              نون و ترندیول جلوی خواندن خودکار را می‌گیرند: دکمه‌ی روبه‌رو را یک بار به نوار بوکمارک مرورگر بکشید، بعد در صفحه‌ی هر کالا رویش بزنید. عکس، قیمت، تخفیف و موجودی همان صفحه این‌جا می‌آید.
+            </span>
+            <span className="sm:hidden">از کامپیوتر با دکمه‌ی «ارسال به سپکس» یا با ویرایش کالا و گذاشتن لینک عکس درستش کنید.</span>
           </p>
-          <Bookmarklet />
+          <span className="hidden sm:inline-flex"><Bookmarklet /></span>
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="-mx-1 max-w-full overflow-x-auto px-1 [&_button]:whitespace-nowrap">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 [&_button]:whitespace-nowrap">
         <SegmentedControl<Filter>
           aria-label="فیلتر کالاها"
           value={filter}
@@ -451,9 +459,9 @@ export function ProductManager({ products, status, siteUrl }: { products: P[]; s
           className="w-max"
         />
         </div>
-        <div className="ms-auto flex items-center gap-2">
-          {!missingImages && <Bookmarklet />}
-          <Button icon={<Plus />} onClick={() => openForm(empty)}>
+        <div className="flex items-center gap-2 sm:ms-auto">
+          {!missingImages && <span className="hidden sm:inline-flex"><Bookmarklet /></span>}
+          <Button icon={<Plus />} onClick={() => openForm(empty)} className="flex-1 sm:flex-none">
             افزودن کالا
           </Button>
         </div>
@@ -468,11 +476,11 @@ export function ProductManager({ products, status, siteUrl }: { products: P[]; s
               const price = fmtPrice(p.price, p.currency);
               const old = p.old_price && p.discount_percent ? fmtPrice(p.old_price, p.currency) : null;
               return (
-                <li key={p.id} className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-x-4 gap-y-2.5 px-4 py-3 md:grid-cols-[3.5rem_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_4.5rem_auto]">
+                <li key={p.id} className="grid grid-cols-[3rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2.5 px-4 py-3 sm:gap-x-4 xl:grid-cols-[3.5rem_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_4.5rem_auto]">
                   <button
                     type="button"
                     onClick={() => openForm(fromRow(p), p.image)}
-                    className="flex size-14 items-center justify-center overflow-hidden rounded-lg border border-[#E4E4E7] bg-white hover:border-[#A1A1AA]"
+                    className="flex size-12 items-center justify-center overflow-hidden rounded-lg border border-[#E4E4E7] bg-white hover:border-[#A1A1AA] xl:size-14"
                     aria-label="ویرایش"
                   >
                     {p.image ? (
@@ -492,13 +500,13 @@ export function ProductManager({ products, status, siteUrl }: { products: P[]; s
                     </div>
                   </div>
 
-                  <div className="hidden min-w-0 md:block">
+                  <div className="hidden min-w-0 xl:block">
                     {price ? (
                       <>
                         <p dir="ltr" className="text-right text-[14px] font-bold text-[#18181B]">{price}</p>
                         <p className="flex items-center gap-1.5 text-xs">
                           {p.discount_percent ? (
-                            <span className="rounded bg-[#FFCB05] px-1.5 py-0.5 text-[11px] font-extrabold text-[#111]">٪{toFaDigits(p.discount_percent)}</span>
+                            <Badge variant="success" className="px-1.5 py-0 text-[11px]">٪{toFaDigits(p.discount_percent)} تخفیف</Badge>
                           ) : null}
                           {old && <span dir="ltr" className="text-[#A1A1AA] line-through">{old}</span>}
                           {p.discount_source && (
@@ -511,27 +519,29 @@ export function ProductManager({ products, status, siteUrl }: { products: P[]; s
                     )}
                   </div>
 
-                  <div className="col-span-2 min-w-0 md:col-span-1">
-                    <span className="me-2 inline md:hidden">
+                  <div className="col-span-2 min-w-0 xl:col-span-1">
+                    <span className="me-2 inline xl:hidden">
                       {price && <span dir="ltr" className="text-[13px] font-bold text-[#18181B]">{price}</span>}
-                      {p.discount_percent ? <span className="ms-1.5 rounded bg-[#FFCB05] px-1.5 py-0.5 text-[11px] font-extrabold text-[#111]">٪{toFaDigits(p.discount_percent)}</span> : null}
+                      {p.discount_percent ? <Badge variant="success" className="ms-1.5 px-1.5 py-0 text-[11px]">٪{toFaDigits(p.discount_percent)}</Badge> : null}
                     </span>
                     <StatusBadge p={p} />
                     <StockLine p={p} />
                   </div>
 
-                  <div className="hidden text-center md:block" title="کلیک روی لینک اختصاصی / سفارش از همان لینک">
+                  <div className="hidden text-center xl:block" title="کلیک روی لینک اختصاصی / سفارش از همان لینک">
                     <p className="text-[14px] font-bold text-[#18181B]">{toFaDigits(p.clicks)} / {toFaDigits(p.orders)}</p>
                     <p className="text-[11px] text-[#A1A1AA]">کلیک / سفارش</p>
                   </div>
 
-                  <div className="col-span-2 flex items-center justify-between gap-1 border-t border-[#F4F4F5] pt-2.5 md:col-span-1 md:justify-end md:border-0 md:pt-0">
-                    <Switch
+                  <div className="col-span-2 flex items-center gap-1 border-t border-[#F4F4F5] pt-2.5 xl:col-span-1 xl:justify-end xl:border-0 xl:pt-0">
+                    <label className="me-auto flex items-center gap-2 text-xs text-[#52525B] xl:me-1">
+                    <Toggle
                       checked={!!p.active}
                       onCheckedChange={(v) => run(() => toggleProductAction(p.id, v))}
                       aria-label="نمایش روی لندینگ"
-                      className="me-1 scale-90"
                     />
+                    <span className="xl:hidden">روی لندینگ</span>
+                    </label>
                     <Button variant="secondary" size="sm" icon={<Clapperboard />} onClick={() => setStory(p)}>
                       استوری
                     </Button>
