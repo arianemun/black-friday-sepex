@@ -49,6 +49,15 @@ describe("reading stock and the crossed-out price from store pages", () => {
     expect(parseLinkMeta(`<h1>Thing</h1><meta property="og:image" content="https://i/x.jpg">`, "https://x.com/p").availability).toBeNull();
   });
 
+  it("noon gives image keys on its CDN, not URLs", async () => {
+    const { parseLinkMeta } = await import("@/lib/link-meta");
+    const ld = `<script type="application/ld+json">{"@type":"Product","name":"AirPods Pro 3","image":"pnsku/N70212301V/45/_/1766380651/7916b63e-3913-40c0-96c9-de788675d153","offers":{"price":"711.96","priceCurrency":"AED","availability":"https://schema.org/InStock"}}</script>`;
+    const m = parseLinkMeta(ld, "https://www.noon.com/uae-en/airpods-pro-3/N70212301V/p/");
+    expect(m.image).toBe("https://f.nooncdn.com/p/pnsku/N70212301V/45/_/1766380651/7916b63e-3913-40c0-96c9-de788675d153.jpg");
+    const full = parseLinkMeta(ld.replace("pnsku/", "https://f.nooncdn.com/p/pnsku/"), "https://www.noon.com/x/p/");
+    expect(full.image).toBe("https://f.nooncdn.com/p/pnsku/N70212301V/45/_/1766380651/7916b63e-3913-40c0-96c9-de788675d153");
+  });
+
   it("discounts only when plausible; European number formats", async () => {
     const { discountOf, toNumber } = await import("@/lib/link-meta");
     expect(toNumber("1.299,00 €")).toBe(1299);

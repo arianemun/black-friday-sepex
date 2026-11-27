@@ -153,6 +153,23 @@ function textAvailability($: cheerio.CheerioAPI): "in" | "out" | null {
   return null;
 }
 
+/**
+ * Some stores give the image as a key on their CDN rather than a URL: noon writes
+ * "pnsku/N70212301V/45/_/1766380651/7916b63e-…" (or "pzsku/…"), served from f.nooncdn.com.
+ */
+export function storeImage(image: string | null, baseUrl: string): string | null {
+  if (!image || /^https?:\/\//i.test(image)) return image;
+  let host = "";
+  try {
+    host = new URL(baseUrl).hostname;
+  } catch {
+    return image;
+  }
+  const key = image.match(/(?:^|\/)(p[nz]sku\/[^\s"'?#]+)/)?.[1];
+  if (/(^|\.)noon\.com$/.test(host) && key) return `https://f.nooncdn.com/p/${key.replace(/\.(jpe?g|png|webp)$/i, "")}.jpg`;
+  return image;
+}
+
 export function parseLinkMeta(html: string, baseUrl: string): LinkMeta {
   const $ = cheerio.load(html);
   const meta = (sel: string) => clean($(sel).first().attr("content"));
@@ -227,7 +244,7 @@ export function parseLinkMeta(html: string, baseUrl: string): LinkMeta {
 
   return {
     title,
-    image: absolutize(image, baseUrl),
+    image: absolutize(storeImage(image, baseUrl), baseUrl),
     price,
     currency,
     availability,

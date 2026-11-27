@@ -99,7 +99,10 @@ export async function storeRemoteImage(url: string): Promise<UploadRow | null> {
   for (const proxy of routes) {
     try {
       const res = await safeFetch(url, { proxy, maxBytes: MAX_UPLOAD_BYTES, accept: "image/avif,image/webp,image/*,*/*;q=0.8" });
-      if (res.status >= 400) continue;
+      if (res.status >= 400) {
+        console.warn(`[uploads] remote image via ${proxy?.label ?? "direct"}: http_${res.status} ${url.slice(0, 120)}`);
+        continue;
+      }
       return await storeUpload(res.body, { kind: "product", maxSide: 900 });
     } catch (e) {
       console.warn(`[uploads] remote image via ${proxy?.label ?? "direct"} failed:`, (e as Error).message);

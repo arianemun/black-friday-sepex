@@ -116,7 +116,10 @@ export async function checkProduct(p: ProductRow): Promise<CheckResult> {
   }
 
   let imageId = p.image_upload_id;
-  if (!imageId && meta.image) imageId = (await storeRemoteImage(meta.image))?.id ?? null;
+  if (!imageId && meta.image) {
+    imageId = (await storeRemoteImage(meta.image))?.id ?? null;
+    if (!imageId) console.warn(`[deals] #${p.id} image download failed: ${meta.image.slice(0, 160)}`);
+  } else if (!imageId) console.warn(`[deals] #${p.id} page read, but it names no product image`);
 
   let active = p.active;
   let autoHidden = p.auto_hidden;
