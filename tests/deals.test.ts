@@ -144,6 +144,24 @@ describe("automatic deals", () => {
     expect(live.published_at <= nowIso()).toBe(true);
   });
 
+  it("an existing v1 pool gets batch 2 once; too few live products are filled from the pool at once", async () => {
+    const { seedDeals, DEAL_SEED, publishIfDue, visibleLiveCount, MIN_LIVE } = await import("@/lib/deals");
+    const { getDb } = await import("@/lib/db");
+    const db = getDb();
+    const batch2 = DEAL_SEED.filter((x) => x.batch === 2);
+    for (const b of batch2) db.prepare("DELETE FROM products WHERE url = ?").run(b.url);
+    db.prepare("UPDATE settings SET value = 'v1' WHERE key = 'deals_seeded'").run();
+    expect(seedDeals()).toBe(batch2.length);
+    expect(seedDeals()).toBe(0);
+    // Everything queued has an image in this test; the store says "in stock".
+    db.prepare("UPDATE products SET image_upload_id = 'img-test-000001' WHERE queued = 1").run();
+    db.prepare("UPDATE settings SET value = ? WHERE key = 'deals_last_publish'").run(new Date().toISOString());
+    metaMock.mockResolvedValue(meta({ availability: "in" }));
+    expect(visibleLiveCount()).toBeLessThan(MIN_LIVE);
+    await publishIfDue();
+    expect(visibleLiveCount()).toBeGreaterThanOrEqual(MIN_LIVE);
+  });
+
   it("orders are counted per unique link", async () => {
     const { dealOrderCounts, getProductByCode } = await import("@/lib/products");
     const { getDb } = await import("@/lib/db");

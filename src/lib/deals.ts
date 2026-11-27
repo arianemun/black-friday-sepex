@@ -161,7 +161,7 @@ export async function publishNext(opts: { force?: boolean } = {}): Promise<numbe
   const db = getDb();
   const lastCat = (db.prepare("SELECT category FROM products WHERE published_at IS NOT NULL ORDER BY published_at DESC LIMIT 1").get() as { category: string } | undefined)?.category ?? "";
   const pool = db
-    .prepare("SELECT * FROM products WHERE queued = 1 AND active = 0 ORDER BY (category = ?), sort DESC, id LIMIT 6")
+    .prepare("SELECT * FROM products WHERE queued = 1 AND active = 0 ORDER BY (image_upload_id IS NULL), (category = ?), sort DESC, id LIMIT 8")
     .all(lastCat) as ProductRow[];
   for (const cand of pool) {
     // Fresh look at the store right before it goes live.
@@ -183,9 +183,20 @@ export async function publishNext(opts: { force?: boolean } = {}): Promise<numbe
   return null;
 }
 
-/** Background tick: publish when two hours have passed since the last one. */
+/**
+ * Background tick: publish when two hours have passed since the last one. If fewer than
+ * MIN_LIVE products are showing (sold out, blocked stores without images), fill up from the
+ * pool right away instead of waiting.
+ */
 export async function publishIfDue() {
   if (!dealsAuto()) return null;
+  let id: number | null = null;
+  for (let i = 0; i < MIN_LIVE && visibleLiveCount() < MIN_LIVE; i++) {
+    const next = await publishNext();
+    if (!next) break;
+    id = next;
+  }
+  if (id) return id;
   const last = settingGet("deals_last_publish");
   if (last && Date.now() - Date.parse(last) < PUBLISH_EVERY_MS - 60_000) return null;
   return publishNext();
@@ -206,6 +217,8 @@ type Seed = {
   discount?: number;
   /** Goes live right away instead of waiting in the pool. */
   now?: boolean;
+  /** Seed batch; a later batch is added to an existing pool once. */
+  batch?: number;
   sort?: number;
 };
 
@@ -231,7 +244,19 @@ export const DEAL_SEED: Seed[] = [
   { url: "https://www.noon.com/uae-en/sauvage-edp-for-men-100ml/N23101656A/p/", title: "Dior Sauvage EDP 100ml", name_fa: "عطر دیور ساواج ادوپرفیوم", name_en: "Dior Sauvage EDP 100ml", category: "beauty", price: "500", currency: "AED", now: true },
   { url: "https://www.trendyol.com/dyson/airwrap-co-anda2x-sac-sekillendirme-ve-kurutma-seti-amber-silk-p-1039524765", title: "Dyson Airwrap Co-anda2x (Amber Silk)", name_fa: "حالت‌دهنده مو دایسون ایرورپ", name_en: "Dyson Airwrap Co-anda2x", category: "beauty", currency: "TRY", now: true },
   { url: "https://www.trendyol.com/dyson/airwrap-i-d-sac-sekillendirme-ve-kurutma-seti-kivircik-bukleli-ceramic-patina-ve-topaz-p-897054238", title: "Dyson Airwrap i.d. Curly+Coily (Ceramic Patina & Topaz)", name_fa: "حالت‌دهنده مو دایسون ایرورپ i.d", name_en: "Dyson Airwrap i.d.", category: "beauty", currency: "TRY" },
+  // Batch 2 (27 Nov evening): Amazon.de reads cleanly (image, stock, crossed-out price), so more from there.
+  { batch: 2, url: "https://www.amazon.de/Beats-Studio-Personalisiertes-verlustfreies-Kompatibilit%C3%A4t/dp/B0C95J98LV", title: "Beats Studio Pro Wireless Noise Cancelling Headphones", name_fa: "هدفون بیتس استودیو پرو", name_en: "Beats Studio Pro", category: "digital", currency: "EUR" },
+  { batch: 2, url: "https://www.amazon.de/beats-Solo-Ear-Akkulaufzeit-Mattschwarz/dp/B0CZPMXGSH", title: "Beats Solo 4 Wireless On-Ear Headphones, Matte Black", name_fa: "هدفون بیتس سولو ۴", name_en: "Beats Solo 4", category: "digital", currency: "EUR" },
+  { batch: 2, url: "https://www.amazon.de/soundcore-Liberty-Noise-Cancelling-Kopfh%C3%B6rer-AMOLED-Champagne/dp/B0GWLN2Y14", title: "Anker soundcore Liberty 5 Pro Max Noise-Cancelling Earbuds", name_fa: "هندزفری انکر ساندکر لیبرتی ۵ پرو مکس", name_en: "soundcore Liberty 5 Pro Max", category: "digital", currency: "EUR" },
+  { batch: 2, url: "https://www.amazon.de/adidas-Herren-Samba-Og-Niedrig/dp/B0F31PB6JF", title: "adidas Men's Samba OG, Core Black / White / Gum", name_fa: "کفش آدیداس سامبا مشکی", name_en: "adidas Samba OG", category: "fashion", currency: "EUR" },
+  { batch: 2, url: "https://www.amazon.de/-/en/PHILIPS-Precision-Attachments-QP6652-35/dp/B0DCFYXPR1", title: "PHILIPS OneBlade Pro 360 Face & Body (QP6652/35)", name_fa: "ماشین اصلاح فیلیپس وان‌بلید پرو ۳۶۰", name_en: "Philips OneBlade Pro 360", category: "beauty", currency: "EUR" },
 ];
+
+/** Live products the landing can actually show (it hides automatic ones without an image). */
+export const MIN_LIVE = 6;
+export function visibleLiveCount(): number {
+  return (getDb().prepare("SELECT COUNT(*) n FROM products WHERE active = 1 AND (image_upload_id IS NOT NULL OR source != 'auto')").get() as { n: number }).n;
+}
 
 /**
  * Adds the seed once (by URL; anything staff deleted is not re-added after the first run).
@@ -240,7 +265,9 @@ export const DEAL_SEED: Seed[] = [
  */
 export function seedDeals(): number {
   const db = getDb();
-  if (settingGet("deals_seeded") === "v1") return 0;
+  const done = settingGet("deals_seeded");
+  if (done === "v2") return 0;
+  const first = done !== "v1";
   const exists = db.prepare("SELECT 1 FROM products WHERE url = ?");
   const ins = db.prepare(
     `INSERT INTO products(title, url, category, country, store_key, price, old_price, currency, discount_percent, discount_source, source,
@@ -251,6 +278,7 @@ export function seedDeals(): number {
   db.transaction(() => {
     const now = nowIso();
     for (const s of DEAL_SEED) {
+      if (!first && (s.batch ?? 1) < 2) continue;
       if (exists.get(s.url)) continue;
       const store = detectStore(s.url);
       ins.run(
@@ -260,9 +288,11 @@ export function seedDeals(): number {
       );
       n++;
     }
-    db.prepare("UPDATE products SET active = 0, updated_at = ? WHERE source = 'sample' AND active = 1").run(now);
-    settingSet("deals_seeded", "v1");
-    settingSet("deals_last_publish", now);
+    if (first) {
+      db.prepare("UPDATE products SET active = 0, updated_at = ? WHERE source = 'sample' AND active = 1").run(now);
+      settingSet("deals_last_publish", now);
+    }
+    settingSet("deals_seeded", "v2");
   })();
   if (n) console.log(`[deals] seeded ${n} product(s)`);
   return n;

@@ -159,7 +159,6 @@ export function ProductManager({ products, status, siteUrl }: { products: P[]; s
         <form ref={formRef} action={saveAction} className="flex flex-col gap-4">
           <input type="hidden" name="id" value={form.id} />
           <input type="hidden" name="url" value={form.url} />
-          <input type="hidden" name="image_url" value={form.image_url} />
           <FormField label="عنوان" htmlFor="p-title">
             <FieldInput id="p-title" name="title" dir="auto" required value={form.title} onChange={set("title")} />
           </FormField>
@@ -197,6 +196,20 @@ export function ProductManager({ products, status, siteUrl }: { products: P[]; s
           </div>
           <FormField label="تصویر" htmlFor="p-img" helper={preview ? "از لینک خوانده شد؛ برای تعویض فایل بدهید." : "JPG، PNG یا WebP؛ سبک (زیر ۳۰۰ کیلوبایت)."}>
             <input id="p-img" name="image" type="file" accept="image/jpeg,image/png,image/webp" className="block w-full text-xs text-[#52525B] file:ml-3 file:h-8 file:rounded-lg file:border file:border-[#E4E4E7] file:bg-white file:px-3 file:text-[13px] file:font-semibold file:text-[#18181B] hover:file:bg-[#FAFAFA]" />
+          </FormField>
+          <FormField label="یا لینک عکس" htmlFor="p-imgurl" helper="اگر فروشگاه جلوی خواندن را گرفت: روی عکس کالا در سایت راست‌کلیک ← Copy image address.">
+            <FieldInput
+              id="p-imgurl"
+              name="image_url"
+              dir="ltr"
+              placeholder="https://…/image.jpg"
+              value={form.image_url}
+              onChange={(e) => {
+                setForm((f) => ({ ...f, image_url: e.target.value }));
+                setPreview(/^https:\/\//.test(e.target.value) ? e.target.value : null);
+              }}
+              className="text-left"
+            />
           </FormField>
           {preview && (
             // eslint-disable-next-line @next/next/no-img-element -- remote preview before saving

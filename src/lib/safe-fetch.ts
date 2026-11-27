@@ -13,7 +13,7 @@ import { ProxyAgent, fetch as undiciFetch, type Dispatcher } from "undici";
  * FETCH_PROXY_URL (single proxy) is still read as a fallback. Only http(s) proxies.
  */
 
-const MAX_REDIRECTS = 4;
+const MAX_REDIRECTS = 6;
 
 export type FetchProxy = { label: string; url: string };
 
@@ -120,14 +120,29 @@ export async function safeFetch(
   const timer = setTimeout(() => controller.abort(), opts.timeoutMs ?? 12_000);
   try {
     let current = raw;
+    // Some stores set a cookie and redirect back to the same page; without sending it the
+    // browser-less request loops (sssports). Cookies live only for this one request.
+    const jar = new Map<string, Map<string, string>>();
     for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
       const url = await assertPublicUrl(current);
+      const host = url.hostname.split(".").slice(-2).join("."); // shared by the store's subdomains
+      const cookies = jar.get(host);
+      const headers: Record<string, string> = opts.accept ? { ...BROWSER_HEADERS, Accept: opts.accept } : { ...BROWSER_HEADERS };
+      if (cookies?.size) headers.Cookie = [...cookies].map(([k, v]) => `${k}=${v}`).join("; ");
       const res = await undiciFetch(url, {
         redirect: "manual",
         signal: controller.signal,
         dispatcher: agentFor(proxy),
-        headers: opts.accept ? { ...BROWSER_HEADERS, Accept: opts.accept } : BROWSER_HEADERS,
+        headers,
       });
+      for (const line of res.headers.getSetCookie?.() ?? []) {
+        const pair = line.split(";")[0];
+        const eq = pair.indexOf("=");
+        if (eq <= 0) continue;
+        const m = jar.get(host) ?? new Map<string, string>();
+        m.set(pair.slice(0, eq).trim(), pair.slice(eq + 1).trim());
+        jar.set(host, m);
+      }
       if (res.status >= 300 && res.status < 400) {
         const loc = res.headers.get("location");
         await res.body?.cancel();

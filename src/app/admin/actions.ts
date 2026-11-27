@@ -206,6 +206,9 @@ export async function saveProductAction(_: ActionState, fd: FormData): Promise<A
   }
   revalidatePath("/admin/products");
   revalidatePath("/");
+  if (p.image_url && !imageId && !(file instanceof File && file.size > 0)) {
+    return { ok: true, message: "ذخیره شد، ولی عکس از این لینک دانلود نشد. لینک مستقیم عکس (آخرش ‎.jpg/.png/.webp) بدهید یا فایل عکس را بارگذاری کنید." };
+  }
   return { ok: true, message: p.id ? "کالا به‌روز شد." : p.queued ? "کالا به صف انتشار خودکار اضافه شد." : imageId || p.image_url === "" ? "کالا اضافه شد." : "کالا اضافه شد، ولی تصویرش دانلود نشد. تصویر را دستی بارگذاری کنید." };
 }
 
