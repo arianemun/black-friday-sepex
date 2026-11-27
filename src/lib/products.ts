@@ -1,5 +1,6 @@
 import "server-only";
 import { getDb } from "./db";
+import { toNumber } from "./link-meta";
 import { mediaUrl } from "./uploads";
 
 export type ProductRow = {
@@ -70,11 +71,18 @@ export function getPublicProducts(): PublicProduct[] {
     storeKey: p.store_key,
     country: p.country,
     category: p.category,
-    price: p.price,
-    oldPrice: p.old_price,
+    price: plain(p.price),
+    oldPrice: plain(p.old_price),
     currency: p.currency,
     discount: p.discount_percent,
   }));
+}
+
+/** "AED5,099.00" → "5099" (rows saved before prices were stored as plain numbers). */
+function plain(v: string | null): string | null {
+  if (!v) return v;
+  const n = toNumber(v);
+  return n ? String(n) : v;
 }
 
 export function getProductByCode(code: string): ProductRow | undefined {

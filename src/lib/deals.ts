@@ -96,7 +96,8 @@ export async function checkProduct(p: ProductRow): Promise<CheckResult> {
 
   const stock: ProductRow["stock"] = meta.availability === "out" ? "out" : meta.availability === "in" ? "in" : "unknown";
   const siteDiscount = discountOf(meta.price, meta.oldPrice);
-  const price = meta.price ?? p.price;
+  // Stored as plain numbers ("5099"), not as the page wrote them ("AED5,099.00").
+  const price = meta.price ? String(toNumber(meta.price) ?? meta.price) : p.price;
   // A discount read from the store wins. Otherwise the recorded one (staff, bookmark, research)
   // stays: the server often can't see the crossed-out price that a person saw. It is dropped
   // only when the store now asks more than the recorded price, i.e. the sale is over.
@@ -107,7 +108,7 @@ export async function checkProduct(p: ProductRow): Promise<CheckResult> {
   if (siteDiscount) {
     discount = siteDiscount;
     source = "site";
-    old = meta.oldPrice ?? null;
+    old = meta.oldPrice ? String(toNumber(meta.oldPrice) ?? meta.oldPrice) : null;
   } else if (discount && now$ && was$ && now$ > was$ * 1.02) {
     const fromOld = old ? discountOf(now$, old) : null;
     discount = fromOld;

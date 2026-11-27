@@ -53,7 +53,7 @@ const fmtTime = (iso: string | null) =>
 
 const fmtPrice = (v: string | null, cur: string | null) => {
   if (!v) return null;
-  const n = Number(String(v).replace(/,/g, ""));
+  const n = Number(String(v).replace(/[^\d.]/g, ""));
   return `${Number.isFinite(n) ? n.toLocaleString("en-US", { maximumFractionDigits: 2 }) : v}${cur ? ` ${cur}` : ""}`;
 };
 
