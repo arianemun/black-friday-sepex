@@ -24,9 +24,19 @@ import { siteConfig } from "@/lib/site";
 // touching the production database and shows product edits immediately.
 export const dynamic = "force-dynamic";
 
+function shuffle<T>(list: T[]): T[] {
+  const a = [...list];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 export default function HomePage() {
   const settings = getSettings();
-  const products = getPublicProducts();
+  // A different order on every visit (the page is rendered per request, so no hydration jump).
+  const products = shuffle(getPublicProducts());
   const countdown = activeCountdown(settings);
 
   const jsonLd = [

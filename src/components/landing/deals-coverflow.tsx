@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
-import { countryName, storeByKey, storeLabel } from "@/lib/catalog";
+import { countryName, storeByKey } from "@/lib/catalog";
 import type { PublicProduct } from "@/lib/products";
 import { cn, toFaDigits } from "@/lib/utils";
 
@@ -14,8 +14,22 @@ const formatPrice = (price: string | null, currency: string | null) => {
   return `${v}${currency ? ` ${currency}` : ""}`;
 };
 
+/** The store's icon and name, small, in the photo's bottom corner. */
+function StoreBadge({ storeKey, name }: { storeKey: string; name: string }) {
+  const [icon, setIcon] = useState(true);
+  return (
+    <span className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-white/95 py-1 pl-2 pr-1.5 text-[11px] font-bold leading-none text-ink ring-1 ring-black/[0.07]" dir="ltr">
+      {icon && (
+        // eslint-disable-next-line @next/next/no-img-element -- our own icon route
+        <img src={`/store-icon/${storeKey}`} alt="" className="size-4 object-contain" onError={() => setIcon(false)} />
+      )}
+      {name}
+    </span>
+  );
+}
+
 /**
- * Fanned product carousel: the centre card is large and lit, neighbours step back and fade.
+ * Fanned product carousel: the centre card is large and lit, neighbours step back into the dark.
  * Auto-advances (paused on hover/focus and for reduced motion); arrows, dots and swipe.
  */
 export function DealsCoverflow({ products }: { products: PublicProduct[] }) {
@@ -78,16 +92,22 @@ export function DealsCoverflow({ products }: { products: PublicProduct[] }) {
               )}
               style={{
                 transform: `translateX(calc(-50% + ${-o * 62}%)) translateY(${abs * 26}px) scale(${1 - abs * 0.12})`,
-                opacity: hidden ? 0 : abs === 0 ? 1 : abs === 1 ? 0.55 : 0.22,
+                // Neighbours stay solid (nothing shows through them); a shade inside dims them.
+                opacity: hidden ? 0 : 1,
               }}
             >
+              <span
+                className="pointer-events-none absolute inset-0 z-10 bg-black transition-opacity duration-500"
+                style={{ opacity: abs === 0 ? 0 : abs === 1 ? 0.55 : 0.78 }}
+                aria-hidden
+              />
               <div
                 className={cn(
                   "flex flex-col bg-[#121212] p-2.5 ring-1 ring-inset transition-shadow duration-500",
                   o === 0 ? "ring-brand/50 shadow-[0_30px_90px_-25px_rgb(255_203_5/0.55)]" : "ring-white/10"
                 )}
               >
-                <div className="relative aspect-square overflow-hidden bg-[#f4f4f2] p-5">
+                <div className="relative aspect-square overflow-hidden bg-white p-6">
                   {p.image ? (
                     // eslint-disable-next-line @next/next/no-img-element -- pre-sized WebP from our own /media route
                     <img src={p.image} alt={p.title} loading="lazy" decoding="async" className="size-full object-contain" />
@@ -95,21 +115,22 @@ export function DealsCoverflow({ products }: { products: PublicProduct[] }) {
                     <div className="flex size-full items-center justify-center text-sm text-ink/40">بدون تصویر</div>
                   )}
                   {p.discount ? (
-                    <span className="price-tag absolute right-0 top-3 bg-brand py-1.5 pl-3 pr-8 text-base font-black text-ink">
-                      ٪{toFaDigits(p.discount)}
+                    <span className="chamfer-sm absolute left-0 top-0 flex flex-col items-center bg-brand px-3 pb-1.5 pt-2 leading-none text-ink">
+                      <span className="text-xl font-black">٪{toFaDigits(p.discount)}</span>
+                      <span className="mt-0.5 text-[10px] font-bold text-ink/65">تخفیف</span>
                     </span>
                   ) : null}
+                  {store && <StoreBadge storeKey={store.key} name={store.brand ?? store.latin} />}
                 </div>
-                <div className="flex flex-col gap-1.5 px-1.5 pb-1.5 pt-3">
-                  <p className="text-xs text-white/45">
-                    {store ? storeLabel(store) : "فروشگاه خارجی"}
-                    {p.country ? `، ${countryName(p.country)}` : ""}
-                  </p>
+                <div className="flex flex-col gap-2 px-1.5 pb-1.5 pt-3">
                   <h3 dir="auto" className="line-clamp-2 min-h-10 text-sm font-semibold leading-5 text-white">{p.title}</h3>
-                  <p dir="ltr" className="min-h-6 text-left">
-                    {price && <span className="font-black text-brand">{price}</span>}
-                    {old && <span className="ml-2 text-xs text-white/35 line-through">{old}</span>}
-                  </p>
+                  <div className="flex min-h-6 items-baseline justify-between gap-2">
+                    {p.country ? <span className="shrink-0 text-[11px] text-white/40">از {countryName(p.country)}</span> : <span />}
+                    <p dir="ltr" className="truncate text-left">
+                      {price && <span className="font-black text-brand">{price}</span>}
+                      {old && <span className="ml-2 text-xs text-white/35 line-through">{old}</span>}
+                    </p>
+                  </div>
                   {o === 0 && (
                     <div className="mt-1 flex items-stretch gap-1.5">
                       <Link
