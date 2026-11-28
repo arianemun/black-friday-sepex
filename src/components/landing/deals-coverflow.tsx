@@ -34,39 +34,85 @@ function StoreBadge({ storeKey, name }: { storeKey: string; name: string }) {
  */
 export function DealsCoverflow({ products }: { products: PublicProduct[] }) {
   const n = products.length;
-  const [active, setActive] = useState(0);
-  const [paused, setPaused] = useState(false);
+  // The current slide and the one before it (to tell a one-step move from a wrap-around jump).
+  const [slide, setSlide] = useState({ at: 0, from: 0 });
+  const active = slide.at;
+  const setActive = useCallback((i: number) => setSlide((s) => (s.at === i ? s : { at: i, from: s.at })), []);
+  // Separate reasons to hold the autoplay; each one is lifted by its own counterpart event,
+  // so a tap on a phone or a click on an arrow can never leave the carousel stuck.
+  const [hover, setHover] = useState(false); // real mouse only
+  const [keyFocus, setKeyFocus] = useState(false); // keyboard focus inside
+  const [touching, setTouching] = useState(false);
+  const [onScreen, setOnScreen] = useState(true);
+  const [reduced, setReduced] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const touchX = useRef<number | null>(null);
 
-  const go = useCallback((d: number) => setActive((a) => (a + d + n) % n), [n]);
+  const go = useCallback((d: number) => setSlide((s) => ({ at: (s.at + d + n) % n, from: s.at })), [n]);
 
   useEffect(() => {
-    if (paused || n < 2) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const t = setInterval(() => go(1), 3800);
-    return () => clearInterval(t);
-  }, [paused, n, go]);
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReduced(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  // Stop while scrolled away or the tab is in the background.
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setOnScreen(e.isIntersecting && !document.hidden), { threshold: 0.25 });
+    io.observe(el);
+    const vis = () => setOnScreen(!document.hidden && el.getBoundingClientRect().bottom > 0 && el.getBoundingClientRect().top < window.innerHeight);
+    document.addEventListener("visibilitychange", vis);
+    return () => {
+      io.disconnect();
+      document.removeEventListener("visibilitychange", vis);
+    };
+  }, []);
+
+  // One timer per slide: any move (auto, arrow, dot, swipe) restarts the full wait.
+  const running = n > 1 && !reduced && !hover && !keyFocus && !touching && onScreen;
+  useEffect(() => {
+    if (!running) return;
+    const t = setTimeout(() => go(1), 3800);
+    return () => clearTimeout(t);
+  }, [running, active, go]);
 
   // Shortest signed distance on the ring, so the fan wraps around.
-  const offset = (i: number) => {
-    let o = i - active;
+  const ring = (i: number, a: number) => {
+    let o = i - a;
     if (o > n / 2) o -= n;
     if (o < -n / 2) o += n;
     return o;
   };
+  const offset = (i: number) => ring(i, active);
 
   return (
     <div
+      ref={rootRef}
       className="relative"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocusCapture={() => setPaused(true)}
-      onBlurCapture={() => setPaused(false)}
-      onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
+      onPointerEnter={(e) => e.pointerType === "mouse" && window.matchMedia("(hover: hover) and (pointer: fine)").matches && setHover(true)}
+      onPointerLeave={(e) => e.pointerType === "mouse" && setHover(false)}
+      onFocusCapture={(e) => setKeyFocus(e.target instanceof HTMLElement && e.target.matches(":focus-visible"))}
+      onBlurCapture={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setKeyFocus(false);
+      }}
+      onTouchStart={(e) => {
+        touchX.current = e.touches[0].clientX;
+        setTouching(true);
+        setHover(false);
+      }}
       onTouchEnd={(e) => {
+        setTouching(false);
         if (touchX.current === null) return;
         const dx = e.changedTouches[0].clientX - touchX.current;
         if (Math.abs(dx) > 40) go(dx > 0 ? 1 : -1); // RTL: swipe right = next
+        touchX.current = null;
+      }}
+      onTouchCancel={() => {
+        setTouching(false);
         touchX.current = null;
       }}
       aria-roledescription="carousel"
@@ -77,6 +123,8 @@ export function DealsCoverflow({ products }: { products: PublicProduct[] }) {
           const o = offset(i);
           const abs = Math.abs(o);
           const hidden = abs > 2;
+          // A card that wraps from one end of the ring to the other jumps instead of flying across.
+          const jump = Math.abs(o - ring(i, slide.from)) > 1;
           const store = storeByKey(p.storeKey);
           const price = formatPrice(p.price, p.currency);
           const old = formatPrice(p.oldPrice, p.currency);
@@ -86,7 +134,8 @@ export function DealsCoverflow({ products }: { products: PublicProduct[] }) {
               aria-hidden={o !== 0}
               onClick={() => o !== 0 && setActive(i)}
               className={cn(
-                "absolute left-1/2 top-0 w-[15.5rem] transition-all duration-500 ease-out sm:w-[17rem]",
+                "absolute left-1/2 top-0 w-[15.5rem] will-change-transform sm:w-[17rem]",
+                !jump && "transition-[transform,opacity] duration-500 ease-out",
                 o === 0 ? "z-30" : abs === 1 ? "z-20 cursor-pointer" : "z-10 cursor-pointer",
                 hidden && "pointer-events-none"
               )}

@@ -66,21 +66,22 @@ function PriceTag({ t }: { t: Tag }) {
     sm: toLeft ? "py-3 text-[1.3rem] pr-4 pl-10" : "py-3 text-[1.3rem] pl-4 pr-10",
   }[t.size];
   return (
-    <div
-      className={`tag-drop absolute hidden origin-center scale-75 lg:block xl:scale-100 ${t.pos}`}
+    <a
+      href="#stores"
+      className={`tag-drop group absolute z-20 hidden origin-center scale-75 outline-none lg:block xl:scale-100 ${t.pos}`}
       style={{ "--d": `${t.d}ms` } as React.CSSProperties}
-      aria-hidden
+      aria-label={`${tagName(t.key)} — سایت‌های محبوب برای خرید`}
     >
       <div className={`tag-sway ${toLeft ? "tag-sway-l" : ""}`} style={{ "--r": `${t.r}deg`, "--s": `${t.s}s`, transform: `rotate(${t.r}deg)` } as React.CSSProperties}>
         <div
-          className={`price-tag ${toLeft ? "price-tag-l" : ""} font-black leading-none shadow-2xl ${size} ${
+          className={`price-tag ${toLeft ? "price-tag-l" : ""} font-black leading-none shadow-2xl transition-transform duration-200 group-hover:scale-105 group-focus-visible:scale-110 group-focus-visible:brightness-125 ${size} ${
             t.tone === "yellow" ? "bg-brand text-ink" : "bg-[#1b1b1b] text-brand ring-1 ring-inset ring-brand/35"
           }`}
         >
           {tagName(t.key)}
         </div>
       </div>
-    </div>
+    </a>
   );
 }
 
