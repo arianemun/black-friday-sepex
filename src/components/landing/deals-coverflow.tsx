@@ -14,6 +14,8 @@ const formatPrice = (price: string | null, currency: string | null) => {
   return `${v}${currency ? ` ${currency}` : ""}`;
 };
 
+const AUTOPLAY_MS = 3800;
+
 /** The store's icon and name, small, in the photo's bottom corner. */
 function StoreBadge({ storeKey, name }: { storeKey: string; name: string }) {
   const [icon, setIcon] = useState(true);
@@ -76,7 +78,7 @@ export function DealsCoverflow({ products }: { products: PublicProduct[] }) {
   const running = n > 1 && !reduced && !hover && !keyFocus && !touching && onScreen;
   useEffect(() => {
     if (!running) return;
-    const t = setTimeout(() => go(1), 3800);
+    const t = setTimeout(() => go(1), AUTOPLAY_MS);
     return () => clearTimeout(t);
   }, [running, active, go]);
 
@@ -118,7 +120,7 @@ export function DealsCoverflow({ products }: { products: PublicProduct[] }) {
       aria-roledescription="carousel"
       aria-label="پیشنهادهای بلک‌فرایدی"
     >
-      <div className="relative h-[29rem] sm:h-[31rem]">
+      <div className="relative h-[26rem] sm:h-[28.5rem]">
         {products.map((p, i) => {
           const o = offset(i);
           const abs = Math.abs(o);
@@ -207,24 +209,57 @@ export function DealsCoverflow({ products }: { products: PublicProduct[] }) {
       </div>
 
       {n > 1 && (
-        <div className="mt-2 flex items-center justify-center gap-4">
-          <button type="button" onClick={() => go(-1)} className="flex size-11 items-center justify-center border border-white/15 text-white/70 hover:border-brand hover:text-brand" aria-label="قبلی">
+        <div className="mx-auto mt-3 flex w-full max-w-[19rem] items-center gap-4 sm:mt-5 sm:max-w-sm">
+          <button type="button" onClick={() => go(-1)} className="flex size-11 shrink-0 items-center justify-center border border-white/15 text-white/70 transition-colors hover:border-white/40 hover:text-white" aria-label="قبلی">
             <ChevronRight className="size-5" />
           </button>
-          <div className="flex items-center gap-1.5">
-            {products.map((p, i) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setActive(i)}
-                aria-label={`کالای ${toFaDigits(i + 1)}`}
-                aria-current={i === active}
-                className={cn("h-1.5 transition-all", i === active ? "w-6 bg-brand" : "w-1.5 bg-white/25 hover:bg-white/50")}
+
+          {/* Where we are in the list: a counter and a track you can click to jump. */}
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-2.5">
+            <p className="flex items-baseline gap-1.5 font-black leading-none" aria-hidden>
+              <span className="text-xl text-white tabular-nums">{toFaDigits(String(active + 1).padStart(2, "0"))}</span>
+              <span className="text-xs text-white/35">/</span>
+              <span className="text-xs text-white/35 tabular-nums">{toFaDigits(String(n).padStart(2, "0"))}</span>
+            </p>
+            <span className="sr-only" aria-live={running ? "off" : "polite"}>
+              کالای {toFaDigits(active + 1)} از {toFaDigits(n)}
+            </span>
+            <div
+              className="group relative flex h-4 w-full cursor-pointer items-center"
+              onClick={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                const frac = (r.right - e.clientX) / r.width; // RTL: first item on the right
+                setActive(Math.min(n - 1, Math.max(0, Math.floor(frac * n))));
+              }}
+              aria-hidden
+            >
+              <span className="h-px w-full bg-white/15 transition-[height] group-hover:h-0.5" />
+              <span
+                className="absolute h-[3px] bg-brand transition-[right] duration-500 ease-out"
+                style={{ right: `${(active / n) * 100}%`, width: `${Math.max(100 / n, 4)}%` }}
               />
-            ))}
+            </div>
           </div>
-          <button type="button" onClick={() => go(1)} className="flex size-11 items-center justify-center border border-white/15 text-white/70 hover:border-brand hover:text-brand" aria-label="بعدی">
+
+          <button type="button" onClick={() => go(1)} className="relative flex size-11 shrink-0 items-center justify-center border border-white/15 text-white/70 transition-colors hover:border-white/40 hover:text-white" aria-label="بعدی">
             <ChevronLeft className="size-5" />
+            {/* Autoplay timer: the frame fills in yellow until the next card comes in. */}
+            {running && (
+              <svg key={active} className="pointer-events-none absolute -inset-px size-[calc(100%+2px)]" viewBox="0 0 46 46" aria-hidden>
+                <rect
+                  x="0.75"
+                  y="0.75"
+                  width="44.5"
+                  height="44.5"
+                  pathLength={100}
+                  fill="none"
+                  stroke="var(--color-brand, #FFCB05)"
+                  strokeWidth="1.5"
+                  className="autoplay-ring"
+                  style={{ animationDuration: `${AUTOPLAY_MS}ms` }}
+                />
+              </svg>
+            )}
           </button>
         </div>
       )}
