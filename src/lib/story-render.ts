@@ -10,7 +10,7 @@ import { LOGO_PATH } from "@/components/brand/logo";
 export const STORY_W = 1080;
 export const STORY_H = 1920;
 /** The band left empty for the link sticker (y range), shown as a guide in the editor only. */
-export const STICKER_ZONE = { y: 1665, h: 165 };
+export const STICKER_ZONE = { y: 1468, h: 165 };
 
 const YELLOW = "#FFCB05";
 const INK = "#111111";
@@ -251,16 +251,16 @@ export function drawStory(ctx: CanvasRenderingContext2D, d: StoryData, product: 
   }
   ctx.restore();
 
-  // Call to action.
+  // Call to action, under the link sticker.
   ctx.direction = "rtl";
   ctx.textAlign = "center";
   ctx.fillStyle = YELLOW;
   const cta = d.discount
-    ? ["تا تخفیف فعاله، از لینک زیر درخواست", "خریدش رو در سپکس ثبت کنید."]
-    : ["تا بلک‌فرایدی تموم نشده، از لینک زیر", "درخواست خریدش رو در سپکس ثبت کنید."];
+    ? ["تا تخفیف فعاله، از لینک بالا درخواست", "خریدش رو در سپکس ثبت کنید."]
+    : ["تا بلک‌فرایدی تموم نشده، از لینک بالا", "درخواست خریدش رو در سپکس ثبت کنید."];
   ctx.font = `700 52px ${family}`;
-  ctx.fillText(cta[0], cx, 1522);
-  ctx.fillText(cta[1], cx, 1602);
+  ctx.fillText(cta[0], cx, 1722);
+  ctx.fillText(cta[1], cx, 1802);
 
   ctx.restore();
 }
